@@ -4,6 +4,13 @@
     <a class="dpr-home-notice-tutorial" href="#/tutorial/README">使用教程 <span aria-hidden="true">›</span></a>
   </div>
   <div class="dpr-home-notice-entry">
+    <time class="dpr-home-notice-date" datetime="2026-11-12">11.12</time>
+    <div>
+      <strong class="dpr-home-notice-entry-title">设置向导支持多厂商 LLM API</strong>
+      <span class="dpr-home-notice-entry-summary">配置页不再写死 DeepSeek：可从 DeepSeek、GLM Coding 套餐、智谱开放平台、Kimi For Coding、Kimi 开放平台、硅基流动等预设中选择，或填任意 OpenAI 兼容端点；切换厂商自动联动端点与模型建议，已有配置自动识别。CI 字段名不变，工作流零改动。</span>
+    </div>
+  </div>
+  <div class="dpr-home-notice-entry">
     <time class="dpr-home-notice-date" datetime="2026-10-05">10.05</time>
     <div>
       <strong class="dpr-home-notice-entry-title">medRxiv 自动更新已恢复</strong>
@@ -15,13 +22,6 @@
     <div>
       <strong class="dpr-home-notice-entry-title">日报跨日重复推荐已修复</strong>
       <span class="dpr-home-notice-entry-summary">历史推荐现按原始召回标签与 arXiv 论文标识去重，暂停词条不再参与评分；同一专题次日不会重复推荐相同论文。已有历史页面保留，不自动删除。</span>
-    </div>
-  </div>
-  <div class="dpr-home-notice-entry">
-    <time class="dpr-home-notice-date" datetime="2026-09-09">09.09</time>
-    <div>
-      <strong class="dpr-home-notice-entry-title">90天/365天 arXiv 专题回溯</strong>
-      <span class="dpr-home-notice-entry-summary">支持分片召回、断点评审与分页查看，核心论文与待复核结果分开展示。DeepSeek 费用按实际用量计算，不下载全量 PDF。</span>
     </div>
   </div>
   <div class="dpr-home-site-stats" data-dpr-site-stats hidden aria-live="polite">
