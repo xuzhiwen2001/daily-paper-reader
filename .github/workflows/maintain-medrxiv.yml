@@ -23,7 +23,6 @@ concurrency:
 
 jobs:
   maintain_medrxiv:
-    if: github.repository == 'ziwenhahaha/daily-paper-reader' || github.repository == '5-xj/daily-paper-reader'
     runs-on: ubuntu-latest
     timeout-minutes: 240
     env:
@@ -32,7 +31,7 @@ jobs:
       DPR_EMBED_API_URL: ${{ secrets.DPR_EMBED_API_URL || 'https://zwwen.online/embed' }}
       DPR_EMBED_API_KEY: ${{ secrets.DPR_EMBED_API_KEY }}
       DPR_EMBED_API_TIMEOUT: "60"
-      SUPABASE_URL: https://lyucdwgefyfbmaiopjbk.supabase.co
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SCHEMA: public
       SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       SUPABASE_BACKEND_KEY: medrxiv
