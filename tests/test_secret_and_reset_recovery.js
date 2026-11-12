@@ -66,7 +66,7 @@ async function testDeepSeekTimeoutAndHttpError() {
   const timer = [...timers.values()].find(t => t.ms === 20000);
   assert.ok(timer);
   timer.fn();
-  await assert.rejects(pending, { message: 'DeepSeek 连接测试超时，请稍后重试' });
+  await assert.rejects(pending, { message: 'LLM 连接测试超时，请稍后重试' });
   assert.equal(timers.size, 0);
   context.fetch = async () => response(401);
   await assert.rejects(context.window.probe.pingChatModels(entries, null), /HTTP 401/);

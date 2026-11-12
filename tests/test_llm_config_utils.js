@@ -7,6 +7,8 @@ const {
   resolveChatModels,
   resolveSummaryLLM,
   inferProviderType,
+  getProviderPreset,
+  listProviderPresets,
   getDeepSeekPreset,
   inferChatApiProfile,
   resolveJsonResponseMode,
@@ -102,9 +104,10 @@ function testGetDeepSeekPreset() {
     getDeepSeekPreset('deepseek'),
     {
       key: 'deepseek',
-      label: 'DeepSeek 官方',
+      label: 'DeepSeek 官方（按量）',
       baseUrl: 'https://api.deepseek.com',
       models: ['deepseek-v4-flash', 'deepseek-v4-pro'],
+      note: 'DeepSeek 官方 API，按量计费。',
     },
   );
   assert.equal(getDeepSeekPreset('other-a'), null);
@@ -113,13 +116,49 @@ function testGetDeepSeekPreset() {
   assert.equal(getDeepSeekPreset('other-d'), null);
 }
 
+function testGetProviderPresetAndList() {
+  assert.equal(getProviderPreset('glm-coding').baseUrl, 'https://open.bigmodel.cn/api/coding/paas/v4');
+  assert.equal(getProviderPreset('kimi-coding').baseUrl, 'https://api.kimi.com/openai/v1');
+  assert.equal(getProviderPreset('zhipu').baseUrl, 'https://open.bigmodel.cn/api/paas/v4');
+  assert.equal(getProviderPreset('moonshot').baseUrl, 'https://api.moonshot.cn/v1');
+  assert.equal(getProviderPreset('siliconflow').baseUrl, 'https://api.siliconflow.cn/v1');
+  assert.equal(getProviderPreset('custom').baseUrl, '');
+  assert.equal(getProviderPreset('no-such-key'), null);
+
+  const keys = listProviderPresets().map((item) => item.key);
+  assert.deepEqual(keys, [
+    'deepseek',
+    'glm-coding',
+    'zhipu',
+    'kimi-coding',
+    'moonshot',
+    'siliconflow',
+    'custom',
+  ]);
+  listProviderPresets().forEach((item) => {
+    assert.equal(typeof item.label, 'string');
+    assert.ok(Array.isArray(item.models));
+    assert.equal(typeof item.note, 'string');
+  });
+}
+
 function testInferChatApiProfile() {
   assert.equal(
     inferChatApiProfile('https://api.deepseek.com', 'deepseek-v4-flash'),
     'deepseek',
   );
-  assert.equal(inferChatApiProfile('https://example.com/v1', 'other-model'), 'unsupported');
-  assert.equal(inferChatApiProfile('https://example.com/v1', 'other-model'), 'unsupported');
+  // 未知主机一律视为通用 OpenAI 兼容端点
+  assert.equal(inferChatApiProfile('https://example.com/v1', 'other-model'), 'openai');
+  assert.equal(inferChatApiProfile('https://llm.internal/v1', ''), 'openai');
+  // 厂商域名识别
+  assert.equal(inferChatApiProfile('https://open.bigmodel.cn/api/coding/paas/v4', 'glm-4.6'), 'zhipu');
+  assert.equal(inferChatApiProfile('https://open.bigmodel.cn/api/paas/v4', 'glm-4.6'), 'zhipu');
+  assert.equal(inferChatApiProfile('https://api.kimi.com/openai/v1', 'kimi-k2.5'), 'moonshot');
+  assert.equal(inferChatApiProfile('https://api.moonshot.cn/v1', 'kimi-k2-0905-preview'), 'moonshot');
+  assert.equal(inferChatApiProfile('https://api.siliconflow.cn/v1', 'deepseek-ai/DeepSeek-V3'), 'siliconflow');
+  // 空 base URL 时仅按模型名回退
+  assert.equal(inferChatApiProfile('', 'deepseek-v4-flash'), 'deepseek');
+  assert.equal(inferChatApiProfile('', 'other-model'), 'unsupported');
 }
 
 function testResolveJsonResponseMode() {
@@ -256,6 +295,7 @@ testSanitizeModelList();
 testResolveChatModelsAndSummary();
 testInferProviderType();
 testGetDeepSeekPreset();
+testGetProviderPresetAndList();
 testInferChatApiProfile();
 testResolveJsonResponseMode();
 testResolveMaxOutputTokens();

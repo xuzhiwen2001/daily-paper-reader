@@ -121,7 +121,8 @@ window.PrivateDiscussionChat = (function () {
     ) {
       return 'deepseek';
     }
-    return 'unsupported';
+    // 任意非空端点均按通用 OpenAI 兼容接口处理，不再判为不支持。
+    return normalizedBaseUrl ? 'openai' : 'unsupported';
   };
 	  const buildStreamingChatPayload = (baseUrl, model, messages) => {
 	    const utils = window.DPRLLMConfigUtils || {};
