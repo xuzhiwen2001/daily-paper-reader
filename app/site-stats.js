@@ -22,8 +22,8 @@
     'use strict';
 
     var DEFAULTS = {
-      supabaseUrl: 'https://lyucdwgefyfbmaiopjbk.supabase.co',
-      supabaseKey: 'sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq',
+      supabaseUrl: 'https://nwzzexxczfrlpjohihrn.supabase.co',
+      supabaseKey: 'sb_publishable_EYfvVqhEOYDE_zjMsj8c9w_gTZzoNC9',
       countsDateColumn: 'visit_date',
       historyDays: 14,
       githubRepoApi: 'https://api.github.com/repos/ziwenhahaha/daily-paper-reader',

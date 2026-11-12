@@ -3269,8 +3269,8 @@ window.$docsify = {
           // 读取 Supabase 配置
           const supabaseUrl = (window.$docsify && window.$docsify.supabaseUrl)
             || (window.jsyaml ? '' : '')
-            || 'https://lyucdwgefyfbmaiopjbk.supabase.co';
-          const anonKey = 'sb_publishable_lX-oi64Uxyd7SIVv3_w2Uw_MTOojeKq';
+            || 'https://nwzzexxczfrlpjohihrn.supabase.co';
+          const anonKey = 'sb_publishable_EYfvVqhEOYDE_zjMsj8c9w_gTZzoNC9';
           await window.DPRReadStateSync.init(supabaseUrl, anonKey, username);
           // 迁移 localStorage 已有数据
           const localState = (() => {
