@@ -118,7 +118,6 @@ function testGetDeepSeekPreset() {
 
 function testGetProviderPresetAndList() {
   assert.equal(getProviderPreset('glm-coding').baseUrl, 'https://open.bigmodel.cn/api/coding/paas/v4');
-  assert.equal(getProviderPreset('kimi-coding').baseUrl, 'https://api.kimi.com/openai/v1');
   assert.equal(getProviderPreset('zhipu').baseUrl, 'https://open.bigmodel.cn/api/paas/v4');
   assert.equal(getProviderPreset('moonshot').baseUrl, 'https://api.moonshot.cn/v1');
   assert.equal(getProviderPreset('siliconflow').baseUrl, 'https://api.siliconflow.cn/v1');
@@ -130,7 +129,6 @@ function testGetProviderPresetAndList() {
     'deepseek',
     'glm-coding',
     'zhipu',
-    'kimi-coding',
     'moonshot',
     'siliconflow',
     'custom',

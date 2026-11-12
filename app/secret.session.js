@@ -1849,9 +1849,21 @@
           llmStatusEl.style.color = '#28a745';
           llmOk = true;
         } catch (e) {
-          llmStatusEl.textContent = `❌ 测试失败：${e.message || e}`;
-          llmStatusEl.style.color = '#c00';
-          llmOk = false;
+          const message = String((e && e.message) || e || '');
+          // 网络级失败（Failed to fetch 等）多为浏览器 CORS 限制：
+          // coding 套餐等端点不允许网页跨域调用，但 GitHub Actions 服务端不受影响。
+          // 此时允许保存，由用户自行确认信息；HTTP 级错误仍视为配置问题阻止保存。
+          if (/failed to fetch|networkerror|load failed|timed? ?out|超时/i.test(message)) {
+            llmOk = true;
+            llmStatusEl.textContent =
+              '⚠️ 浏览器无法直连该端点（通常是 CORS 跨域限制，部分厂商端点不开放网页调用）。'
+              + 'GitHub Actions 服务端调用不受此限制；请自行确认 Base URL、模型名与 API Key 无误后保存。';
+            llmStatusEl.style.color = '#b58900';
+          } else {
+            llmStatusEl.textContent = `❌ 测试失败：${message}`;
+            llmStatusEl.style.color = '#c00';
+            llmOk = false;
+          }
         } finally {
           llmTestBtn.disabled = false;
           llmVerifyBtn.disabled = false;
