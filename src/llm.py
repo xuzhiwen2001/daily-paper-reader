@@ -681,8 +681,12 @@ class LLMClient:
                     raise
                 if attempt_idx < len(request_bases):
                     next_base = request_bases[attempt_idx] if attempt_idx < len(request_bases) else ''
+                    status_code = None
+                    if hasattr(e, "response") and e.response is not None:
+                        status_code = getattr(e.response, "status_code", None)
                     print(
-                        f"请求失败（base={req_base}，第 {attempt_idx} 次），"
+                        f"请求失败（base={req_base}，第 {attempt_idx} 次，"
+                        f"{type(e).__name__}{f' HTTP {status_code}' if status_code else ''}），"
                         f"将回退到 {next_base}"
                     )
                     if hasattr(e, "response") and e.response is not None:
@@ -693,6 +697,9 @@ class LLMClient:
                                 print("错误详情(TEXT):", e.response.text[:500])
                             except Exception:
                                 pass
+                    else:
+                        # 网络层异常（无 response）：连接被拒/DNS/超时等，给出异常类型便于定位
+                        print("错误详情(无响应体):", repr(e)[:300])
                     continue
                 print(f"通过 requests 调用 API 时出错: {e}")
                 if hasattr(e, "response") and e.response is not None:
