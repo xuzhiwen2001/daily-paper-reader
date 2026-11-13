@@ -15,6 +15,9 @@ import requests
 
 # 单次实验级别的全局 token 统计（需由调用方在实验开始前手动 reset）
 DEFAULT_MAX_OUTPUT_TOKENS = 393216
+# 非 DeepSeek 厂商（GLM/Kimi/SiliconFlow 等）输出上限远小于该值，
+# 393216 会在请求侧直接触发 400 参数越界；无显式配置时收敛到保守值。
+NON_DEEPSEEK_DEFAULT_MAX_OUTPUT_TOKENS = 8192
 
 
 def resolve_max_output_tokens(default: int = DEFAULT_MAX_OUTPUT_TOKENS) -> int:
@@ -25,6 +28,22 @@ def resolve_max_output_tokens(default: int = DEFAULT_MAX_OUTPUT_TOKENS) -> int:
         return max(1, int(raw))
     except Exception:
         return default
+
+
+def resolve_endpoint_max_output_tokens(base_url: str = "", model: str = "") -> int:
+    """按端点/模型收敛 max_tokens：显式 env 优先；DeepSeek 端点沿用超大上限，
+    其他厂商端点用保守默认，避免 393216 直接触发对方 400。"""
+    raw = os.getenv("DPR_LLM_MAX_OUTPUT_TOKENS") or os.getenv("LLM_MAX_OUTPUT_TOKENS")
+    if raw:
+        try:
+            return max(1, int(raw))
+        except Exception:
+            pass
+    normalized_model = str(model or "").strip().lower()
+    normalized_base = str(base_url or "").strip().lower()
+    if "deepseek" in normalized_model or "api.deepseek.com" in normalized_base:
+        return DEFAULT_MAX_OUTPUT_TOKENS
+    return NON_DEEPSEEK_DEFAULT_MAX_OUTPUT_TOKENS
 
 
 GLOBAL_TOKENS = {

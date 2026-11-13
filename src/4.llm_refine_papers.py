@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List
 
-from llm import DeepSeekClient, resolve_max_output_tokens
+from llm import DeepSeekClient, resolve_endpoint_max_output_tokens
 from subscription_plan import build_pipeline_inputs
 
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -929,10 +929,16 @@ def process_file(
                 merge_filter_result(merged, item, requirement_by_index)
 
     if not merged:
-        log("[WARN] no llm results returned.")
-        save_json(data, output_path)
-        group_end()
-        return
+        # 候选存在但 LLM 调用全部失败属于配置/服务故障，必须响亮失败，
+        # 否则会伪装成“今天没有新论文”产出空日报（静默绿勾）。
+        print(
+            f"::error::LLM refine 全部失败：候选 {len(docs)} 篇，成功打分 0 篇"
+            f"（failed_batches_docs={len(failed_docs)}，missing_after_merge={len(missing_docs)}）。"
+            f"请检查模型名、API Base URL、API Key 与配额；具体错误见上方 "
+            f"[WARN] filter batch / single-doc recovery 行。",
+            flush=True,
+        )
+        raise SystemExit(1)
 
     llm_ranked = sorted(merged.values(), key=lambda x: x.get("score", 0), reverse=True)
     data["llm_ranked"] = llm_ranked
@@ -991,8 +997,11 @@ def main() -> None:
     parser.add_argument(
         "--max-output-tokens",
         type=int,
-        default=resolve_max_output_tokens(),
-        help="max tokens for model output.",
+        default=resolve_endpoint_max_output_tokens(
+            DEFAULT_DEEPSEEK_BASE_URL,
+            DEFAULT_FILTER_MODEL,
+        ),
+        help="max tokens for model output（默认按端点收敛：DeepSeek 沿用超大上限，其他厂商用保守值，可用 DPR_LLM_MAX_OUTPUT_TOKENS 显式覆盖）.",
     )
     parser.add_argument(
         "--filter-concurrency",
