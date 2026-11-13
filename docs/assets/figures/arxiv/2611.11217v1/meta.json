@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "extractor": "pymupdf-images",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-001.webp",
+      "caption": "",
+      "page": 2,
+      "index": 1,
+      "width": 1046,
+      "height": 2371
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-002.webp",
+      "caption": "",
+      "page": 2,
+      "index": 2,
+      "width": 1835,
+      "height": 2371
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-003.webp",
+      "caption": "",
+      "page": 2,
+      "index": 3,
+      "width": 1128,
+      "height": 2371
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-004.webp",
+      "caption": "",
+      "page": 5,
+      "index": 4,
+      "width": 1264,
+      "height": 1537
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-005.webp",
+      "caption": "",
+      "page": 5,
+      "index": 5,
+      "width": 1265,
+      "height": 915
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-006.webp",
+      "caption": "",
+      "page": 5,
+      "index": 6,
+      "width": 1334,
+      "height": 1737
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-007.webp",
+      "caption": "",
+      "page": 5,
+      "index": 7,
+      "width": 1332,
+      "height": 716
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-008.webp",
+      "caption": "",
+      "page": 5,
+      "index": 8,
+      "width": 2615,
+      "height": 224
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-009.webp",
+      "caption": "",
+      "page": 8,
+      "index": 9,
+      "width": 418,
+      "height": 381
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-010.webp",
+      "caption": "",
+      "page": 8,
+      "index": 10,
+      "width": 409,
+      "height": 389
+    },
+    {
+      "url": "assets/figures/arxiv/2611.11217v1/fig-011.webp",
+      "caption": "",
+      "page": 8,
+      "index": 11,
+      "width": 411,
+      "height": 364
+    }
+  ]
+}

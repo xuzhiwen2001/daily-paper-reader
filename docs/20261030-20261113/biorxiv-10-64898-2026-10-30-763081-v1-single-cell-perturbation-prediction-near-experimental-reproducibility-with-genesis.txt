@@ -1,0 +1,3022 @@
+Title: Single-cell perturbation prediction near experimental reproducibility with GENESIS
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.10.30.763081v1.full.pdf
+
+Number of Pages: 44
+
+Markdown Content:
+# Single-cell perturbation prediction near experimental 1
+
+# reproducibility with GENESIS 2
+
+Riccardo Conci 1,2,5* †, Davide D’Ascenzo 3* †,3
+
+Sebastiano Cultrera di Montesano 2,3* †, Srivatsan Raghavan 1,2,4,5 ,4
+
+Peter S. Winter 2, Eliezer M. Van Allen 1,2,5 , Lorin Crawford 6, William Lotter 1,4,5* 5
+
+> 1
+
+Harvard Medical School, Boston, MA USA. 6
+
+> 2
+
+Broad Institute of MIT and Harvard, Cambridge, MA USA. 7
+
+> 3
+
+Untoken, Cambridge, MA USA. 8
+
+> 4
+
+Brigham and Women’s Hospital, Boston, MA USA. 9
+
+> 5
+
+Dana-Farber Cancer Institute, Boston, MA USA. 10 
+
+> 6
+
+Microsoft Research, Cambridge, MA USA. 11 
+
+*Corresponding author(s). E-mail(s): riccardo_conci@fas.harvard.edu; 12 
+
+davide@untoken.net; seb@untoken.net; lotterb@ds.dfci.harvard.edu; 13 
+
+> †
+
+These authors contributed equally to this work. 14 
+
+Abstract 15 
+
+Single-cell perturbation atlases now measure cellular responses across millions of cells, but the number 16 
+
+of possible combinations of biological contexts, perturbations, doses and other experimental variables 17 
+
+make exhaustive measurements infeasible. Here, we present GENESIS (Generative ENErgy-based 18 
+
+Single-cell Intervention Simulator), a generative framework that predicts single-cell response distribu-19 
+
+tions directly from the covariates defining an experimental condition. GENESIS uses a lightweight 20 
+
+neural network trained with the energy score, a strictly proper scoring rule for distributions. We 21 
+
+introduce an experiment-calibrated evaluation framework in which prediction error is interpreted rela-22 
+
+tive to the reproducibility of repeated measurements of the same condition. Across the Tahoe-100M 23 
+
+small-molecule atlas and a large PBMC cytokine atlas, GENESIS significantly outperforms existing gen-24 
+
+erative models and statistical baselines and approaches experimental reproducibility on independently 25 
+
+repeated conditions. Importantly, GENESIS remains accurate when trained on only a fraction of the 26 
+
+available experimental conditions or cells, and generated profiles recover experimentally observed 27 
+
+context-dependent transcriptional programs. At comparable training-cell budgets, GENESIS achieves 28 
+
+more accurate predictions when measurements span more experimental conditions rather than pro-29 
+
+filing fewer conditions more deeply. Together, these findings suggest a complementary strategy for 30 
+
+perturbation studies: broader, lower-depth measurements can expand experimental coverage, while 31 
+
+GENESIS augments sparsely sampled populations and predicts responses in unmeasured conditions. 32  
+
+> Keywords: single-cell transcriptomics, perturbation prediction, generative models, energy score, in silico biology
+
+33 
+
+## Introduction 34 
+
+Cells remodel their transcriptomes in response to genetic, chemical and environmental perturbations. 35 
+
+Single-cell perturbation atlases now measure these responses at unprecedented scale: Tahoe-100M 36 
+
+profiles more than 100 million cells across approximately 55,000 drug–cell-line–dose conditions 1,37 
+
+1
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint while the peripheral blood mononuclear cell (PBMC) cytokine atlas profiles approximately 10 38 
+
+million cells across diverse cytokine perturbations 2. Yet even datasets of this scale sample only a 39 
+
+small fraction of the possible experimental space, which spans factors such as biological context 40 
+
+(such as cell lines or donors), perturbation, dose, timing and other experimental variables. This 41 
+
+vast combinatorial space makes exhaustive measurement infeasible. Computational models could 42 
+
+instead use measured conditions to predict outcomes across the much larger space of unobserved 43 
+
+experimental settings, but this strategy requires both data-efficient learning and a meaningful 44 
+
+standard for judging generated predictions. 45 
+
+Several generative approaches have been developed to predict single-cell perturbation responses. 46 
+
+Most formulate the problem as learning a mapping from a measured population of control cells to a 47 
+
+perturbed population, using set-based transformers 3, variational autoencoders 4, optimal transport 5,48 
+
+flow matching 6 or diffusion models 7. Yet this mapping is not directly observed experimentally: 49 
+
+because single-cell sequencing is destructive, control and perturbed populations consist of differ-50 
+
+ent cells rather than paired measurements before and after treatment. Evaluating these models 51 
+
+presents a further difficulty 8–10 : although new methods are routinely benchmarked against held-out 52 
+
+perturbation responses, it remains unclear how close we are to predicting responses as reliably 53 
+
+as they can be measured. Even when the same cell line is exposed to the same drug and dose 54 
+
+on separate experimental plates, the measured responses can differ owing to finite sampling and 55 
+
+variation between experimental runs. Without a reference for this experimental reproducibility, 56 
+
+improvements over existing methods do not establish how close predictions come to the agreement 57 
+
+achievable between independent experimental repeats. 58 
+
+Here, we introduce GENESIS (Generative ENErgy-based Single-cell Intervention Simulator), 59 
+
+which models cellular response distributions directly from the covariates defining an experimental 60 
+
+condition. In the datasets studied here, these specify the cell line or donor and cell type, the drug 61 
+
+or cytokine applied, its dose where applicable, and the experimental batch. A lightweight neural 62 
+
+network uses these covariates to generate individual cell profiles without requiring measured 63 
+
+control cells at inference. The model is trained using the energy score, a strictly proper scoring rule 64 
+
+that enables learning distributions directly from individual observations, without requiring paired 65 
+
+cells or fixed-size population targets. The framework accommodates different sets of experimental 66 
+
+covariates and incomplete coverage of their possible combinations. 67 
+
+We evaluate GENESIS on Tahoe-100M and the PBMC cytokine atlas, demonstrating improved 68 
+
+prediction of held-out experimental conditions relative to existing generative models and statistical 69 
+
+baselines. To contextualize performance, we use independent experimental replicates in Tahoe-70 
+
+100M to establish a reproducibility benchmark, which GENESIS approaches. We further show that 71 
+
+GENESIS maintains strong performance with substantially reduced training data and that generated 72 
+
+transcriptomes capture biologically meaningful, context-dependent responses. Together, these 73 
+
+findings establish a framework for predicting cellular responses across subsampled experimental 74 
+
+spaces and inform potential strategies for designing more efficient perturbation studies. 75 
+
+## GENESIS generates perturbation responses from experimental 76 
+
+## covariates 77 
+
+We model a single cell’s transcriptome as a draw from a distribution conditioned on the covari-78 
+
+ates specifying its experimental condition. For ease of reference, we refer to these covariates in 79 
+
+three groups: biological context (e.g., cell line), perturbation (e.g., drug, dose), and experimen-80 
+
+tal replication context (e.g., plate identifier), which collectively define the condition. Denoting a 81 
+
+condition as c and the cells’ expression as Y , GENESIS learns the conditional distribution P(Y | c).82 
+
+Each covariate is represented by a learned embedding, which maps the value of the covariate to a 83 
+
+numerical representation. The embeddings defining a condition are concatenated with random 84 
+
+2
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+noise and passed through a multilayer perceptron to generate a single-cell gene-expression profile 85 
+
+(Methods). Repeated noise draws generate populations of arbitrary size (Fig. 1a). 86 
+
+This formulation is particularly natural for single-cell perturbation experiments. Because single-87 
+
+cell sequencing is destructive, control and perturbed cells are unpaired samples from condition-level 88 
+
+distributions: the pre-perturbation state of an individual assayed cell is never observed. GENESIS 89 
+
+therefore requires neither measured control cells at inference nor an assumed correspondence 90 
+
+between individual control and perturbed cells. Instead, a control measurement (i.e., the null 91 
+
+perturbation) is simply represented using a dedicated value for the perturbation covariate. 92 
+
+GENESIS is trained to recover the full conditional distribution using the energy score 11 as 93 
+
+a loss function (Methods). The energy score can be computed from a single observed cell of a 94 
+
+condition. It balances two requirements: generated transcriptomes should lie close to the observed 95 
+
+transcriptome but also differ from one another, which encourages the model to capture variation 96 
+
+across sampled cells during training (Fig. 1b). More fundamentally, the energy score is a strictly 97 
+
+proper scoring rule: averaged over observations, the true distribution is its unique optimum. This 98 
+
+framework thus enables learning heterogeneous condition-level responses directly from individual 99 
+
+cells, without paired observations or fixed-size population targets. We additionally include a 100 
+
+variogram term 12 in the loss function that encourages the model to reproduce the average magnitude 101 
+
+of expression differences between pairs of genes within cells, helping capture gene–gene dependence 102 
+
+and improving convergence in practice (Methods). 103 
+
+## Experimental reproducibility provides a reference for model 104 
+
+## performance 105 
+
+Various metrics have been proposed to measure agreement between predicted and measured tran-106 
+
+scriptomes, including direction-matched differential-expression gene overlap 3, control-relative 107 
+
+Pearson correlation 13,14 and energy distance 15 . While these metrics each measure useful aspects of 108 
+
+concordance, they are difficult to interpret without a reference for what level of agreement is experi-109 
+
+mentally achievable. We therefore anchor predictive performance to experimental reproducibility :110 
+
+how closely an independently repeated experiment reproduces the original measurement (Fig. 1c, 111 
+
+Methods). When the same condition is assayed in different experimental batches, such as on dif-112 
+
+ferent plates in Tahoe-100M, disagreement between the two measurements captures both finite 113 
+
+sampling and variation introduced by repeating the experiment 16,17 . We refer to a prediction as 114 
+
+reaching experimental reproducibility when its agreement with the measured response is compara-115 
+
+ble to that between independent experimental repeats. Because independent repeats are available 116 
+
+for only a subset of conditions, we additionally introduce split-half reproducibility for conditions 117 
+
+measured only once. Cells from a single experiment are randomly divided into two equally sized 118 
+
+populations and compared, with the partition redrawn 20 times and results averaged across draws 119 
+
+(Fig. 1c, Methods). Split-half reproducibility captures finite-sampling variability without the addi-120 
+
+tional variation introduced by repeating the experiment, hence it provides an overly-optimistic but 121 
+
+still informative reference for scenarios lacking experimental reproducibility data. 122 
+
+Fig. 1d compares the experimental and split-half reproducibility benchmarks in Tahoe-100M 123 
+
+as a function of the number of cells used in the calculation. Averaged over the one hundred most 124 
+
+deeply profiled Tahoe-100M conditions measured on two plates, both benchmarks show relatively 125 
+
+high experimental variability, but split-half reproducibility improves more sharply with cell count. 126 
+
+Additional cells therefore reduce finite-sampling variability but do not eliminate variation introduced 127 
+
+by repeating the experiment. Differential-expression analysis, a routine readout of perturbation 128 
+
+experiments, is strongly affected: even at 1,600 cells per arm, two plates share on average only 129 
+
+about 20 of their top 100 differentially expressed genes, compared with more than 60 for two 130 
+
+3
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+halves of the same plate. These findings highlight the importance of experimental reproducibility 131 
+
+as a reference for model performance. 132 Biological context: cell line C32                                     
+
+> Perturbation: Amsacrine
+> Replication context: plate 6
+> Noise: Uniform sample per cell
+> Learned embeddings
+> sampled
+> Input: condition covariates + noise MLP Output: mRNA expression of a single cell
+> Generated cells ( ^Y)True cells Sampled true cell ( y)Attraction Repulsion
+> L=k^Y¡yk ¡ 12k^Y¡^Y0k
+> Attraction Repulsion
+> Experiment Repeat A Experiment Repeat B
+> Experimental replication
+> Split-half
+> Control cells Perturbed cells
+> 50 100 200 400 800 1600
+> Cells per arm
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Top-100 DEG overlap ↑
+> 50 100 200 400 800 1600
+> Cells per arm
+> 0.0 0.2 0.4 0.6 0.8 1.0
+> Pearson Δ ↑
+> 50 100 200 400 800 1600
+> Cells per arm
+> 0.001 0.01 0.1
+> Energy distance ↓
+> Split-half Experimental repeat
+> abcd
+
+Fig. 1 | GENESIS generates single-cell perturbation responses from experimental covariates, with prediction performance benchmarked against experimental reproducibility. a , Overview of GENESIS. Covariate values describing biological, perturbation and replication context are each represented by a learned embedding; the embeddings are concatenated with a noise vector drawn independently for every cell and passed through a multilayer perceptron that outputs a predicted expression profile of one cell. Repeated noise draws generate a population of any size. b, The energy-score objective. The attraction term encourages generated cells to resemble the observed cell y, while the repulsion term encourages diversity among generated cells, preventing collapse to a single mean profile and allowing the model to capture cell-to-cell variability. c, Two references for experimental agreement. An experimental repeat compares one condition assayed in two independent experiments; a split-half repeat compares two disjoint random halves of the cells from one experiment, capturing cell-to-cell variability and finite sampling but not batch effects. d, Experimental and split-half reproducibility as a function of cell count. We analyzed the one hundred most deeply profiled Tahoe-100M conditions measured on two plates, each with at least 3,200 perturbed and 3,200 control cells per plate. At each cell count n, we sampled n perturbed and n control cells per repeat, drawing experimental repeats from separate plates and split-half repeats from non-overlapping subsets of the same plate. Agreement was measured by direction-matched overlap among the top 100 differentially expressed genes, Pearson 
+
+∆, and energy distance. Means across conditions are plotted after averaging 20 random draws per condition at each cell count; bands indicate the standard error of the mean across conditions. Split-half reproducibility improves more dramatically with cell count, whereas experimental reproducibility remains limited by experimental variation. 
+
+## GENESIS performance approaches experimental reproducibility 133 
+
+We first evaluated GENESIS on its ability to predict perturbation responses in held-out biological 134 
+
+contexts (i.e., cell lines for Tahoe-100M and donors for PBMC), following the train /test splits and 135 
+
+selected gene panels introduced in prior work 3,7 . For each cell line or donor selected for evaluation, 136 
+
+controls and a minority of randomly selected perturbations are observed during training, while 137 
+
+the majority of perturbations are reserved for testing. The model must therefore infer unobserved 138 
+
+responses using perturbation measurements from other biological contexts and the limited training 139 
+
+measurements available for the same cell line or donor (Methods, Extended Data Fig. 1a,c). We 140 
+
+benchmarked GENESIS against PerturbDiff 7, STATE 3 and CellFlow 6, together with linear, mean-141 
+
+based and nearest-neighbor baselines (Methods, Supplementary Methods). We scored predictions 142 
+
+with three metrics that capture complementary aspects of a response: direction-matched top-100 143 
+
+4
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint differentially expressed gene (DEG) overlap 3, which asks whether predictions recover the genes 144 
+
+a perturbation significantly changes and the direction of their effect; control-relative Pearson 145 
+
+correlation (Pearson ∆)13,14 , which measures agreement across genes between the predicted and 146 
+
+observed mean expression changes relative to matched controls; and energy distance 15 , which 147 
+
+compares full single-cell distributions, including differences beyond their means (Methods, Extended 148 
+
+data Fig. 2). 149 
+
+We first assessed how closely GENESIS performance approaches the reproducibility of the 150 
+
+experiments themselves. Averaged across independently repeated Tahoe-100M conditions, GEN-151 
+
+ESIS performance reached experimental reproducibility in Pearson ∆ (GENESIS: 0.430 [95% CI 152 
+
+0.381-0.482 ]; experimental reproducibility: 0.432 [0.378-0.491 ]; p = 0.56) and energy distance 153 
+
+(GENESIS: 0.158 [0.147-0.170 ]; experimental: 0.154 [0.143-0.166 ]; p = 0.36), and fell only 3.4% 154 
+
+short in the top-100 DEG overlap (GENESIS: 0.289 [0.263-0.317 ]; experimental: 0.299 [0.271-155 
+
+0.330 ]; p = 8 × 10 −4) (Fig. 2a, Methods, Supplementary Table 1). All other models and baselines 156 
+
+differed significantly from experimental reproducibility across all three metrics. Experimental repro-157 
+
+ducibility itself varied substantially across conditions. When plate pairs were ranked by agreement 158 
+
+between experimental repeats, GENESIS tracked this variation most closely (Fig. 2b). 159 
+
+Experimental replicates cover only a subset of the held-out conditions in Tahoe-100M ( N = 530) 160 
+
+and are absent from the PBMC cytokine atlas, where each donor was assayed on its own plate, 161 
+
+so plate and donor cannot be separated (Extended Data Fig. 3). We therefore next evaluated all 162 
+
+held-out conditions ( N = 4211 on Tahoe-100M, N = 4268 on PBMC cytokine atlas), using split-half 163 
+
+reproducibility to contextualize performance. GENESIS showed state-of-the-art performance on 164 
+
+both datasets (Fig. 2c). In Tahoe-100M, direction-matched top-100 DEG overlap increased from an 165 
+
+average of 30.7 genes [95% CI 29.7-31.6 ] for the next-best method (STATE) to 51.3 [50.5-52.1 ] for 166 
+
+GENESIS, a 67% increase; in the PBMC cytokine atlas, from 37.3 [34.5-40.2 ] to 41.7 [38.8-44.6 ], a 167 
+
+12% increase. The split-half reproducibility values are 66.8 and 67.1 for Tahoe-100M and PBMC, 168 
+
+respectively. GENESIS also achieved the highest Pearson ∆ and the lowest energy distance on both 169 
+
+datasets (Fig. 2c). 170 
+
+We further evaluated a complementary perturbation-generalization setting. Whereas the previ-171 
+
+ous setting withholds most perturbation responses from selected cell lines or donors for testing, here 172 
+
+we withhold most cell lines or donors from selected perturbations for testing. Specifically, in Tahoe-173 
+
+100M, test perturbations were observed in only 1, 5, 15 or 20 training cell lines, while in the PBMC 174 
+
+atlas, test perturbations were observed in only 1, 3 or 5 training donors (Methods; Extended Data 175 
+
+Fig. 1b,d). Across 4,023 held-out conditions in Tahoe-100M and 3,456 in the PBMC cytokine atlas, 176 
+
+GENESIS again outperformed all competing methods on all three metrics (Extended Data Fig. 4). 177 
+
+## GENESIS maintains strong performance with reduced training data 178 
+
+We next investigated how predictive performance depends on the amount of training data. To test 179 
+
+biological-context generalization, we retrained GENESIS on reduced versions of the Tahoe-100M 180 
+
+dataset. Here, we used either fewer experimental conditions or fewer cells per condition, while 181 
+
+matching the control and perturbed-cell budgets and keeping the original test set fixed (Methods). 182 
+
+Remarkably, using only ∼5% of the available perturbed training cells (4.6 million of 89.5 million), 183 
+
+GENESIS outperformed all competing generative models and statistical baselines trained on the full 184 
+
+dataset across all three metrics (Fig. 3a, Supplementary Table 2). Relative to the strongest full-data 185 
+
+competitors, GENESIS increased top-100 DEG overlap by approximately 50% and Pearson ∆ by 186 
+
+30% (STATE), while reducing energy distance by approximately 60% (context-mean baseline). Thus, 187 
+
+GENESIS achieved state-of-the-art performance with 20-fold fewer perturbed-cell measurements. 188 
+
+At these reduced data budgets, the allocation of measurements also mattered. Sampling fewer 189 
+
+cells across more conditions improved performance relative to deeply profiling fewer conditions, 190 
+
+5  
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Tahoe-100M ·Experimental reproducibility
+> 0.0 0.1 0.2 0.3
+> Top-100 DEG overlap ↑
+> 0.29 0.27 0.23 0.16 0.15 0.04 0.023 0.0071 0.005 0.0 0.1 0.2 0.3 0.4 0.5 0.6
+> Pearson Δ ↑
+> 0.43 0.36 0.3 0.29 0.26 0.18 0.18 0.14 0.13
+
+★
+
+> 0.0 0.2 0.4 0.6 3.0
+> Energy distance ↓
+> 0.16 0.21 0.21 0.22 0.22 0.23 0.44 2.1 2.6
+
+★          
+
+> Tahoe-100M Experimental reproducibility
+> 0.0 0.2 0.4 0.6 0.8 1.0 Top-100 DEG overlap ↑
+> −0.75 −0.50 −0.25 0.00 0.25 0.50 0.75 1.00
+> Pearson Δ ↑
+> 0100 200 300 400 500
+> Plate pairs ranked by experimental reproducibility
+> 0.00 0.25 0.50 0.75 2.00 3.00
+> Energy distance ↓
+> Tahoe-100M ·Split-half reproducibility
+> 0.0 0.2 0.4 0.6
+> Top-100 DEG overlap ↑
+> 0.51 0.31 0.27 0.27 0.12 0.051 0.021 0.0055 0.0036 0.0 0.2 0.4 0.6 0.8
+> Pearson Δ ↑
+> 0.75 0.54 0.46 0.38 0.33 0.22 0.13 0.11 0.07 0.001 0.01 0.1 1
+> Energy distance (log) ↓
+> 0.041 0.12 0.12 0.13 0.14 0.19 0.35 22.4
+> PBMC cytokine atlas ·Split-half reproducibility
+> 0.0 0.2 0.4 0.6 0.8
+> Top-100 DEG overlap ↑
+> 0.42 0.37 0.35 0.19 0.12 0.083 0.078 0.076 0.0029 0.0 0.1 0.2 0.3 0.4 0.5
+> Pearson Δ ↑
+> 0.28 0.25 0.22 0.19 0.11 0.075 0.071 0.064 0.0043  0.1 1
+> Energy distance (log) ↓
+> 0.16 0.17 0.17 0.19 0.21 0.25 0.85 0.98 2.3
+
+a bc
+
+> Experimental reproducibility Not statistically different than repeat GENESIS STATE PerturbDiff CellFlow PertMean LinRidge Additive CtxMean Nearest-neighbor Experimental reproducibility GENESIS STATE PerturbDiff CellFlow PertMean LinRidge Additive CtxMean Nearest-neighbor GENESIS STATE PerturbDiff CellFlow PertMean LinRidge Additive CtxMean Nearest-neighbor Split-half reproducibility (± repeat s.d.)
+
+Fig. 2 | GENESIS predicts cellular responses in unseen conditions at a level approaching experimental reproducibility. a , Tahoe-100M held-out cell lines, scored against experimental reproducibility. For 530 pairs of plates measuring the same condition, each model generates one plate from that plate’s controls and is scored against the other, real plate; experimental reproducibility (dashed line; band, 95% CI) scores the two real plates against each other. Æ, not statistically different from experimental reproducibility ( P ≥ 0.05) in both the mean or the win rate (the share of plate pairs on which the model is closer to the truth than the other real plate is; 50% for a second replicate). Both tests are paired, two-sided and clustered by combination. Every other model differed from experimental reproducibility on every metric ( P < 0.001). b, The same 530 plate pairs ranked by experimental reproducibility on each metric. Model curves are computed as a centred running mean (averaging the 13 points each direction). GENESIS tracks experimental reproducibility most closely of all models (Pearson r between model and experimental reproducibility across the 530 per-pair scores: 0.95, 0.98 and 0.66 for top-100 DEG overlap, Pearson ∆ and energy distance), ahead of STATE (0.80, 0.92, 0.47), PerturbDiff (0.69, 0.88, 0.46) and CellFlow (0.52, 0.56, 0.18). c, Held-out contexts scored against split-half reproducibility in Tahoe-100M held-out cell lines (4,211 conditions; 4,064 for DEG overlap) and PBMC cytokine atlas held-out donors (4,268 conditions; 2,395 for DEG overlap). Split-half reproducibility scores two random halves of a condition’s cells against each other, repeated over 20 random splits (dashed line, mean; band, ± s.d. across the 20 splits, averaged over conditions). Energy distance is on a log axis. Bars, mean; error bars, 95% cluster-bootstrap CI (10,000 resamples; clusters are cell line 
+
+× compound in Tahoe-100M and donor × cytokine in PBMC). ↑/↓, higher /lower is better. 
+
+6
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint particularly at ∼5% of the training data, whereas the difference narrowed at ∼25% (Fig. 3a). 191 
+
+Taking this to the extreme, we trained GENESIS using all controls and at most 25 cells per perturbed 192 
+
+condition, corresponding to approximately 1.3 million perturbed cells across the training set. 193 
+
+Augmenting these conditions with GENESIS-generated cells to their original sizes recovered both 194 
+
+DEG overlap and Pearson ∆, bringing them close to experimental reproducibility (Extended Data 195 
+
+Fig. 5). This suggests that GENESIS can recover responses from very shallow measurements by 196 
+
+leveraging information shared across the broader experimental space. 197 
+
+Finally, we asked how many perturbations must be measured in a given cell line before GENESIS 198 
+
+can accurately predict its responses to others. For each of the five held-out Tahoe-100M cell lines, 199 
+
+we progressively increased the number of perturbations observed during training while keeping 200 
+
+the test set fixed (Methods). Observing just 15 perturbations, fewer than 10% of the 164 available 201 
+
+training compounds, captured approximately half the performance gain obtained with all 164, with 202 
+
+diminishing improvements thereafter (Fig. 3b). Performing a similar analysis under the perturbation-203 
+
+generalization setting showed a similar pattern: observing a perturbation in as few as five cell lines 204 
+
+already enabled strong predictions of its responses in other, held-out cell lines (Extended Data 205 
+
+Fig. 6). 206 4.6M 22M 89M 0.24 0.32 0.40 0.48 STATE PerturbDiff                    
+
+> (5.2%) (24.5%) (100%)
+> Perturbed training cells
+> Top-100 DEG overlap ↑
+> 4.6M 22M 89M 0.48 0.56 0.64 0.72 STATE PerturbDiff
+> (5.2%) (24.5%) (100%)
+> Perturbed training cells
+> Pearson Δ ↑
+> 4.6M 22M 89M 0.050 0.075 0.100 0.125 Additive CtxMean
+> (5.2%) (24.5%) (100%)
+> Perturbed training cells
+> Energy distance ↓
+> Perturbation Biological context Test set
+> No cells More cells
+> #cells
+> subsampling
+> #conditions
+> subsampling
+> Perturbation Biological context
+> How many perturbations for a given cell line does GENESIS need to see to perform well?
+> 1 15 30 80 164
+> Perturbations seen in training for the test cell line
+> 0.2 0.3 0.4 0.5 0.6
+> Top-100 DEG overlap ↑
+> 1 15 30 80 164
+> Perturbations seen in training for the test cell line
+> 0.4 0.5 0.6 0.7 0.8
+> Pearson Δ ↑
+> 1 15 30 80 164
+> Perturbations seen in training for the test cell line
+> 0.000 0.025 0.050 0.075 0.100 0.125 0.150 Energy distance ↓
+
+ab     
+
+> GENESIS, fewer conditions GENESIS, fewer cells C32 HOP62 HepG2/C3A Hs 766T PANC-1
+
+Fig. 3 | GENESIS retains state-of-the-art performance with sparse experimental coverage. a , Effect of reducing the amount of training data on Tahoe-100M. GENESIS is trained on data subsampled either by reducing the number of cells per condition or by reducing the number of conditions, with the total number of training cells matched across the two settings and the test set held fixed. When subsampling, we first targeted 5% and 25% of conditions, which resulted in slightly different percentages of total cells given variable numbers of experimental cells per condition (Methods). Points show mean performance across three runs with different model-training and subsampling seeds; whiskers indicate 95% cluster-bootstrap confidence intervals over conditions, clustered by cell line × compound. For each performance metric, results are also shown for the two highest-performing existing models or baselines. b, Effect of training overlap for individual biological contexts. For each held-out test cell line, the number of perturbations observed for that cell line during training is progressively increased while the evaluated perturbations remain held out. Perturbations included in training are selected at random across three independent seeds. Performance improves rapidly with the first observed perturbations and shows diminishing gains as overlap increases, with little variation across random seeds. 
+
+7
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Generated profiles recapitulate context-dependent biological 207 
+
+## programs 208 
+
+The value of generated single-cell profiles ultimately depends on whether they support the same 209 
+
+biological interpretations as measured cells. We therefore asked whether GENESIS could reproduce 210 
+
+transcriptional responses at the level of signaling pathways, a common readout of perturbation 211 
+
+experiments. We used PROGENy 18 , which infers pathway activity from experimentally derived 212 
+
+transcriptional footprints, providing a measure of downstream signaling responses rather than the 213 
+
+expression of pathway components themselves. We evaluated all 14 pathways across 55 compounds 214 
+
+in the five held-out Tahoe-100M cell lines, quantifying responses as PROGENy-weighted mean 215 
+
+log 2 fold changes relative to matched controls. For this analysis, we expanded the utilized gene 216 
+
+panel to encompass those used in PROGENy-defined pathways and trained GENESIS on only 217 
+
+5% of the available training cells (“fewer cells” configuration in Fig. 3a; Methods). Generated 218 
+
+profiles closely reproduced the measured patterns of pathway induction and suppression (Fig. 4). 219 
+
+Quantitatively, across conditions measured on independent plates, experimental repeats showed 220 
+
+an average Pearson correlation of 0.455 [95% CI 0.415-0.499 ] across the 14 pathway responses. 221 
+
+GENESIS achieved a comparable average correlation of 0.402 [0.370-0.439 ] with the measured 222 
+
+responses, outperforming all other models and statistical baselines (Extended Data Fig. 7). 223 
+
+We next asked whether GENESIS could distinguish responses shared across biological contexts 224 
+
+from those specific to individual cell lines. This distinction is particularly important in cancer, where 225 
+
+the same treatment can produce different downstream effects depending on genetic background. 226 
+
+We examined two KRAS-mutant cell lines, HOP62 lung cancer cells and Hs 766T pancreatic cancer 227 
+
+cells, which exhibited both shared and distinct responses (Fig. 4). The MEK inhibitor trametinib and 228 
+
+the RAS(ON) inhibitor RMC-6236 (daraxonrasib) 19 both suppressed EGFR- and MAPK-associated 229 
+
+transcriptional activity in the two lines, and GENESIS reproduced these shared responses (Fig. 4). 230 
+
+Yet their inflammatory responses diverged: both treatments increased JAK-STAT and TNF α pathway 231 
+
+scores in Hs 766T, while suppressing them in HOP62. GENESIS captured these opposing responses, 232 
+
+despite not observing these compound-cell-line combinations during training (Fig. 4). 233 
+
+## Discussion 234 
+
+GENESIS combines a conditional generator with a distributional training objective to predict 235 
+
+single-cell perturbation responses for unseen combinations of experimental covariates. Across 236 
+
+both Tahoe-100M and the PBMC cytokine atlas, it outperforms existing generative and statistical 237 
+
+approaches and, when independent repeats are available, achieves performance comparable to 238 
+
+experimental reproducibility. Because GENESIS conditions directly on recorded experimental 239 
+
+covariates, it can also be readily adapted to different experimental designs. 240 
+
+Beyond predictive performance, our pathway analysis suggests that GENESIS recovers context-241 
+
+dependent transcriptional programs. The captured differences between HOP62 and Hs 766T cell 242 
+
+lines may be particularly relevant to cancer therapy, where compensatory signaling can influence 243 
+
+responses to targeted inhibitors. The suppression of TNF α-associated transcription in HOP62 is 244 
+
+consistent with the established oncogenic role of KRAS in promoting inflammatory signaling 20–22 .245 
+
+Conversely, increased JAK-STAT activity in Hs 766T is consistent with reports of compensatory 246 
+
+STAT3 activation following MAPK inhibition, a potential resistance mechanism that has motivated 247 
+
+combined MEK and JAK /STAT3 inhibition in pancreatic cancer 23,24 and is now under further clinical 248 
+
+investigation 25 . The response to RMC-6236 also parallels interferon-associated signaling reported 249 
+
+in pancreatic tumors following prolonged RAS inhibition, which has been linked to adaptive cell-250 
+
+state changes and therapeutic resistance 26 . By recovering these contrasting responses alongside 251 
+
+8      
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint • Afatinib • Almonertinib (HCl) • Almonertinib (mesylate) Capmatinib • Neratinib (maleate) BI-3406 Lonafarnib
+> RMC-6236
+> Dabrafenib Encorafenib Vemurafenib TAK-733
+> • Trametinib
+> Trametinib (DMSO_TF solvate) Alpelisib Capivasertib GSK1059615 AZD-8055 Everolimus LY-2584702 (tosylate salt) • Rapamycin Sapanisertib • Temsirolimus Torkinib ETC-206 Harringtonine
+> • Homoharringtonine
+> SBI-0640756 Tomivosertib Altretamine • Amsacrine AZD-7648 Bendamustine • Busulfan Doxorubicin (HCl) Epirubicin (HCl) • Idarubicin (HCl) • Mitoxantrone (diHCl) olaparib Pemetrexed • Raltitrexed Rucaparib (phosphate) • Trimetrexate CP21R7 LY2090314 • Tucidinostat • Artesunate • Balsalazide (sodium hydrate) • Tofacitinib • Tofacitinib (citrate) Bortezomib Ixazomib Betamethasone dipropionate Methylprednisolone succinate • Triamcinolone EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR/ERBB RAS–MAPK PI3K–AKT–mTOR Translation DNA damage Other targeted GC
+> Experimental data GENESIS Experimental data GENESIS
+> Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm.
+
+HOP62 Hs 766T 
+
+−1.5 0.0 1.5 PROGENy score (weighted mean log 2FC) 
+
+Shared Unique* • Measured on two or more repeats 
+
+abFig. 4 | GENESIS recovers shared and line-specific pathway responses in held-out KRAS-mutant cell lines. 
+
+Measured and GENESIS-predicted PROGENy pathway responses in HOP62 (lung adenocarcinoma, KRAS G12C) and Hs 766T (pancreatic carcinoma, KRAS Q61H) across 55 compounds at 5 μM. Both lines were held out in the Tahoe-100M biological-context setting; no line-compound combination shown was observed during training. GENESIS was trained on 5% of training cells using a 3,072-gene panel. For each line, measured responses are shown above predictions. Rows show the 14 PROGENy pathways grouped by function; columns show compounds grouped by class and alphabetically within each class (GC for Glucocorticoids). • marks compounds measured on two or more plates (20 /55). Colors show pathway-module log 2 fold changes relative to same-plate DMSO controls, calculated as PROGENy-weighted means over the top 100 footprint genes detected in at least 10% of control cells. Before scoring, gene-level log 2 fold changes were depth-normalized for both measured responses and predictions (Methods). Colors are clipped at ±1.5. Boxes highlight selected compound-pathway pairs discussed in the main text meeting criteria for shared responses (amber: both lines change in the same direction by at least 0.5 in log 2 fold change) or line-specific responses (green: between-line difference of at least 0.5 in log 2 fold change). Corresponding entries are boxed in measured and predicted panels; compound labels match the box color, with green used when both categories apply. 
+
+shared MAPK suppression, GENESIS preserves biologically meaningful differences between cellular 252 
+
+contexts that may influence the effects of targeted therapies. 253 
+
+Our findings also have potential implications for experimental design. Once finite-sampling 254 
+
+noise falls below between-experiment variation, measuring additional conditions may be more 255 
+
+informative than sequencing more cells per condition. Consistent with this principle, GENESIS 256 
+
+9
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint retains strong performance even with substantially reduced training data, especially when reducing 257 
+
+cells per condition rather than the number of conditions. 258 
+
+Important areas of future work remain. GENESIS generalizes compositionally: an unseen combi-259 
+
+nation of covariates can be predicted only when each covariate value has appeared elsewhere during 260 
+
+training. It therefore cannot yet predict responses to a completely unseen compound or to a new 261 
+
+cell line or donor. Incorporating external information about perturbations and biological contexts, 262 
+
+such as the chemical structure of compounds or cell-line genotypes, could extend the framework 263 
+
+beyond this setting. More generally, many variables that shape cellular responses, including dura-264 
+
+tion of treatment exposure, culture medium and features of the cellular environment, are not often 265 
+
+recorded in perturbation datasets and therefore cannot be explicitly modeled by GENESIS. Record-266 
+
+ing these factors would enable their incorporation as additional covariates, potentially transforming 267 
+
+hidden sources of experimental variation into predictable dimensions of cellular response. 268 
+
+Together, our findings establish GENESIS as an accurate and data efficient framework for predict-269 
+
+ing single-cell perturbation responses across unmeasured experimental conditions. By approaching 270 
+
+experimental reproducibility while retaining biologically meaningful variation, GENESIS demon-271 
+
+strates the potential of generative models to extend the reach of perturbation atlases beyond directly 272 
+
+measured conditions. 273 
+
+## References 274 
+
+1. Zhang, J. et al. Tahoe-100m: Mapping drug-induced molecular phenotypes at single-cell 275 
+
+resolution. Cell 189 , 5945–5961.e8 (2026). 276 
+
+2. Oesinghaus, L. et al. A single-cell cytokine dictionary of human peripheral blood. bioRxiv 277 
+
+(2025). 278 
+
+3. Adduri, A. K. et al. Predicting cellular responses to perturbation across diverse contexts with 279 
+
+state. Cell 189 , 5914–5931.e20 (2026). 280 
+
+4. He, C., Zhang, J., Dahleh, M. & Uhler, C. MORPH predicts the single-cell outcome of genetic 281 
+
+perturbations across conditions and data modalities. bioRxiv 2025.06.27.661992 (2025). 282 
+
+5. Bunne, C. et al. Learning single-cell perturbation responses using neural optimal transport. 283 
+
+Nature Methods 20 , 1759–1768 (2023). 284 
+
+6. Klein, D. et al. Cellflow enables generative single-cell phenotype modeling with flow matching. 285 
+
+bioRxiv (2025). 286 
+
+7. Yuan, X. et al. PerturbDiff: Functional diffusion for single-cell perturbation modeling. 287 
+
+Proceedings of the 43rd International Conference on Machine Learning (ICML) (2026). 288 
+
+8. Viñas Torné, R. et al. Systema: a framework for evaluating genetic perturbation response 289 
+
+prediction beyond systematic variation. Nat. Biotechnol. 44 , 1050–1059 (2026). 290 
+
+9. Miller, H. E. et al. Deep learning perturbation models can outperform baselines on calibrated 291 
+
+metrics. Nat. Biotechnol. 1–5 (2026). 292 
+
+10. Roohani, Y. H. et al. Virtual cell challenge: Toward a turing test for the virtual cell. Cell 188 ,293 
+
+3370–3374 (2025). 294 
+
+11. Gneiting, T. & Raftery, A. E. Strictly proper scoring rules, prediction, and estimation. Journal 295 
+
+of the American Statistical Association 102 , 359–378 (2007). 296 
+
+12. Scheuerer, M. & Hamill, T. M. Variogram-based proper scoring rules for probabilistic forecasts 297 
+
+of multivariate quantities. Monthly Weather Review 143 , 1321–1334 (2015). 298 
+
+13. Cui, H. et al. scGPT: toward building a foundation model for single-cell multi-omics using 299 
+
+generative AI. Nat. Methods 21 , 1470–1480 (2024). 300 
+
+10 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+14. Ahlmann-Eltze, C., Huber, W. & Anders, S. Deep-learning-based gene perturbation effect 301 
+
+prediction does not yet outperform simple linear baselines. Nat. Methods 22 , 1657–1661 302 
+
+(2025). 303 
+
+15. Székely, G. J. & Rizzo, M. L. Energy statistics: A class of statistics based on distances. Journal 304 
+
+of Statistical Planning and Inference 143 , 1249–1272 (2013). 305 
+
+16. Tung, P .-Y. et al. Batch effects and the effective design of single-cell gene expression studies. 306 
+
+Scientific Reports 7, 39921 (2017). 307 
+
+17. Hicks, S. C., Townes, F. W., Teng, M. & Irizarry, R. A. Missing data and technical variability in 308 
+
+single-cell rna-sequencing experiments. Biostatistics 19 , 562–578 (2018). 309 
+
+18. Schubert, M. et al. Perturbation-response genes reveal signaling footprints in cancer gene 310 
+
+expression. Nat. Commun. 9, 20 (2018). 311 
+
+19. O’Reilly, E. M. et al. Daraxonrasib or chemotherapy in previously treated metastatic pancreatic 312 
+
+cancer. N. Engl. J. Med. 395 , 325–337 (2026). 313 
+
+20. Ancrile, B., Lim, K.-H. & Counter, C. M. Oncogenic ras-induced secretion of IL6 is required for 314 
+
+tumorigenesis. Genes Dev. 21 , 1714–1719 (2007). 315 
+
+21. Sparmann, A. & Bar-Sagi, D. Ras-induced interleukin-8 expression plays a critical role in tumor 316 
+
+growth and angiogenesis. Cancer Cell 6, 447–458 (2004). 317 
+
+22. Meylan, E. et al. Requirement for NF-kappaB signalling in a mouse model of lung 318 
+
+adenocarcinoma. Nature 462 , 104–107 (2009). 319 
+
+23. Zhao, C. et al. Rational combination of MEK inhibitor and the STAT3 pathway modulator for the 320 
+
+therapy in K-ras mutated pancreatic and colon cancer cells. Oncotarget 6, 14472–14487 (2015). 321 
+
+24. Datta, J. et al. Combined MEK and STAT3 inhibition uncovers stromal plasticity by enrich-322 
+
+ing for cancer-associated fibroblasts with mesenchymal stem cell-like features to overcome 323 
+
+immunotherapy resistance in pancreatic cancer. Gastroenterology 163 , 1593–1612 (2022). 324 
+
+25. Hosein, P . J. et al. A phase 1 trial of combined MEK, STAT3 and PD-1 inhibition in metastatic 325 
+
+pancreatic ductal adenocarcinoma (PDAC). J. Clin. Oncol. 42 , TPS713–TPS713 (2024). 326 
+
+26. Bulle, A. et al. Prolonged KRAS-MAPK inhibition induces interferon signaling that promotes 327 
+
+cell state transition and confers therapeutic vulnerabilities. Cancer Res. 86 , 3270–3286 (2026). 328 
+
+## Methods 329 
+
+Datasets and data processing 330 
+
+Tahoe-100M. 331 
+
+The Tahoe-100M dataset 1 comprises 100,648,790 cells from 50 cancer cell lines exposed to 379 332 
+
+compounds at three doses (0.05, 0.5 and 5 μM) across 14 plates, each containing all 50 lines. A 333 
+
+condition was defined by the combination of cell line, compound, dose and plate, yielding 65,243 334 
+
+perturbed conditions. Dimethyl sulfoxide (DMSO) vehicle controls were matched to perturbed 335 
+
+conditions by cell line and plate. 336 
+
+PBMC cytokine atlas. 337 
+
+The Parse Biosciences peripheral blood mononuclear cell (PBMC) cytokine atlas 2 comprises 338 
+
+9,697,974 cells from 12 donors, each assayed on a 96-well plate containing 90 cytokine stimula-339 
+
+tions and six phosphate-buffered saline (PBS) control wells. Cells were annotated by the dataset 340 
+
+authors into 18 cell types. A condition was defined by donor, cytokine, cell type and well; the well 341 
+
+identifier was retained to distinguish the six independent PBS controls from each donor. Controls 342 
+
+were matched by donor and cell type. Because each donor was assayed on a separate plate, donor 343 
+
+11 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+and plate effects are confounded and the dataset contains no independent between-plate repeat of 344 
+
+the same biological condition (Extended Figure 3). 345 
+
+Gene selection and preprocessing. 346 
+
+For the main benchmarking analyses, we used the same 2,000 highly variable genes (HVGs) selected 347 
+
+in prior work 3,7 , enabling direct comparison with existing methods. GENESIS was trained on log1p-348 
+
+transformed raw UMI counts of the selected genes, without library-size normalization. Training 349 
+
+cells were streamed using scDataset (v0.3.0) 27 and sampled uniformly without replacement within 350 
+
+each epoch, without reweighting experimental conditions (Supplementary Table 3). 351 
+
+Perturbation prediction tasks 352 
+
+We considered two complementary prediction tasks. In biological-context generalization, most 353 
+
+perturbation responses were withheld from selected cell lines or donors, while their controls and 354 
+
+a minority of responses remained available for training. In perturbation generalization, selected 355 
+
+compounds or cytokines were observed in only a limited number of biological contexts during 356 
+
+training, with their responses withheld in the remaining contexts. 357 
+
+Biological-context generalization. 358 
+
+For Tahoe-100M, we used the context-generalization split of STATE 3 to enable direct comparison 359 
+
+with prior work. This split uses five cell lines for evaluation, with test responses drawn from 268 360 
+
+compounds: 199 are withheld at all three doses, whereas 69 are withheld only at 0.05 μM and 361 
+
+0.5 μM, with their 5 μM responses remaining in training. A further 19 compounds are reserved 362 
+
+for validation, which we used for hyperparameter tuning. Each evaluation cell line retains its 363 
+
+controls and responses to 164 training compounds. In total, the split comprises 4,211 test conditions 364 
+
+(Extended Data Fig. 1a). When comparing model performance with experimental reproducibility, 365 
+
+we restricted the evaluation to test conditions measured independently on multiple plates, excluding 366 
+
+compounds observed at any dose in the corresponding evaluation cell line during training. This 367 
+
+yielded 500 cell line-compound-dose combinations measured on two or three plates with at least 368 
+
+50 cells per plate, resulting in a total of 530 independent plate pairs. 369 
+
+For the PBMC cytokine atlas, we likewise used the donor-generalization split of STATE 3. This split 370 
+
+uses four donors (1, 4, 9 and 12) for evaluation. For each evaluation donor, responses to 61 cytokines 371 
+
+are withheld for testing, four cytokines are reserved for validation, and responses to the remaining 372 
+
+25 cytokines are retained for training. The remaining eight donors provide training responses across 373 
+
+the cytokine panel. This yields 244 held-out donor-cytokine combinations, evaluated separately by 374 
+
+cell type. PBS controls from all donors remained in training (Extended Data Fig. 1c). 375 
+
+Perturbation generalization. 376 
+
+To evaluate generalization across perturbations, we constructed a complementary split with training 377 
+
+and test sets comparable in size to those of the biological-context split, but with limited observations 378 
+
+of each test perturbation across cell lines. For Tahoe-100M, we withheld 40 randomly selected 379 
+
+compounds at all three doses in 30 test cell lines, yielding 4,035 test conditions. For each compound, 380 
+
+training responses were retained in 1, 5, 15 or 20 of the remaining 20 cell lines, randomly selected 381 
+
+for each compound, with ten compounds assigned to each level. All other compounds were observed 382 
+
+in all 50 cell lines (Extended Data Fig. 1b). The experimental reproducibility benchmark for this 383 
+
+task comprised 403 held-out cell line–compound–dose combinations measured on two plates with 384 
+
+at least 50 cells per plate. Because all three doses were withheld in each corresponding test cell 385 
+
+line, no response to these compounds had been observed in those cell lines during training. 386 
+
+For the PBMC cytokine atlas, we followed a similar design. Thirty randomly selected cytokines 387 
+
+were withheld in seven donors, giving 210 test donor–cytokine combinations. Each cytokine was 388 
+
+12 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+observed during training in 1, 3 or all 5 of the remaining donors, while the other 60 cytokines 389 
+
+remained available across all donors (Extended Data Fig. 1d). 390 
+
+GENESIS 391 
+
+Conditional generator. 392 
+
+For each experimental condition c, GENESIS generates individual cell profiles by combining learned 393 
+
+representations of the experimental covariates with random noise. The covariates specify the 394 
+
+experimental condition, while independent noise draws allow the model to generate different cells 395 
+
+from the corresponding distribution. For Tahoe-100M, the covariates consisted of a cell line (e.g., 396 
+
+C32), a compound (e.g., amsacrine), a dose and a plate. For the PBMC cytokine atlas, the covariates 397 
+
+consisted of a donor, a cell-type, a cytokine and a well. 398 
+
+Each covariate value is mapped to a learned d-dimensional embedding, with d = 256 and 399 
+
+coordinates initialized independently from N (0, 1 /d). Thus, the initialization standard deviation 400 
+
+is 1 /pd = 1/16. These embeddings are concatenated with a d-dimensional noise vector whose 401 
+
+coordinates are drawn independently from U [−p3/d, p3/d]. Since a uniform distribution on 402 
+
+[−a, a] has variance a2/3, these bounds give the noise coordinates variance 1 /d, matching the 403 
+
+embedding coordinates at initialization. Consequently, each input block has unit expected squared 404 
+
+norm, so the embeddings and noise enter the network on the same scale at initialization. 405 
+
+A multilayer perceptron with hidden widths 4,096 and 8,192 and GELU activations generates 406 
+
+an expression profile, with a rectified linear output giving non-negative log (1 + count ) values. No 407 
+
+observed cells are required as inputs. Controls are represented by a dedicated perturbation value, 408 
+
+and independent noise draws generate cells from the same condition. 409 
+
+Energy score. 410 
+
+For an observed cell y from condition c, the energy score 11 is given by 411 
+
+ES (Pθ , y) = E∥Y − y∥2 − 12 E∥Y − Y ′∥2, (1) where Y and Y ′ are independent cells generated by GENESIS for condition c, that is, independent 412 
+
+draws from its conditional distribution Pθ (· | c), where θ denotes the model’s trainable parameters. 413 
+
+Distances are computed across panel genes in log (1 + count ) space. The first term pulls generated 414 
+
+cells towards the observation; the second rewards spread among them. The energy score is a 415 
+
+strictly proper scoring rule: for distributions with finite first moments, its expected value is uniquely 416 
+
+minimized by the true distribution. In training, both expectations were replaced by averages over 417 
+
+m cells ˆ y1, . . . , ˆ ym generated for condition c,418 
+
+cES (Pθ , y) = 1
+
+m
+
+> m
+
+X
+
+> i=1
+
+∥ ˆyi − y∥2 − 12m(m − 1)
+
+X  
+
+> i̸=j
+
+∥ ˆyi − ˆyj ∥2. (2) Excluding self-pairs from the generated-sample distance term yields an unbiased estimator of 419 
+
+the energy score 28 . GENESIS uses m = 256 generated samples per observation by default, with 420 
+
+sensitivity analysis presented in Extended Data Fig. 14a. 421 
+
+Variogram term. 422 
+
+Although the energy score is strictly proper, accurately learning gene-gene dependencies can be 423 
+
+challenging with finite training data. We therefore added a variogram score to emphasize these 424 
+
+dependencies by comparing within-cell expression differences across gene pairs 12 . For genes g and 425 
+
+13 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+h of a cell y, let vgh ( y) = | yg − yh|1/2, with | yg − yh| floored at 10 −4. The variogram score 426 
+
+VS (Pθ , y) = mean g<h
+
+ vgh ( y) − E vgh (Y )2 (3) is proper, so ES + λ VS remains strictly proper. 427 
+
+To obtain an unbiased estimate of the variogram score, we must account for the finite number 428 
+
+of generated cells. Estimating E vgh (Y ) by averaging over the m generated cells and then squaring 429 
+
+the residual would add Var [vgh (Y )] /m to the expected loss, introducing an artificial penalty on 430 
+
+variability in the generated distribution. Instead, we split the generated cells into two independent 431 
+
+groups, obtaining separate estimates ˆ v(1) 
+
+> gh
+
+and ˆ v(2) 
+
+> gh
+
+, and multiply the corresponding residuals, 432 
+
+cVS (Pθ , y) = 1
+
+|P | 
+
+X
+
+> (g,h)∈P
+
+ vgh ( y) − ˆv(1)
+
+> gh
+
+  vgh ( y) − ˆv(2)
+
+> gh
+
+. (4) This yields an unbiased estimator because the two estimates are independent. At each training step, 433 
+
+P contained 6,000 gene pairs sampled using random perfect matchings of the panel genes, and cVS 434 
+
+was computed on half of the observed cells in each minibatch. The full training objective combines 435 
+
+the energy score and variogram estimators: 436 
+
+L (θ ) = 1
+
+|B| 
+
+X
+
+> i∈B
+
+cES (Pθ (· | ci ), yi ) + λ 1
+
+|B VS |
+
+X
+
+> i∈B VS
+
+cVS (Pθ (· | ci ), yi ), (5) where B is the minibatch of observed cells and BVS ⊆ B contains half of those cells. We used 437 
+
+λ = 0.5, chosen empirically from the validation set. Sensitivity analysis of this variable is shown in 438 
+
+Extended Data Fig. 14b). 439 
+
+Training configuration. 440 
+
+The Tahoe-100M GENESIS benchmark model was trained for five epochs (256,205 optimization 441 
+
+steps) using AdamW ( β1 = 0.9, β2 = 0.95; weight decay 10 −4 on weight matrices only; no gradient 442 
+
+clipping), with batches of 1,792 observed cells, 256 generated cells per observed cell and bfloat16 443 
+
+mixed precision. The learning rate increased linearly from zero to 9 × 10 −4 over the first 5% of 444 
+
+optimization steps, with a minimum of 100 and a maximum of 1,000 warm-up steps. It was then 445 
+
+reduced to 0.1 and 0.01 of its peak value at approximately 20% and 40% of training, respectively, 446 
+
+followed by a linear decay to 0.1 of its current value over the final 15% of steps. We evaluated the 447 
+
+final checkpoint without validation-based model selection. Default training settings are reported in 448 
+
+Supplementary Table 3. 449 
+
+On a single NVIDIA H100 NVL GPU, GENESIS processed approximately 2,500-3,000 observed 450 
+
+cells per second. Training on the Tahoe-100M biological-context split (91.8 million cells) took 451 
+
+approximately 43 hours, while training on the PBMC split (7.3 million cells) took approximately 4 452 
+
+hours. 453 
+
+For the training-overlap experiments (Figure 3b), which required repeated training runs, we 454 
+
+used a fast-training configuration with 96 generated cells per observed cell instead of 256 and 455 
+
+a larger batch size of 2,048. The architecture and training objective were unchanged; training 456 
+
+duration was adjusted as described in Supplementary Methods. 457 
+
+Comparator models and baselines 458 
+
+Deep learning methods. 459 
+
+We compared GENESIS with three generative models that predict perturbed cells from observed 460 
+
+control cells: State 3, a transformer-based model; PerturbDiff 7, a diffusion model; and CellFlow 6,461 
+
+14 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+a flow-matching model. For biological-context generalization, we used released checkpoints for 462 
+
+STATE and PerturbDiff on Tahoe-100M and for PerturbDiff on the PBMC atlas. We retrained STATE 463 
+
+on PBMCs and trained CellFlow on both datasets. For perturbation generalization, all three methods 464 
+
+were retrained from scratch. Training used the published implementations and recommended 465 
+
+configurations. 466 
+
+All methods were evaluated on the same test conditions and gene panels, generating the same 467 
+
+number of cells per condition. For all methods, we followed the authors’ training and inference 468 
+
+procedures. In particular, for Tahoe100M, input covariates for all models included the plate. For 469 
+
+the PBMC cytokine atlas, STATE (through cell-type-matched control cells) and PerturbDiff (through 470 
+
+a cell-type covariate) were conditioned on PBMC cell type. Following the authors’ procedure for 471 
+
+CellFlow on this dataset, we conditioned the model on donor and cytokine and assigned cell-type 472 
+
+labels to generated cells by nearest-neighbor label transfer in CellFlow’s 100-dimensional PCA 473 
+
+space. Specifically, each generated cell inherited the fine cell-type label of its nearest training cell, 474 
+
+using up to 1,000 training cells per condition as reference 6.475 
+
+Statistical baselines. 476 
+
+We compared GENESIS with five baselines fitted only on training conditions, weighting each 477 
+
+condition equally. The context mean predicts the average expression across training perturbations 478 
+
+in the same cell line and plate. The perturbation mean adds the average response to the target 479 
+
+perturbation across training contexts to the target context’s control mean. The additive model 480 
+
+combines the control mean with an overall mean response and separate context and perturbation 481 
+
+effects, without an interaction term. Linear ridge regression 14 estimates the perturbation response in 482 
+
+a 100-dimensional gene space derived from training pseudobulks, with regularization strength 0.1. 483 
+
+Nearest-neighbor selects the training context most similar to the target context across their shared 484 
+
+training perturbations and copies its measured cells under the target perturbation on the same 485 
+
+plate. Similarity was measured by cosine distance between responses projected onto 100 principal 486 
+
+components. Full equations and fitting procedures for all baselines are provided in Supplementary 487 
+
+Methods. 488 
+
+Evaluation 489 
+
+Evaluated populations. 490 
+
+For each comparison, every method generated as many cells as the observed population it is 491 
+
+compared with. Observed and generated populations were compared with the observed controls of 492 
+
+the same cell line and plate (Tahoe-100M) or donor and cell type (PBMCs). Conditions with fewer 493 
+
+than four perturbed or control cells were excluded. 494 
+
+Integer counts. 495 
+
+Generated values were converted to integer counts before scoring. Outputs in log (1 + count )496 
+
+were rounded to the integer nearest in log (1 + count ), that is, to ⌊v⌋ or ⌈v⌉, whichever minimizes 497 
+
+| log (1+ k)−log (1+ v)|. Outputs in counts (the baselines, and comparators after their normalization 498 
+
+was inverted) were rounded to the nearest integer; negative values were set to zero. Observed 499 
+
+counts are integers already. 500 
+
+Depth-scaled log space. 501 
+
+For each cell, let x denote the vector of raw UMI counts over the selected gene panel. We transformed 502 
+
+these counts as 503 
+
+log 
+
+
+
+1 + S x
+
+max (1, ∥x∥1)
+
+
+
+, S = npanel 
+
+20,000 Lref ,15 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+where npanel = 2,000 and Lref is the median full-transcriptome library size of the dataset (1,829 for 504 
+
+Tahoe-100M and 3,320 for PBMCs). S approximates the expected panel library at median sequencing 505 
+
+depth: 183 and 332, respectively. Scaling every cell to S removes differences in sequencing depth 506 
+
+between plates and methods, so metrics computed in this space compare expression composition. 507 
+
+Evaluation metrics. 508 
+
+We compared an observed population T and a generated population ˆ T of the same condition with 509 
+
+three metrics. Two of them are relative to controls; for these, the matched control cells were split 510 
+
+at random into disjoint halves, C for the observed and ˆ C for the generated population, so that the 511 
+
+two responses do not share a control estimate. 512 
+
+DEG overlap. In each population, every gene detected in at least 10% of all matched control cells 513 
+
+was tested against the population’s control half with a two-sided, tie-corrected Mann-Whitney U test 514 
+
+on counts 29,30 , a test that performs well for single-cell differential expression 31,32 , and P values were 515 
+
+adjusted across genes by the Benjamini-Hochberg procedure 33 . A gene was differentially expressed 516 
+
+if q < 10 −3 and the absolute log 2 fold change of mean counts was at least 0.1 (pseudocount 517 
+
+10 −9). The fold-change threshold follows the default of Seuratv5 34 , and the stricter q threshold 518 
+
+guards against the inflated significance of cell-level tests 35 . DEGs were identified separately for 519 
+
+the observed and predicted responses: the former by comparing measured perturbed cells with 520 
+
+matched controls, and the latter by comparing generated cells with matched controls. After ranking 521 
+
+the DEGs in each population by q, let Dk and ˆ Dk denote the top k = min (100, nobs ) genes in the 522 
+
+observed and predicted lists, respectively, where nobs is the number of observed DEGs. 523 
+
+We define 524 
+
+DEG overlap = 1
+
+k {g ∈ D k ∩ ˆDk : g changes in the same direction in both } , (6) which is undefined when nobs = 0. 525 
+
+Control-relative Pearson correlation. With ¯ yX the mean expression of population X in the depth-526 
+
+scaled log space, the observed and predicted responses are 527 
+
+∆ = ¯yT − ¯yC , ˆ∆ = ¯yˆT − ¯y ˆC , (7) and r∆ is their Pearson correlation across panel genes. 528 
+
+Energy distance. For observed cells x1, . . . , xn and generated cells y1, . . . , ym in the depth-scaled 529 
+
+log space, each is subsampled at random to at most 4096 cells for computational efficiency. Most 530 
+
+conditions contained fewer than 4096 cells, so this cap affected only larger populations and limited 531 
+
+the quadratic computational cost of pairwise distance calculations. We then computed energy 532 
+
+distance as 533 
+
+E = 2
+
+nm 
+
+X 
+
+> i,j
+
+∥xi − yj ∥2 − 1
+
+n(n − 1)
+
+X 
+
+> i̸=i′
+
+∥xi − xi′ ∥2 − 1
+
+m(m − 1)
+
+X  
+
+> j̸=j′
+
+∥ yj − yj′ ∥2, (8) which is the unbiased estimator of 2 E∥X − Y ∥2 − E∥X − X ′∥2 − E∥Y − Y ′∥2. Controls do not enter 534 
+
+this metric. 535 
+
+Experimental reproducibility. 536 
+
+For each condition measured on two or more Tahoe-100M plates, we evaluated all available plate 537 
+
+pairs separately. Let A and B denote the observed cell populations from the same condition measured 538 
+
+in two plates, and ˆ A and ˆ B the corresponding model-generated populations, each matched in size 539 
+
+16 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+to its observed counterpart. For each evaluation metric m, we define 540 
+
+srep = m(A, B), s = 12
+
+m(A, ˆ B) + m(B, ˆ A), (9) where srep measures agreement between independent experimental repeats, while s averages 541 
+
+prediction performance in both cross-plate directions. Thus, predictions for one plate are evaluated 542 
+
+against measurements from the other, with control-relative metrics using each plate’s matched 543 
+
+controls. The benchmark comprises 530 plate pairs (Methods, “Perturbation prediction tasks”). 544 
+
+The performance of each method with respect to experimental reproducibility was summarized 545 
+
+by the ratio of means, R = P s/ P srep , and its “win rate” which is the fraction of cross-plate 546 
+
+predictions that outperform the repeat (higher DEG overlap or r∆, lower energy distance; ties count 547 
+
+as half). Because plate pairs from the same combination share plates, both were tested against no 548 
+
+difference ( R = 1; win rate 50%) by two-sided t-tests with standard errors clustered by combination 549 
+
+and G − 1 degrees of freedom 36,37 . R was tested on the log scale, with its standard error computed 550 
+
+using the delta method 38 .551 
+
+Split-half reproducibility. 552 
+
+The perturbed cells and matched controls of each test condition were split at random into disjoint 553 
+
+halves, T1, T2 and C1, C2. The reference score is m(T1, T2), with C1 and C2 for control-relative 554 
+
+metrics, averaged over 20 random partitions. A method is scored on the first partition by replacing 555 
+
+T2 with an equal-sized generated population. All eligible test conditions were included, each plate’s 556 
+
+population as a separate condition, and each metric was averaged over the conditions for which it 557 
+
+was defined for every method and the reference. 558 
+
+Data efficiency and scaling 559 
+
+Fewer conditions or fewer cells. 560 
+
+To ask whether a fixed experimental budget is better spent measuring more conditions or more 561 
+
+cells per condition, we reduced the Tahoe-100M biological-context training set in two ways while 562 
+
+keeping the test set unchanged. In the fewer-conditions setting, we retained all cells from either 5% 563 
+
+or 25% of the 52,885 perturbed training conditions, defined by cell line, compound and dose with 564 
+
+plates pooled. Conditions were selected using hierarchical balanced stratified sampling (see next 565 
+
+paragraph). In the fewer-cells setting, we retained the same number of perturbed cells, sampled 566 
+
+uniformly across all training conditions. All control cells were retained in both settings. The two 567 
+
+training sets therefore contained the same numbers of control and perturbed cells and differed only 568 
+
+in how broadly the perturbed measurements were distributed across conditions. Reduced datasets 569 
+
+were trained for 5 / f epochs, where f is the retained fraction of conditions, ensuring at least as 570 
+
+many optimizer steps as for the full training set. 571 
+
+Hierarchical balanced stratified sampling. 572 
+
+When subsampling conditions, we wanted to reduce the size of the training set without preferentially 573 
+
+retaining the most densely measured parts of the dataset. We therefore selected conditions so 574 
+
+that coverage remained approximately balanced across cell lines, compounds and doses, while 575 
+
+also encouraging each compound to be represented across diverse tissue types. The sampler first 576 
+
+assigns inclusion weights to all measured cell line, compound and dose combinations so that their 577 
+
+expected representation is balanced along each of these three axes. For each compound and dose, 578 
+
+these weights determine how many cell lines are retained. Cell lines are then sampled without 579 
+
+replacement, with lower probability given to tissues already represented for that compound. This 580 
+
+procedure is repeated until the target fraction of conditions is reached. The full algorithm is given 581 
+
+in Supplementary Methods. 582 
+
+17 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+Recovery from shallow measurements. 583 
+
+We trained GENESIS using all control cells and at most 12 perturbed cells per training condition, 584 
+
+pooled across plates, yielding approximately 1.3 million perturbed cells (Extended Data Fig. 5a, b). 585 
+
+To assess recovery of training-condition responses, we generated populations matching their original 586 
+
+sample sizes and evaluated 3,941 combinations measured on plates 6 and 14 at 5 μM. We compared 587 
+
+these predictions with the shallow measurements alone, the same measurements replicated to 588 
+
+the held-out sample size, and GENESIS trained on all cells. Measured-cell baselines were scored 589 
+
+against cells excluded from training; model predictions were scored against all measured cells. 590 
+
+Generalization was evaluated separately on the unchanged biological-context test set. Both analyses 591 
+
+used cross-plate experimental reproducibility as the reference. 592 
+
+Reducing the total cell budget. 593 
+
+To assess data efficiency when control measurements are also limited, we uniformly retained 1%, 594 
+
+5%, 25% or 100% of all training cells, including both perturbed and control cells. Models were 595 
+
+evaluated on the unchanged biological-context test set using split-half reproducibility (Extended 596 
+
+Data Fig. 5c). 597 
+
+Training overlap. 598 
+
+To measure how prediction improves as a biological context is observed under more perturbations, 599 
+
+we varied the number of training compounds available for each of the five Tahoe-100M test cell lines 600 
+
+while keeping the evaluation set fixed. Each line retained responses to k ∈ { 0, 15, 30, 80, 164 } of its 601 
+
+164 training compounds, at all available doses, with k = 0 containing controls only. Compound sets 602 
+
+were nested, so each higher-overlap level contained all compounds from the preceding levels. The 603 
+
+same 199 compounds withheld from these lines at all doses were used for evaluation at every level. 604 
+
+To separate the effect of training overlap from differences between cell lines, we used a Latin-605 
+
+square design across five runs, such that every cell line was evaluated once at every overlap level. 606 
+
+We repeated the complete design for three independently sampled compound orderings, giving 15 607 
+
+runs in total. 608 
+
+For the perturbation-generalization analysis (Extended Data Fig. 6a), we similarly varied the 609 
+
+number of biological contexts in which a test compound was observed during training. The four 610 
+
+overlap levels were rotated across four groups of ten held-out compounds and repeated for three 611 
+
+independent selections of training cell lines, giving 12 runs. All Tahoe-100M overlap experiments 612 
+
+used the same uniformly subsampled set of 11.3 million training cells and the lighter training 613 
+
+configuration. 614 
+
+For the PBMC data-efficiency analysis (Extended Data Fig. 6b), models were trained on either 615 
+
+5% or 25% of cells sampled uniformly from the full training set, or on 25% of donor-cytokine 616 
+
+conditions selected using the same balanced sampling procedure, without the tissue-balancing term. 617 
+
+Biological program analysis 618 
+
+Tahoe-100M PROGENy programs 619 
+
+Pathway footprints and gene panel. 620 
+
+We scored the 14 signaling pathways of PROGENy 18 . Each pathway is defined by a footprint of 621 
+
+genes whose expression changes consistently when the pathway is perturbed, and each gene carries 622 
+
+a signed weight. For each pathway we took the 100 genes with the smallest P values in the human 623 
+
+model, the package default, as distributed through OmniPath 39 . Tahoe-100M measures 1,287 of 624 
+
+the resulting 1,297 genes. Only 221 of these are in the default 2,000-gene panel used for model 625 
+
+development, so we trained and evaluated on the union of the two, 3,066 genes. Six randomly 626 
+
+drawn genes padded the panel to a multiple of 64 for computational efficiency and were excluded 627 
+
+18 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+from every analysis. Before any analysis, we grouped the pathways by the signals that drive them: 628 
+
+growth factor (EGFR, MAPK, PI3K, VEGF, WNT), stress (hypoxia, p53, TRAIL), inflammation (JAK-629 
+
+STAT, NF-κB, TNF α, TGF β), and hormonal and developmental signaling (androgen, estrogen). For 630 
+
+this analysis, GENESIS was retrained on the expanded gene panel using the same training data and 631 
+
+configuration as the 5% fewer-cells model in Fig. 3a. 632 
+
+Compounds. 633 
+
+In the five held-out cell lines of the biological-context split (C32, HepG2 /C3A, HOP62, Hs 766T 634 
+
+and PANC-1), 199 compounds were withheld at every dose, so training included none of their 635 
+
+compound-cell-line combinations. We analyzed, at 5 μM, every one of them that the Tahoe-100M 636 
+
+annotation 1 assigns to one of 13 mechanism classes expected to alter the signaling that PROGENy 637 
+
+reads out: inhibitors of EGFR /ERBB, RAS, RAF, MEK, PI3K /AKT, mTOR, JAK /STAT, GSK3, the 638 
+
+proteasome, HDAC, DNA synthesis or repair, or protein synthesis, and glucocorticoid receptor 639 
+
+agonists. This gave 55 compounds. The classes were fixed before any response was examined. 640 
+
+Twenty compounds were measured on two or more 5 μM plates and 35 on one. Each compound 641 
+
+was on the same plates in every line, with at least 50 perturbed cells per plate. 642 
+
+Pseudobulk transcriptional responses 643 
+
+For each compound–cell line pair at 5 μM, we calculated the mean raw count of each gene across 644 
+
+perturbed cells and across DMSO-treated control cells from the same plate. This pseudobulk 645 
+
+aggregation reduced the influence of single-cell sparsity, while comparison with plate-matched 646 
+
+controls limited the contribution of plate-specific technical variation. 647 
+
+Genes were included in the analysis if they were detected in at least 10% of the corresponding 648 
+
+control cells. For compounds measured on multiple plates, control detection fractions were averaged 649 
+
+across plates with equal weighting. This criterion was determined exclusively from measured 650 
+
+control cells and applied identically to measured and predicted responses. 651 
+
+For each eligible gene g, the pseudobulk log-fold change was calculated as 652 
+
+LFC g = log 2
+
+ mg + ε
+
+cg + ε
+
+
+
+, (10) where mg and cg denote the mean counts in perturbed and plate-matched control cells, respectively, 653 
+
+and ε = 10 −9 ensured a defined ratio without appreciably altering non-zero expression estimates. 654 
+
+For compounds measured on multiple plates, we summed the plate-specific perturbed means and 655 
+
+control means before calculating the ratio. Thus, plates contributed equally to the aggregation 656 
+
+irrespective of their cell counts. 657 
+
+Adjustment for library depth 658 
+
+To account for differences in library depth between perturbed and control cells, we calculated the 659 
+
+total transcript count across the whole transcriptome for each measured cell. We then adjusted 660 
+
+each gene-level log-fold change by subtracting the log-ratio of mean library depths: 661 
+
+x g = LFC g − log 2
+
+ P  
+
+> p
+
+LT,p
+
+P 
+
+> p
+
+LD,p
+
+
+
+, (11) where LT,p and LD,p denote the mean total transcript counts in perturbed and DMSO-treated cells 662 
+
+on plate p, respectively. The sums include all plates on which the compound was measured and 663 
+
+reduce to a single term for compounds measured on one plate. This aggregation matched that used 664 
+
+to calculate gene-level fold changes. 665 
+
+19 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+Apart from the negligible pseudocount, the adjusted response corresponds to the log-fold 666 
+
+change in each gene’s fraction of captured transcripts. Library depth was estimated from the 667 
+
+whole transcriptome rather than the selected gene panel, avoiding normalization to the aggregate 668 
+
+expression of the panel itself. 669 
+
+Because GENESIS generated counts only for the selected panel, whole-transcriptome library 670 
+
+depths were unavailable for predicted cells. We therefore applied the library-depth adjustment from 671 
+
+each measured condition to its corresponding predicted response. Subtracting the same adjustment 672 
+
+from measured and predicted log-fold changes preserved their gene-level differences. 673 
+
+Pathway response scores 674 
+
+We summarized the adjusted gene-level responses using the PROGENy footprints defined above. 675 
+
+For each pathway, we retained the selected footprint genes represented in the expanded panel and 676 
+
+passing the control-detection threshold, without re-ranking genes after restriction to the panel. The 677 
+
+pathway response score was calculated as 678 
+
+vk =
+
+P 
+
+> g∈Gk
+
+wkg x g
+
+P 
+
+> g∈Gk
+
+|wkg | , (12) where Gk is the set of eligible footprint genes for pathway k, wkg is the corresponding PROGENy 679 
+
+weight and x g is the library-depth-adjusted log-fold change. The signed weights encode the direction 680 
+
+and magnitude of each gene’s contribution to the pathway footprint. Normalization by the sum 681 
+
+of absolute weights retained the log-fold-change scale and accounted for differences in the total 682 
+
+weight of eligible genes across pathways and conditions. Measured and predicted scores were 683 
+
+calculated using the same eligible genes and weights. 684 
+
+Shared and line-specific responses. 685 
+
+To illustrate shared and context-dependent responses, we examined HOP62 lung cancer cells 686 
+
+and Hs766T pancreatic cancer cells, which harbor KRAS G12C and Q61H mutations, respec-687 
+
+tively 40,41 . These two held-out cell lines provided distinct biological contexts in which to examine 688 
+
+responses to inhibition of RAS-MAPK signaling. We focused on the MEK inhibitor trametinib and the 689 
+
+RAS(ON) inhibitor RMC-6236, highlighting examples of shared pathway suppression and opposing 690 
+
+inflammatory pathway responses (Fig. 4). 691 
+
+Quantitative evaluation of pathway responses. 692 
+
+We evaluated pathway-level agreement using the conditions and cross-plate comparisons described 693 
+
+above (Methods: Experimental reproducibility; Extended Data Fig. 7). GENESIS and STATE were 694 
+
+trained on the same 5% of training cells using the expanded 3,072-gene panel and compared with 695 
+
+the additive and nearest-neighbor baselines. Pathway responses were calculated separately for each 696 
+
+plate as described above, retaining footprint genes detected in at least 10% of control cells on both 697 
+
+plates. Nearest-neighbor responses used the source line’s controls, with genes additionally required 698 
+
+to pass detection in those controls. 699 
+
+We assessed Pearson correlation along three axes: across pathways , over the 14 pathway scores 700 
+
+for each compound-dose condition and cell line; across compounds , over compound–dose conditions 701 
+
+for each pathway and cell line; and across cell lines , over the five held-out lines for each compound-702 
+
+dose condition and pathway. Correlations were averaged over the remaining dimensions, giving 703 
+
+each cell line equal weight where applicable. Model correlations were averaged over both cross-plate 704 
+
+directions, and multiple plate-pair estimates were averaged within each condition. 705 
+
+Confidence intervals at the 95% percentile were calculated from 10,000 cluster-bootstrap 706 
+
+resamples, using identical resamples across methods and recomputing each statistic. For the 707 
+
+20 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+across-pathway and across-compound analyses, clusters comprised cell line-compound combina-708 
+
+tions, retaining all doses together. For the across-cell-line analysis, clusters comprised compounds, 709 
+
+retaining all cell lines and doses together. 710 
+
+Finally, to assess whether the recovery of biological programs is robust to a different gene-set 711 
+
+collection and scoring method, we complemented the PROGENy analysis with preranked GSEA 42 
+
+> 712
+
+of MSigDB Hallmark gene sets 43 , comparing predicted enrichment scores with measured responses 713 
+
+and experimental reproducibility (Supplementary Methods; Extended Data Fig. 13). 714 
+
+Data availability 715 
+
+The datasets used in this work were obtained from Huggingface for Tahoe-100M 716 
+
+(https: // huggingface.co /datasets /tahoebio /Tahoe-100M) and from the author’s web-717 
+
+site for the Parse PBMC cytokine atlas (https: // www.parsebiosciences.com /datasets /718 
+
+10-million-human-pbmcs-in-a-single-experiment /). 719 
+
+Code availability 720 
+
+The source code for GENESIS is available under the MIT licence via GitHub at https: // github.com /721 
+
+rickconci /GENESIS. 722 
+
+## Methods references 723 
+
+27. D’Ascenzo, D. & Cultrera di Montesano, S. scDataset: Scalable Data Loading for Deep Learning 724 
+
+on Large-Scale Single-Cell Omics. Proceedings of the 43rd International Conference on Machine 725 
+
+Learning (ICML) (2026). 726 
+
+28. Ferro, C. A. T. Fair scores for ensemble forecasts. Quarterly Journal of the Royal Meteorological 727 
+
+Society 140 , 1917–1923 (2014). 728 
+
+29. Wilcoxon, F. Individual comparisons by ranking methods. Biom. Bull. 1, 80 (1945). 729 
+
+30. Lehmann, E. L. Nonparametrics: Statistical Methods Based on Ranks (Holden-Day, San Francisco, 730 
+
+1975). 731 
+
+31. Soneson, C. & Robinson, M. D. Bias, robustness and scalability in single-cell differential 732 
+
+expression analysis. Nat. Methods 15 , 255–261 (2018). 733 
+
+32. Pullin, J. M. & McCarthy, D. J. A comparison of marker gene selection methods for single-cell 734 
+
+RNA sequencing data. Genome Biol. 25 , 56 (2024). 735 
+
+33. Benjamini, Y. & Hochberg, Y. Controlling the false discovery rate: A practical and powerful 736 
+
+approach to multiple testing. J. R. Stat. Soc. Series B Stat. Methodol. 57 , 289–300 (1995). 737 
+
+34. Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. 738 
+
+Nat. Biotechnol. 42 , 293–304 (2024). 739 
+
+35. Squair, J. W. et al. Confronting false discoveries in single-cell differential expression. Nat. 740 
+
+Commun. 12 , 5692 (2021). 741 
+
+36. Liang, K.-Y. & Zeger, S. L. Longitudinal data analysis using generalized linear models. Biometrika 742 
+
+73 , 13–22 (1986). 743 
+
+37. Colin Cameron, A. & Miller, D. L. A practitioner’s guide to cluster-robust inference. J. Hum. 744 
+
+Resour. 50 , 317–372 (2015). 745 
+
+38. Oehlert, G. W. A note on the delta method. Am. Stat. 46 , 27–29 (1992). 746 
+
+39. Türei, D. et al. Integrated intra- and intercellular signaling knowledge for multicellular omics 747 
+
+analysis. Mol. Syst. Biol. 17 , e9923 (2021). 748 
+
+40. Wang, H. et al. An integrative pharmacogenomics analysis identifies therapeutic targets in 749 
+
+KRAS-mutant lung cancer. EBioMedicine 49 , 106–117 (2019). 750 
+
+21 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+41. Gebregiworgis, T. et al. The Q61H mutation decouples KRAS from upstream regulation and 751 
+
+renders cancer cells resistant to SHP2 inhibitors. Nat. Commun. 12 , 6274 (2021). 752 
+
+42. Subramanian, A. et al. Gene set enrichment analysis: a knowledge-based approach for inter-753 
+
+preting genome-wide expression profiles. Proc. Natl. Acad. Sci. U. S. A. 102 , 15545–15550 754 
+
+(2005). 755 
+
+43. Liberzon, A. et al. The molecular signatures database (MSigDB) hallmark gene set collection. 756 
+
+Cell Syst. 1, 417–425 (2015). 757 
+
+44. Fang, Z., Liu, X. & Peltz, G. GSEApy: a comprehensive package for performing gene set 758 
+
+enrichment analysis in python. Bioinformatics 39 , btac757 (2023). 759 
+
+## Acknowledgements 760 
+
+S.C.M. was supported by the Eric and Wendy Schmidt Center at the Broad Institute of MIT and 761 
+
+Harvard. This research was supported in part by a David & Lucile Packard Fellowship for Science 762 
+
+and Engineering (L.C.), the National Library of Medicine (R01LM014775; W.L.) and the Ellison 763 
+
+Foundation (E.M.V .A. and W.L.). S.R. acknowledges funding support from NCI K08 CA260442. Any 764 
+
+opinions, findings, and conclusions or recommendations expressed in this material are those of the 765 
+
+author(s) and do not necessarily reflect the views of any of the funders. 766 
+
+## Author contributions 767 
+
+R.C., D.D. and S.C.M. developed GENESIS. R.C., D.D., S.C.M. and W.L. designed the study and 768 
+
+wrote the first draft of the manuscript. R.C. performed the computational experiments and analyses. 769 
+
+S.R., P .S.W., E.M.V .A. and L.C. provided scientific feedback and revised the manuscript. All authors 770 
+
+reviewed and approved the final manuscript. 771 
+
+## Competing interests 772 
+
+D.D. and S.C.M. are co-founders of Untoken, Inc., and hold equity in the company. S.R. holds equity 773 
+
+in Amgen. S.R. and P .S.W. receive research funding from Microsoft. P .S.W. reports compensation 774 
+
+for consulting /speaking from Engine Ventures, AbbVie, and Passkey Therapeutics unrelated to this 775 
+
+work. E.M.V .A. reports advisory /consulting with Enara Bio, Manifold Bio, Monte Rosa, the Novartis 776 
+
+Institute for Biomedical Research, Serinus Bio, and TracerDx; research support from Novartis, 777 
+
+BMS, Sanofi, and NextPoint; equity in Tango Therapeutics, Genome Medical, Genomic Life, Enara 778 
+
+Bio, Manifold Bio, Microsoft, Monte Rosa, Riva Therapeutics, Serinus Bio, Syapse, and TracerDx; 779 
+
+editorial boards for Science Advances; institutional patents filed on chromatin mutations and 780 
+
+immunotherapy response and methods for clinical interpretation; and intermittent legal consulting 781 
+
+on patents for Foaley & Hoag. L.C. is an employee of Microsoft and owns equity in Microsoft. W.L. 782 
+
+reports consulting for SpringTide Ventures and speaker honorarium from the Breast Cancer Alliance 783 
+
+and the Mertelsmann Foundation. 784 
+
+22 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+## Supplementary Methods 785 
+
+Training optimization steps 786 
+
+Training on the full Tahoe-100M biological-context split for five epochs required 256,205 optimizer 787 
+
+steps. On the reduced dataset retaining 25% of perturbed cells and all controls (approximately 788 
+
+24.2 million cells), validation loss stopped improving after approximately 150,000 steps. We used 789 
+
+this plateau to set a shorter training budget and derive a scaling rule for other dataset sizes. 790 
+
+Specifically, we fitted a power law through the full-data budget and the validation-based budget 791 
+
+for the 25%-cells dataset: 792 
+
+α = log (150,000 /256,205 )
+
+log (24.2 /91.8 ) ≈ 0.40, T (N ) = 256,205 
+
+ N
+
+91.8 × 10 6
+
+α
+
+,where N is the total number of training cells, including controls. PBMC models trained for five 793 
+
+epochs (20,425 steps), taking approximately four hours on one NVIDIA H100 NVL. 794 
+
+Fast-training configuration. 795 
+
+The 27 repeated runs for the training-overlap experiments (Fig. 3b) and related data-efficiency anal-796 
+
+yses used 96 generated cells per observation and batches of 2,048 observed cells. The architecture, 797 
+
+objective and other optimizer settings followed the default configuration. 798 
+
+Statistical baselines 799 
+
+We compared GENESIS with five statistical baselines (perturbation mean, context mean, linear 800 
+
+ridge, additive and nearest neighbor), each fitted on the training conditions and gene panel of 801 
+
+the corresponding analysis (the 2,000 panel genes unless stated otherwise). We index biological 802 
+
+context by b, perturbation by p, and experimental replicate by r, where r in Tahoe-100M identifies 803 
+
+a plate. Let Ybpr and ˆ Ybpr denote the true and predicted cell-expression distributions, and let y(i)
+
+> bpr
+> 804
+
+and ˆ y(i) 
+
+> bpr
+
+denote individual observed and predicted cells, as counts on the panel genes. Following 805 
+
+previous works 3,14 , we normalize and log-transform each cell’s counts: 806 
+
+y(i) 
+
+> norm
+
+= log  1 + 10 4 y(i)/L(i),where L(i) is the cell’s full-transcriptome library size, defined as its total count over all measured 807 
+
+genes. We write μbpr for the mean of y(i) 
+
+> norm
+
+over a condition’s cells and μ0 
+
+> br
+
+for the same mean over 808 
+
+its matched control cells. The observed transcriptomic response is 809 
+
+dbpr = μbpr − μ0 
+
+> br
+
+.In Tahoe-100M, biological context denotes a cell line, perturbation denotes a compound–dose 810 
+
+pair, and controls (DMSO) are matched by cell line and plate. In the PBMC cytokine atlas, biological 811 
+
+context denotes a donor-cell-type combination and perturbation denotes a cytokine. Each donor 812 
+
+occupies its own plate, so r is determined by the donor. Each donor-cytokine condition occupies a 813 
+
+single well, and its controls pool cells of the corresponding cell type from the donor’s six PBS wells. 814 
+
+Generating populations from pseudobulk vectors 815 
+
+To turn a predicted perturbed pseudobulk into a cell population, we subtract the observed control 816 
+
+pseudobulk and add the resulting difference to individual control cells. This shifts the control 817 
+
+population toward the predicted perturbed expression while incorporating variation from real cells, 818 
+
+23 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+allowing evaluation using energy distance and DEG overlap. In normalized log-expression space, 819 
+
+each sampled control cell is shifted as 820 
+
+ˆy( j) 
+
+> norm, bpr
+
+= max 
+
+y0( j) 
+
+> norm, br
+
++ ˆμbpr − μ0
+
+> br
+
+| {z } 
+
+> pseudobulk ∆
+
+, 0 
+
+ .
+
+Context mean. 821 
+
+The context mean predicts the average expression observed across training perturbations in the tar-822 
+
+get biological context. It captures the context’s typical perturbed expression without distinguishing 823 
+
+between perturbations. Mathematically, 824 
+
+ˆμbpr = μbp ′ r p′ ,where the average runs over the non-control training perturbations measured in context b on plate 825 
+
+r. If no such conditions are available on the target plate, we average over all non-control training 826 
+
+conditions of b across plates. 827 
+
+Perturbation mean. 828 
+
+The perturbation mean assumes that a perturbation induces a shared expression change across 829 
+
+biological contexts. It averages the matched-control responses of training conditions containing that 830 
+
+perturbation and adds the resulting response to the target context’s control mean. Mathematically, 831 
+
+¯dp = 1
+
+|T p|
+
+X
+
+> (b′,r′)∈T p
+
+db′ pr ′ , ˆμbpr = μ0 
+
+> br
+
++ ¯dp,where Tp contains the eligible training context-plate conditions measured with perturbation p. The 832 
+
+baseline therefore captures a shared perturbation response without modeling a response specific to 833 
+
+the target context. 834 
+
+Additive model. 835 
+
+The additive model explains an expression response through separate contributions from biological 836 
+
+context and perturbation. It allows contexts to differ in their overall response and perturbations to 837 
+
+differ in their shared effects, without learning a context-perturbation interaction. Mathematically, 838 
+
+ˆdbp = a + αb + β p, ˆμbpr = μ0 
+
+> br
+
++ ˆdbp .The effects are estimated independently for each gene and sequentially from the training 839 
+
+responses. First, a is the mean response over all training conditions. Next, αb is the mean resid-840 
+
+ual over conditions of context b. Finally, β p is the mean remaining residual over conditions of 841 
+
+perturbation p. This sequential procedure defines the effects without additional identifiability 842 
+
+constraints. 843 
+
+Linear ridge regression. 844 
+
+The linear ridge regression baseline represents shared perturbation responses through a low-845 
+
+dimensional description of genes. It constrains the perturbation-mean responses to this gene 846 
+
+representation, with regularization shrinking the fitted coefficients. 847 
+
+Following ref. 14, let D contain the perturbation-mean responses ¯dp as columns, and let ν be its 848 
+
+row mean. Let G be the genes-by-100 matrix of gene scores from the first 100 principal components 849 
+
+24 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+of the training pseudobulk matrix, whose columns contain mean raw-count profiles centred within 850 
+
+each condition. Let P be the identity matrix encoding perturbations as one-hot vectors. 851 
+
+We approximate 852 
+
+D ≈ GK P ⊤ + ν1⊤
+
+using the regularized closed-form estimator of the reference implementation, 853 
+
+K = ( G⊤ G + λI)−1 G⊤(D − ν1⊤)P(P⊤ P + λI)−1.We fix λ = 0.1 to the reference implementation’s value rather than selecting it on validation data. 854 
+
+No gradient-based optimization is required. 855 
+
+Writing ep for the one-hot vector selecting the relevant response column, the prediction is 856 
+
+ˆμbpr = μ0 
+
+> br
+
++ GK ep + ν.The fitted perturbation response is shared across eligible biological contexts. 857 
+
+Nearest neighbor. 858 
+
+We introduce a nearest-neighbor baseline that predicts a perturbation’s effect by copying its observed 859 
+
+cells from a biological context with similar responses to other perturbations. For each training 860 
+
+condition, we compute a response by subtracting the matched control mean from the perturbed 861 
+
+mean after applying log (1 + y) to individual cell counts. Responses measured on multiple plates are 862 
+
+averaged in proportion to their perturbed cell counts, then projected onto 100 principal axes fitted 863 
+
+to the training responses. We compare two contexts using their average cosine distance over shared 864 
+
+training perturbations with nonzero projected responses. To predict a held-out pair (b, p), we select 865 
+
+the closest eligible training context measured with p. Candidates must share at least one usable 866 
+
+training perturbation with the target context. This procedure applies to both biological-context and 867 
+
+perturbation generalization. 868 
+
+Hierarchical balanced stratified sampling 869 
+
+To construct reduced training sets with fewer experimental conditions while maintaining approxi-870 
+
+mately balanced representation of the biological contexts and perturbations axes, as in Figure 3, 871 
+
+we use a hierarchical balanced stratified sampling (HBSS) procedure. Unlike uniform sampling, 872 
+
+which preserves imbalances in the original dataset, HBSS assigns higher selection probabilities 873 
+
+to underrepresented combinations. For example, in the Tahoe-100M biological-context split, the 874 
+
+five evaluation cell lines have substantially fewer training combinations than the other cell lines 875 
+
+because most of their perturbation responses were withheld. Uniform sampling would preserve 876 
+
+this imbalance, whereas HBSS increases their representation in the subsampled training set. Only 877 
+
+perturbed combinations are sampled; all control cells remain in training. 878 
+
+Inclusion weights. 879 
+
+Let Ω be the N measured combinations (b, p, ℓ) of cell line b, compound p and dose ℓ, with 880 
+
+plates pooled, and let n = round ( f N ). Starting from Q bp ℓ = n/N on Ω and 0 elsewhere, iterative 881 
+
+proportional fitting rescales Q along each axis in turn towards uniform sums ( n/|B| per line, n/|P | 882 
+
+per compound, n/|L | per dose), clipping every entry to at most 1 after each rescaling so that Q bp ℓ883 
+
+remains an inclusion probability. Iteration stops once no entry changes by more than 10 −4 in a 884 
+
+sweep. 885 
+
+25 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+Quotas. 886 
+
+Each compound-dose pair receives an integer number of cell lines qpℓ by largest-remainder rounding 887 
+
+of P 
+
+> b
+
+Q bp ℓ, so that P qpℓ = n; a quota exceeding the number of cell lines measured with the pair 888 
+
+is capped there and the excess passed to pairs with unused cell lines. 889 
+
+Selection. 890 
+
+Within each pair, cell lines are drawn one at a time without replacement with probability proportional 891 
+
+to max {Q bp ℓ − λcφ(b), 0 }, where cφ(b) counts the lines already drawn from the tissue type of b for 892 
+
+this pair and λ = 0.5; if every remaining score is zero, the next line is drawn uniformly. Because λ893 
+
+exceeds most weights, a second cell line from a tissue type is drawn only once every other tissue 894 
+
+type has one, with a goal of increasing tissue type. . 895 
+
+Settings. 896 
+
+Tissue types are defined by the cell lines’ organ annotations. The 5% and 25% selections were 897 
+
+drawn independently (seed 0). In the PBMC atlas, every donor-cytokine combination is measured, 898 
+
+and training combinations are uneven only because held-out donors contribute fewer cytokines; 899 
+
+HBSS there balances donors and cytokines without a tissue term. 900 
+
+Biological program recovery with Hallmark GSEA 901 
+
+To assess whether GENESIS recovers biological programs under an alternative gene-set collection 902 
+
+and scoring method, we complemented the PROGENy analysis with preranked GSEA 42 of the 50 903 
+
+MSigDB Hallmark gene sets (v2026.1 43 ). GENESIS was trained on 15% of training conditions 904 
+
+using a 5,750-gene panel covering 4,376 of 4,384 Hallmark genes; additive and nearest-neighbor 905 
+
+baselines used the same training conditions. Evaluation covered 75 compounds at 5 μM across five 906 
+
+held-out cell lines (375 conditions), each measured on at least two plates with at least 50 perturbed 907 
+
+and 50 control cells per plate. GENESIS outperformed both baselines across gene sets, compounds 908 
+
+and cell lines. Across gene sets, its mean Pearson correlation with measured responses was 0.32, 909 
+
+approaching experimental reproducibility of 0.38 (Extended Data Fig. 13). 910 
+
+Plate-specific responses followed the pseudobulk and library-depth procedures in Methods. 911 
+
+Genes were retained at a control detection fraction of at least 10%, averaged equally across plates. 912 
+
+Predictions used the measured detection filter and depth adjustment, with additional source-913 
+
+line detection filtering for nearest neighbor. Genes were ranked by adjusted log-fold change, 914 
+
+resolving ties by gene name, and scored using preranked GSEA (GSEApy 44 ), with all 50 gene sets 915 
+
+retained. Normalized enrichment scores were evaluated using Pearson correlations across gene sets, 916 
+
+compounds and cell lines, following the cross-plate comparisons and cluster-bootstrap procedures 917 
+
+described in Methods. For the compound measured on three plates, statistics were averaged over 918 
+
+three complete analyses, each using a different plate pair. 919 
+
+Ablations 920 
+
+Conditioning covariates in Tahoe-100M. 921 
+
+GENESIS generates predictions conditional on all covariates available. To assess the contribution of 922 
+
+different conditioning covariates, we trained four GENESIS models using progressively complete 923 
+
+inputs: plate alone; plate and cell line; plate, compound and dose; or all four covariates. All four 924 
+
+models were trained on the faster configuration (generated repeats per true cell m = 96) and were 925 
+
+compared only with one another (Extended Data Fig. 15). 926 
+
+26 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+Energy score versus Gaussian-kernel MMD. 927 
+
+To test the effect of the training objective, we retrained GENESIS on the 25% training-cell subset 928 
+
+used in Fig. 3a, replacing the energy score and variogram with a Gaussian-kernel MMD objective. 929 
+
+MMD is commonly used to fit cell distributions 3,4 . With State’s energy-distance kernel, MMD 2
+
+> 930
+
+equals energy distance 3; we therefore used a Gaussian kernel to compare distinct objectives. The 931 
+
+replacement loss was 932 
+
+S(Pθ , y) = 12 E k(X , X ′) − E k(X , y), k(a, b) = 15
+
+> 5
+
+X
+
+> s=1
+
+exp 
+
+
+
+− ∥a − b∥22
+
+2σ2
+
+> s
+
+
+
+,where X , X ′ are independent model samples and σs = 13.43 × { 14 , 12 , 1, 2, 4 }. The base bandwidth 933 
+
+was fixed before training as the median pairwise distance among 4,096 training cells in log (1+count )934 
+
+space. Averaged over observed cells, this strictly proper score equals 12 MMD 2 up to a constant. 935 
+
+Each training step used seven conditions, with up to 256 observed and 256 generated cells per 936 
+
+condition, weighted by each condition’s training-cell count. We trained for 280,000 optimizer steps, 937 
+
+compared with 278,120 for GENESIS. This condition-level objective used up to 1,792 generated cells 938 
+
+per step; GENESIS’s per-observed-cell objective used 458,752. Alongside the standard metrics, we 939 
+
+evaluated both models using unbiased MMD 2 with a single Gaussian kernel, setting its bandwidth 940 
+
+to the median pairwise distance in each comparison (Extended Data Fig. 16). 941 
+
+Effect of training settings 942 
+
+We assessed the performance cost of reducing the number of generated cells and the network size, 943 
+
+and examined the contribution of the variogram term. Starting from the model of Fig. 2, we varied 944 
+
+each setting separately while keeping the remaining training settings fixed. 945 
+
+Number of generated cells. 946 
+
+We evaluated whether fewer generated cells per observation could reduce training cost while 947 
+
+retaining predictive performance. We tested m ∈ { 16, 64, 256 }, with m = 256 used in the main 948 
+
+model. At the fixed minibatch size of 1,792 observed cells, these settings generate 28,672, 114,688 949 
+
+and 458,752 cells per step, respectively. All generated cells contributed to the energy score and 950 
+
+variogram estimators. Five-epoch training times were approximately 4.3, 11.0 and 43.3 hours, 951 
+
+respectively (Extended Data Fig. 14a). 952 
+
+Variogram weight. 953 
+
+We introduced the variogram term to emphasize gene-gene dependencies during training. To assess 954 
+
+its contribution, we evaluated weights λ ∈ { 0, 0.1, 0.3, 0.5, 1 }, including the energy-score-only 955 
+
+objective at λ = 0 and the main model’s setting of λ = 0.5 (Extended Data Fig. 14b). 956 
+
+Network architecture. 957 
+
+We evaluated whether smaller networks could retain the performance of the main architecture. We 958 
+
+compared zero hidden layers, one hidden layer (8,192 units) and the main model’s two hidden 959 
+
+layers (4,096 and 8,192 units), comprising 2.7, 27.0 and 55.3 million parameters, respectively. All 960 
+
+networks received a 1,280-dimensional input comprising four 256-dimensional embeddings (cell 961 
+
+line, compound, dose and plate) and a 256-dimensional noise vector. The output head was a linear 962 
+
+map to 2,000 genes followed by ReLU, acting directly on the input in the zero-hidden-layer model. 963 
+
+Five-epoch training times were approximately 16.8, 31.3 and 43.3 hours, respectively (Extended 964 
+
+Data Fig. 14c). 965 
+
+27 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+## Extended Data 966 Compounds in train for evaluation cell lines (348 compound–concentration pairs) Compounds in test for evaluation cell lines (735 compound–concentration pairs) Evaluation cell lines (5) Training cell lines (45) 
+
+> TEST
+> TRAIN Compounds × concentration (1,137), control first Cell lines (50)
+
+Tahoe-100M · Biological-context generalization a 
+
+> Training compounds (339, 3 concentrations each) Evaluation compounds (40, 3 concentrations each) Cell lines in test for evaluation compounds (30) Cell lines in train for evaluation compounds (20)
+> TEST
+> TRAIN Compounds × concentration (1,137), control first Cell lines (50)
+
+Tahoe-100M · Perturbation generalization b 
+
+> Cytokines in train for evaluation donors (25) Cytokines in test for evaluation donors (61) Evaluation donors (4) Training donors (8)
+> TEST
+> TRAIN Cytokines (90), control first Donors (12)
+
+PBMC cytokine atlas · Biological-context generalization c 
+
+> Training cytokines (60) Evaluation cytokines (30) Donors in test for evaluation cytokines (7) Donors in train for evaluation cytokines (5)
+> TEST
+> TRAIN Cytokines (90), control first Donors (12)
+
+PBMC cytokine atlas · Perturbation generalization d  
+
+> Train Test Validation
+
+Extended Data Fig. 1 | Illustration of training and test splits for biological-context and perturbation general-ization. Matrices show training (light grey), test (crimson), validation (white) combinations of biological contexts and perturbations. Columns represent compound–dose pairs in Tahoe-100M and cytokines in the PBMC atlas; controls appear first and remain in training for all contexts. a,c , Biological-context generalization. Five evaluation cell lines in Tahoe-100M ( a) and four evaluation donors in PBMC ( c) retain a minority of perturbation responses for training, with the majority reserved for testing. The remaining 45 cell lines and eight donors provide training responses across the perturbation panel. b,d , Perturbation generalization. Forty evaluation compounds, at all three doses, are withheld in 30 Tahoe-100M cell lines ( b); each compound is observed during training in 1, 5, 15 or 20 of the remaining cell lines. Thirty evaluation cytokines are withheld in seven PBMC donors ( d); each is observed during training in 1, 3 or 5 of the remaining donors. Unused combinations are assigned to validation, and all other pertur-bations remain in training across contexts. Below the test blocks in b,d , assignments are sorted independently within each column to show training coverage; rows in these regions therefore do not represent fixed cell lines or donors. 
+
+28 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Control (unperturbed) cells Perturbed cells GENESIS prediction                         
+
+> Direction-matched DEG overlap Pearson Δ Energy distance
+> log2 fold change −log10 p
+> Down ↓ Up ↑
+> 410 3
+> Down ↓
+> 372
+> Up ↑
+> +
+> True DEGs Predicted DEGs
+> mean, control mean, perturbed Δ = perturbed − control
+> True Predicted
+> Δ True Δ Predicted  r = 0.96
+> Y: True X: Predicted
+> E=2kX¡Yk
+> Predicted vs True
+> ¡kX¡X0k
+> Predicted vs Predicted
+> ¡kY¡Y0k
+> True vs True
+
+Extended Data Fig. 2 | Metrics for evaluating predicted perturbation responses. Observed perturbed cells (red), GENESIS-generated cells (blue) and unperturbed controls (grey) illustrate three metrics. DEG overlap measures how well the prediction recovers the most significant differentially expressed genes, requiring agreement in the direction of change. Control-relative Pearson correlation measures agreement between observed and predicted mean expression shifts relative to controls. Both metrics use separate, randomly selected halves of the matched controls for the observed and generated populations. Energy distance compares the full observed and generated cell distributions using distances between individual cells, without averaging cells or using controls. Higher DEG overlap and Pearson correlation, and lower energy distance, indicate better predictions. Can donor effects be told apart from plate effects?   
+
+> 1 2
+> Donor 1 Donor 2 … Donor 12
+> How large is the well effect within a plate?
+> Cytokine well 12
+> Between two control wells
+> 1, two halves
+> Within one control well (split-half)
+> Matched size
+> 0.0 0.2 0.4 0.6 0.8
+> Top-100 DEG overlap ↑
+> 0.3 0.69 0.0 0.2 0.4 0.6 0.8
+> Pearson Δ ↑
+> 0.49 0.7 0.00 0.05 0.10 0.15
+> Energy distance ↓
+> 0.098 0.0053
+
+a 
+
+> PBMC cytokine atlas dataset design
+> Cytokine Controls
+
+b c
+
+> Between two control wells Within one control well
+
+Extended Data Fig. 3 | Donor–plate confounding and control-well variability in the PBMC cytokine atlas. a, Dataset design. Each of the 12 donors is measured on a separate plate, confounding donor and plate effects. Each cytokine occupies the same well position across plates (orange; dashed line) and is measured once per donor, without replication. Six PBS control wells occupy the edge row of each plate (green). b, Comparison of between-well and within-well control variability. The same cytokine-treated cells are compared with two equal-sized control samples drawn either from different control wells (orange) or from disjoint halves of the same well (teal). Agreement between the resulting DEG lists and control-relative mean expression shifts therefore measures sensitivity to the choice of controls. Energy distance is computed directly between the two control samples. c, Between-well comparisons yield lower DEG overlap and Pearson ∆, and higher energy distance, than within-well comparisons. Analyses include 46 donor-cell-type groups from four donors and 2,805 cytokine-treated conditions (2,792 for DEG overlap). Within each group, all usable control-well pairs and individual wells are sampled 10 times, matching control-sample sizes between comparisons. DEG overlap and Pearson ∆ are averaged over subsamples for each condition; energy distance is averaged within each group. Bars show means; whiskers indicate 95% confidence intervals from bootstrapping donor-cell-type groups. Between- to within-well mean ratios are 0.43 for DEG overlap (P = 2 × 10 −31 ), 0.71 for Pearson ∆ (P = 9 × 10 −24 ) and 18 for energy distance ( P = 7 × 10 −22 ), using two-sided tests clustered by donor and cell type. 
+
+29 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Tahoe-100M · Experimental reproducibility 
+
+> 0.00 0.05 0.10 0.15 0.20 0.25
+> Top-100 DEG overlap ↑
+> 0.19 0.16 0.13 0.12 0.095 0.038 0.017 0.007 0.0031 0.0 0.1 0.2 0.3 0.4
+> Pearson Δ ↑
+> 0.36 0.3 0.29 0.28 0.24 0.13 0.12 0.12 0.091 0.0 0.1 0.2 0.3 3.0
+> Energy distance ↓
+> 0.13 0.14 0.15 0.16 0.16 0.17 0.27 1.4 3
+
+★           
+
+> Tahoe-100M Experimental reproducibility
+> 0.0 0.2 0.4 0.6 0.8 1.0 Top-100 DEG overlap ↑
+> −0.50 −0.25 0.00 0.25 0.50 0.75
+> Pearson Δ ↑
+> 0100 200 300 400
+> Plate pairs ranked by experimental reproducibility
+> 0.00 0.15 0.30 2.00 4.00 Energy distance ↓
+> Tahoe-100M ·Split-half reproducibility
+> 0.0 0.2 0.4 0.6
+> Top-100 DEG overlap ↑
+> 0.45 0.26 0.24 0.24 0.08 0.039 0.017 0.0068 0.0038 0.0 0.2 0.4 0.6 0.8
+> Pearson Δ ↑
+> 0.64 0.53 0.45 0.3 0.24 0.16 0.11 0.047 0.014  0.01 0.1 1
+> Energy distance (log) ↓
+> 0.037 0.097 0.098 0.11 0.11 0.11 0.18 1.3 2.6
+> PBMC cytokine atlas ·Split-half reproducibility
+> 0.0 0.2 0.4 0.6 0.8 Top-100 DEG overlap ↑
+> 0.3 0.26 0.26 0.24 0.073 0.073 0.052 0.048 0.0039 0.0 0.1 0.2 0.3 0.4
+> Pearson Δ ↑
+> 0.21 0.19 0.18 0.17 0.057 0.054 0.041 0.025 0.0076  0.1 1
+> Energy distance (log) ↓
+> 0.17 0.21 0.21 0.21 0.22 0.22 0.32 11.8
+
+a bc
+
+> Experimental reproducibility No statistical difference from repeat GENESIS STATE PerturbDiff CellFlow PertMean LinRidge Additive CtxMean Nearest-neighbor Experimental reproducibility GENESIS STATE PerturbDiff CellFlow PertMean LinRidge Additive CtxMean Nearest-neighbor GENESIS STATE PerturbDiff CellFlow PertMean LinRidge Additive CtxMean Nearest-neighbor Split-half reproducibility (± repeat s.d.)
+
+Extended Data Fig. 4 | GENESIS achieves state-of-the-art performance approaching experimental reproducibil-ity in the perturbation-generalization setting. Panels follow Fig. 2 except reflecting the perturbation-generalization setting rather than the biological-context generalization split. a, Agreement with the experimental repeat on the Tahoe-100M held-out combinations measured on two plates with at least 50 perturbed cells each (403 plate pairs): each method generates each plate from that plate’s control cells and is scored against the other plate. Each metric uses the pairs on which the repeat and every method define it, so DEG overlap, undefined where the repeat has no significant genes, covers fewer pairs (369). Bars, mean of each method; dashed line, the experimental repeat; 
+
+↑/↓, higher /lower is better. Above each panel, GENESIS’s ratio of means to the repeat ( R) and its win rate against it, with two-sided, combination-clustered P; n.s., no difference between a method and the repeat detected (both 
+
+P ≥ 0.05). b, The same plate pairs ranked by the agreement between experimental repeats; lines, running means; dots, individual pairs. c, Against the split-half reference (dashed line; band, mean per-condition s.d. over 20 parti-tions) on the full test sets: Tahoe-100M, 40 compounds in 30 cell lines at three doses (4,023 conditions; top), and the PBMC cytokine atlas, 30 cytokines in 7 donors (3,456 donor-cell-type-well conditions; bottom). n, conditions per metric; DEG overlap is undefined where the observed half has no significant genes, so it covers fewer conditions. Baselines are shown with black-and-white hatching. 
+
+30 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Tahoe-100M · Training conditions · Experimental reproducibility  
+
+> GENESIS, all cells GENESIS, ~12 cells its ~12 cells copy-pasted 0.0 0.1 0.2 0.3 0.4 0.5 0.36 0.35 0.00 0.19
+
+Top-100 DEG overlap ↑   
+
+> Experimental reproducibility GENESIS, all cells GENESIS, ~12 cells its ~12 cells copy-pasted 0.0 0.2 0.4 0.6 0.8 0.64 0.63 0.28 0.28
+
+Pearson Δ ↑   
+
+> GENESIS, all cells GENESIS, ~12 cells its ~12 cells copy-pasted 0.0 0.5 1.0 1.5 0.14 0.15 0.15 1.13
+
+Energy distance ↓ 
+
+Tahoe-100M · Test conditions · Experimental reproducibility  
+
+> GENESIS, all cells GENESIS, ~12 cells 0.0 0.1 0.2 0.3 0.4 0.29 0.27
+
+Top-100 DEG overlap ↑  
+
+> Experimental reproducibility GENESIS, all cells GENESIS, ~12 cells 0.0 0.2 0.4 0.6 0.43 0.45
+
+Pearson Δ ↑  
+
+> GENESIS, all cells GENESIS, ~12 cells 0.00 0.05 0.10 0.15 0.20 0.16 0.16
+
+Energy distance ↓ 
+
+Tahoe-100M · Fewer training cells · Split-half reproducibility       
+
+> 0.9M 6.8M 25M 92M 0.24 0.32 0.40 0.48 STATE PerturbDiff GENESIS
+> (1.0%) (7.4%) (27.1%) (100%)
+
+Training cells 
+
+Top-100 DEG overlap ↑       
+
+> 0.9M 6.8M 25M 92M 0.5 0.6 0.7 STATE PerturbDiff GENESIS
+> (1.0%) (7.4%) (27.1%) (100%)
+
+Training cells 
+
+Pearson Δ ↑        
+
+> 0.9M 6.8M 25M 92M 0.04 0.08 0.12 Additive CtxMean GENESIS
+> (1.0%) (7.4%) (27.1%) (100%)
+
+Training cells 
+
+Energy distance ↓ 
+
+abcExtended Data Fig. 5 | Recovery and generalization from shallow perturbation measurements. a,b , GENESIS trained on at most 12 perturbed cells per condition, retaining all controls. a, Recovery of training-condition responses by generating populations at their original sizes, compared with shallow measurements, replicated shallow measurements and GENESIS trained on all cells. b, Generalization to unseen test conditions. Dashed lines in a,b show experimental reproducibility. c, Test performance after subsampling both perturbed and control training cells, evaluated using split-half reproducibility. Dotted lines show the two strongest comparators trained on all data. Points and bars show mean scores; error bars and shaded bands indicate 95% confidence intervals from 10,000 bootstrap resamples of cell line–compound clusters. 
+
+31 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Tahoe-100M · perturbation generalization · Split-half reference protocol    
+
+> Perturbation Biological context  How many cell lines for a given perturbation does GENESIS need to see to perform well?
+> 1515 20
+> Cell lines in which the test perturbation was seen in training
+> 0.2 0.4 0.6
+
+Top-100 DEG overlap ↑    
+
+> 1515 20
+> Cell lines in which the test perturbation was seen in training
+> 0.4 0.6 0.8
+
+Pearson r Δ ↑    
+
+> 1515 20
+> Cell lines in which the test perturbation was seen in training
+> 0.0 0.1 0.2 0.3
+
+Energy distance ↓ 
+
+PBMC cytokine atlas · biological context generalization · reference: GENESIS on all training data     
+
+> Perturbation Biological context Test set
+> No cells More cells
+> #cells
+> subsampling
+> #conditions
+> subsampling
+> 5% 25% 100% 0.34 0.36 0.38 0.40 0.42
+> 0.3M cells 1.9M cells 1.7M cells 6.9M cells
+
+Top-100 DEG overlap ↑    
+
+> n.s.
+> 5% 25% 100% 0.23 0.24 0.25 0.26 0.27 0.28 0.29
+> 0.3M cells 1.9M cells 1.7M cells 6.9M cells
+
+Pearson r Δ ↑    
+
+> 5% 25% 100% 0.150 0.175 0.200 0.225 0.250 0.275
+> 0.3M cells 1.9M cells 1.7M cells 6.9M cells
+
+Energy distance ↓ 
+
+ab   
+
+> 12 of 40 compounds GENESIS, mean over 40 compounds GENESIS, fewer conditions GENESIS, fewer cells GENESIS, all training data
+
+Extended Data Fig. 6 | Data efficiency for held-out perturbations and in the PBMC cytokine atlas. a , Overlap, as in Fig. 3b but for a held-out perturbation, in Tahoe-100M (perturbation generalization), scored on the full test set by the split-half protocol of Fig. 2c. Each of 40 held-out compounds is observed in training in k ∈ { 1, 5, 15, 20 }
+
+of 20 cell lines, rotated over 12 runs so that every compound is scored at every k, and is scored at all doses in 30 cell lines in which it is never observed. Gray, 12 individual compounds; blue, mean over compounds ± s.e.m. These runs use the lightweight recipe of Fig. 3b, so absolute values are not those of Extended Data Fig. 4. b, Sampling, as in Fig. 3a, in the PBMC cytokine atlas (biological-context generalization): GENESIS trained on 5% or 25% of training cells, or on 25% of donor-cytokine combinations, against GENESIS trained on all the data (dotted line and blue point), scored on held-out donors. The atlas has no experimental repeat, so the full model is the reference. Tick labels, the fraction of training data kept and the training cells (at 25%, fewer conditions above fewer cells); bands, ± s.e.m. over conditions. 
+
+32 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint 0.0 0.2 0.4 0.6 0.8       
+
+> Pearson r 0.45
+> Across pathways ↑ 0.0 0.2 0.4 0.6 0.8
+> 0.63
+> Across compounds ↑ 0.0 0.2 0.4 0.6 0.8
+> 0.44
+> Across cell lines ↑
+> PANC-1 HOP62 Hs 766T HepG2/C3A C32
+> 0.0 0.2 0.4 0.6 0.8
+> Pearson r across pathways
+> By cell line ↑ −0.4 0.0 0.4 0.8
+> By compound ↑ 0.0 0.5 1.0
+> Experimental reproducibility
+> 0.0 0.5 1.0
+> GENESIS
+> Per compound ↑
+
+ab    
+
+> Experimental reproducibility GENESIS Additive Nearest neighbor State
+
+Extended Data Fig. 7 | Pathway-level agreement relative to experimental reproducibility. GENESIS and STATE were trained on the same 5% of training cells using the expanded 3,072-gene panel and compared with additive and nearest-neighbor baselines. Responses were scored using the 14 PROGENy pathways and evaluated against experimental reproducibility (Methods). a, Mean Pearson correlation across pathways (left), compound–dose conditions (middle), and the five held-out cell lines (right). b, Agreement across pathways, broken down by cell line (left) and compound (middle; points show compound-level means across cell lines and doses, with horizontal bars indicating medians). Right, GENESIS agreement versus experimental reproducibility for each compound; the dashed line indicates equality. Teal lines show experimental reproducibility. Error bars and shaded bands indicate percentile 95% confidence intervals from 10,000 cluster-bootstrap resamples, as described in Methods. 
+
+33 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Afatinib Almonertinib (HCl) Almonertinib (mesylate) Capmatinib Neratinib (maleate) BI-3406 Lonafarnib RMC-6236 Dabrafenib Encorafenib Vemurafenib TAK-733 Trametinib Trametinib (DMSO_TF solvate) Alpelisib Capivasertib GSK1059615 AZD-8055 Everolimus LY-2584702 (tosylate salt) Rapamycin Sapanisertib Temsirolimus Torkinib ETC-206 Harringtonine Homoharringtonine SBI-0640756 Tomivosertib Altretamine Amsacrine AZD-7648 Bendamustine Busulfan Doxorubicin (HCl) Epirubicin (HCl) Idarubicin (HCl) Mitoxantrone (diHCl) olaparib Pemetrexed Raltitrexed Rucaparib (phosphate) Trimetrexate CP21R7 LY2090314 Tucidinostat Artesunate Balsalazide (sodium hydrate) Tofacitinib Tofacitinib (citrate) Bortezomib Ixazomib Betamethasone dipropionate Methylprednisolone succinate Triamcinolone EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR/ERBB RAS–MAPK PI3K–AKT–mTOR Translation DNA damage Other targeted GC 
+
+> TRUE GENESIS STATE ADDITIVE NN
+
+Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. −1.5 0.0 1.5 PROGENy score (weighted mean log 2FC) 
+
+not detected 
+
+HOP62 (held out) · PROGENy Extended Data Fig. 8 | Comparison of predicted pathway responses in HOP62. Measured and predicted PROGENy pathway responses in the held-out HOP62 cell line at 5 μM. Heatmaps compare GENESIS, STATE, the additive baseline and nearest-neighbor predictions across 14 pathways and 55 compounds. Colors indicate depth-adjusted, PROGENy-weighted mean log 2 fold changes relative to matched controls. 
+
+34 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Afatinib Almonertinib (HCl) Almonertinib (mesylate) Capmatinib Neratinib (maleate) BI-3406 Lonafarnib RMC-6236 Dabrafenib Encorafenib Vemurafenib TAK-733 Trametinib Trametinib (DMSO_TF solvate) Alpelisib Capivasertib GSK1059615 AZD-8055 Everolimus LY-2584702 (tosylate salt) Rapamycin Sapanisertib Temsirolimus Torkinib ETC-206 Harringtonine Homoharringtonine SBI-0640756 Tomivosertib Altretamine Amsacrine AZD-7648 Bendamustine Busulfan Doxorubicin (HCl) Epirubicin (HCl) Idarubicin (HCl) Mitoxantrone (diHCl) olaparib Pemetrexed Raltitrexed Rucaparib (phosphate) Trimetrexate CP21R7 LY2090314 Tucidinostat Artesunate Balsalazide (sodium hydrate) Tofacitinib Tofacitinib (citrate) Bortezomib Ixazomib Betamethasone dipropionate Methylprednisolone succinate Triamcinolone EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR/ERBB RAS–MAPK PI3K–AKT–mTOR Translation DNA damage Other targeted GC 
+
+> TRUE GENESIS STATE ADDITIVE NN
+
+Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. −1.5 0.0 1.5 PROGENy score (weighted mean log 2FC) 
+
+Hs 766T (held out) · PROGENy Extended Data Fig. 9 | Comparison of predicted pathway responses in Hs 766T. Measured and predicted PROGENy pathway responses in the held-out Hs 766T cell line at 5 μM. Models, pathways, compounds and color scale are as in Extended Data Fig. 8. 
+
+35 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Afatinib Almonertinib (HCl) Almonertinib (mesylate) Capmatinib Neratinib (maleate) BI-3406 Lonafarnib RMC-6236 Dabrafenib Encorafenib Vemurafenib TAK-733 Trametinib Trametinib (DMSO_TF solvate) Alpelisib Capivasertib GSK1059615 AZD-8055 Everolimus LY-2584702 (tosylate salt) Rapamycin Sapanisertib Temsirolimus Torkinib ETC-206 Harringtonine Homoharringtonine SBI-0640756 Tomivosertib Altretamine Amsacrine AZD-7648 Bendamustine Busulfan Doxorubicin (HCl) Epirubicin (HCl) Idarubicin (HCl) Mitoxantrone (diHCl) olaparib Pemetrexed Raltitrexed Rucaparib (phosphate) Trimetrexate CP21R7 LY2090314 Tucidinostat Artesunate Balsalazide (sodium hydrate) Tofacitinib Tofacitinib (citrate) Bortezomib Ixazomib Betamethasone dipropionate Methylprednisolone succinate Triamcinolone EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR/ERBB RAS–MAPK PI3K–AKT–mTOR Translation DNA damage Other targeted GC 
+
+> TRUE GENESIS STATE ADDITIVE NN
+
+Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. −1.5 0.0 1.5 PROGENy score (weighted mean log 2FC) 
+
+C32 (held out) · PROGENy Extended Data Fig. 10 | Comparison of predicted pathway responses in C32. Measured and predicted PROGENy pathway responses in the held-out C32 cell line at 5 μM. Models, pathways, compounds and color scale are as in Extended Data Fig. 8. 
+
+36 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Afatinib Almonertinib (HCl) Almonertinib (mesylate) Capmatinib Neratinib (maleate) BI-3406 Lonafarnib RMC-6236 Dabrafenib Encorafenib Vemurafenib TAK-733 Trametinib Trametinib (DMSO_TF solvate) Alpelisib Capivasertib GSK1059615 AZD-8055 Everolimus LY-2584702 (tosylate salt) Rapamycin Sapanisertib Temsirolimus Torkinib ETC-206 Harringtonine Homoharringtonine SBI-0640756 Tomivosertib Altretamine Amsacrine AZD-7648 Bendamustine Busulfan Doxorubicin (HCl) Epirubicin (HCl) Idarubicin (HCl) Mitoxantrone (diHCl) olaparib Pemetrexed Raltitrexed Rucaparib (phosphate) Trimetrexate CP21R7 LY2090314 Tucidinostat Artesunate Balsalazide (sodium hydrate) Tofacitinib Tofacitinib (citrate) Bortezomib Ixazomib Betamethasone dipropionate Methylprednisolone succinate Triamcinolone EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR/ERBB RAS–MAPK PI3K–AKT–mTOR Translation DNA damage Other targeted GC 
+
+> TRUE GENESIS STATE ADDITIVE NN
+
+Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. −1.5 0.0 1.5 PROGENy score (weighted mean log 2FC) 
+
+PANC-1 (held out) · PROGENy Extended Data Fig. 11 | Comparison of predicted pathway responses in PANC-1. Measured and predicted PROGENy pathway responses in the held-out PANC-1 cell line at 5 μM. Models, pathways, compounds and color scale are as in Extended Data Fig. 8. 
+
+37 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Afatinib Almonertinib (HCl) Almonertinib (mesylate) Capmatinib Neratinib (maleate) BI-3406 Lonafarnib RMC-6236 Dabrafenib Encorafenib Vemurafenib TAK-733 Trametinib Trametinib (DMSO_TF solvate) Alpelisib Capivasertib GSK1059615 AZD-8055 Everolimus LY-2584702 (tosylate salt) Rapamycin Sapanisertib Temsirolimus Torkinib ETC-206 Harringtonine Homoharringtonine SBI-0640756 Tomivosertib Altretamine Amsacrine AZD-7648 Bendamustine Busulfan Doxorubicin (HCl) Epirubicin (HCl) Idarubicin (HCl) Mitoxantrone (diHCl) olaparib Pemetrexed Raltitrexed Rucaparib (phosphate) Trimetrexate CP21R7 LY2090314 Tucidinostat Artesunate Balsalazide (sodium hydrate) Tofacitinib Tofacitinib (citrate) Bortezomib Ixazomib Betamethasone dipropionate Methylprednisolone succinate Triamcinolone EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR MAPK PI3K VEGF WNT Hypoxia p53 Trail JAK-STAT NFkB TNFa TGFb Androgen Estrogen EGFR/ERBB RAS–MAPK PI3K–AKT–mTOR Translation DNA damage Other targeted GC 
+
+> TRUE GENESIS STATE ADDITIVE NN
+
+Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. Growth Stress Inflam. Horm. −1.5 0.0 1.5 PROGENy score (weighted mean log 2FC) 
+
+HepG2/C3A (held out) · PROGENy Extended Data Fig. 12 | Comparison of predicted pathway responses in HepG2 /C3A. Measured and predicted PROGENy pathway responses in the held-out HepG2 /C3A cell line at 5 μM. Models, pathways, compounds and color scale are as in Extended Data Fig. 8. 
+
+38 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint 0.0 0.2 0.4 0.6 0.8       
+
+> Pearson r 0.38
+> Across pathways ↑ 0.0 0.2 0.4 0.6 0.8
+> 0.34
+> Across compounds ↑ 0.0 0.2 0.4 0.6 0.8
+> 0.34
+> Across cell lines ↑
+> PANC-1 HOP62 Hs 766T HepG2/C3A C32
+> 0.0 0.2 0.4 0.6 0.8
+> Pearson r across pathways
+> By cell line ↑ −0.4 0.0 0.4 0.8
+> By compound ↑ 0.0 0.5 1.0
+> Experimental reproducibility
+> 0.0 0.5 1.0
+> GENESIS
+> Per compound ↑
+
+ab   
+
+> Experimental reproducibility GENESIS Additive Nearest-neighbor line
+
+Extended Data Fig. 13 | Hallmark pathway agreement across independent plates. Measured and predicted responses were scored by preranked GSEA on 50 MSigDB Hallmark gene sets for 75 compounds at 5 μM across five held-out cell lines (375 conditions; Methods). Predictions were evaluated against the other plate, averaging both directions; teal lines indicate experimental reproducibility. a, Mean Pearson ( a) correlations of normalized enrichment scores across pathways (left), compounds (middle) and cell lines (right). b, Across-pathway Pearson correlations summarized by cell line (left), by compound (middle; dots, means across five lines; black bars, medians), and compared between GENESIS and experimental reproducibility for each compound (right; dashed line, identity). Whiskers and shaded bands indicate percentile 95% confidence intervals from 10,000 bootstrap resamples, clustered by cell line-compound for across-pathway and across-compound analyses, and by compound for across-cell-line analyses. 
+
+39 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Tahoe-100M · Generated cells per observed cell   
+
+> 16 64 256
+> Generated cells per observed cell, m
+> 0.47 0.48 0.49 0.50 0.51 0.52
+
+Top-100 DEG overlap ↑   
+
+> 16 64 256
+> Generated cells per observed cell, m
+> 0.72 0.73 0.74 0.75 0.76
+
+Pearson Δ ↑   
+
+> 16 64 256
+> Generated cells per observed cell, m
+> 3 × 10 −2
+> 4 × 10 −2
+> 5 × 10 −2
+> 6 × 10 −2
+
+Energy distance (log) ↓ 
+
+Tahoe-100M · Variogram weight     
+
+> 00.1 0.3 0.5 1
+> Variogram weight, λ
+> 0.49 0.50 0.51
+
+Top-100 DEG overlap ↑     
+
+> 00.1 0.3 0.5 1
+> Variogram weight, λ
+> 0.745 0.750 0.755 0.760
+
+Pearson Δ ↑     
+
+> 00.1 0.3 0.5 1
+> Variogram weight, λ
+> 3 × 10 −2
+> 4 × 10 −2
+> 5 × 10 −2
+
+Energy distance (log) ↓ 
+
+Tahoe-100M · Hidden layers   
+
+> 012
+> Hidden layers
+> 0.35 0.40 0.45 0.50
+
+Top-100 DEG overlap ↑   
+
+> 012
+> Hidden layers
+> 0.55 0.60 0.65 0.70 0.75
+
+Pearson Δ ↑   
+
+> 012
+> Hidden layers
+> 0.1 3 × 10 −2
+> 4 × 10 −2
+> 6 × 10 −2
+
+Energy distance (log) ↓ 
+
+abcExtended Data Fig. 14 | Sensitivity of GENESIS performance to training settings. Models were evaluated on the Tahoe-100M biological-context test split used in Fig. 2c. Each model varied one setting while retaining the remaining settings of the main model. a, Number of generated cells per observed cell, m ∈ { 16, 64, 256 }. b, Variogram weight, 
+
+λ ∈ { 0, 0.1, 0.3, 0.5, 1 }; λ = 0 corresponds to the energy-score-only objective. c, Network architecture: zero hidden layers, one hidden layer (8,192 units) or two hidden layers (4,096 and 8,192 units). Filled points indicate the main configuration ( m = 256, λ = 0.5, two hidden layers) picked during hyperparameter tuning with the validation set. Tahoe-100M · Split-half reproducibility 
+
+> 0.0 0.2 0.4 0.6 0.8
+
+Top-100 DEG overlap ↑ 
+
+> 0.475 0.206 0.171 0.158
+> 0.0 0.2 0.4 0.6 0.8 1.0
+
+Pearson r Δ ↑ 
+
+> 0.723 0.527 0.217 0.195
+> 0.001 0.01 0.1 1
+
+Energy distance ↓ 
+
+> 0.0507 0.109 2.1 2.12
+
+a    
+
+> All covariates Plate + cell line Plate + compound, concentration Plate only (batch) Split-half reproducibility (± repeat s.d.)
+
+Extended Data Fig. 15 | Direct conditioning on experimental covariates improves GENESIS predictions. a ,Effect of conditioning covariates in Tahoe-100M (biological-generalization split). GENESIS was trained using plate alone, plate and cell line, plate and perturbation (compound and dose), or all covariates. Performance was evaluated on held-out cell lines against the split-half reproducibility reference (dashed line; band, s.d. across partitions). 
+
+40 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Tahoe-100M · Split-half reproducibility 
+
+> 0.0 0.2 0.4 0.6
+> Top-100 DEG overlap ↑
+> 0.51 0.45 0.0 0.2 0.4 0.6 0.8
+> Pearson Δ ↑
+> 0.75 0.7 0.001 0.01 0.1
+> Energy distance ↓
+> 0.043 0.056 0.0001 0.001 0.01
+> MMD, Gaussian ↓
+> 0.0023 0.0029
+
+a  
+
+> GENESIS (energy score) MMD, set-level Split-half reproducibility (± repeat s.d.)
+
+Extended Data Fig. 16 | Comparison of the GENESIS and Gaussian-kernel MMD training objectives. GENESIS was trained on the 25% training-cell subset used in Fig. 3a with either its default energy score plus variogram objective or a multiscale Gaussian-kernel MMD objective. Both models used the same architecture; objective estimation and generated-cell budgets are detailed in Methods. Evaluation used the Tahoe-100M biological-context test split and split-half reproducibility as the reference. Bars show mean top-100 DEG overlap, Pearson ∆, energy distance and Gaussian-kernel MMD 2. The evaluation MMD 2 used a single Gaussian kernel with bandwidth set to the median pairwise distance in each comparison. Bar labels indicate mean scores; dashed lines and shaded bands show split-half reproducibility and its standard deviation across random partitions. Energy distance and MMD 2 are displayed on logarithmic axes. 
+
+41 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Supplementary Tables 967 
+
+Supplementary Table 1 | Model performance relative to experimental reproducibility on Tahoe-100M biological-context generalization (Fig. 2a). Predictions were evaluated against observations from the other plate across 530 plate pairs. R is the mean model score divided by the mean experimental-repeat score across plates. 
+
+R = 1 indicates equal mean scores; higher values are better for DEG overlap and Pearson ∆, and lower values are better for energy distance. Win rate is the fraction of cross-plate predictions that outperform the repeat, counting ties as half. Confidence intervals (95%) and two-sided tests account for clustering by combination, as described in Methods. The tests compare R with 1 and win rate with 0.5; stars indicate p ≥ 0.05 for both. Methods are ranked by mean performance, with the best in bold and second best underlined. 
+
+Method R (95% CI) Win rate (95% CI) p (R) p (win) Star Direction-matched DEG overlap GENESIS 0.966 [0.946–0.986 ] 0.451 [0.424–0.479 ] 8.1 × 10 −4 6.8 × 10 −4 —STATE 0.905 [0.869–0.943 ] 0.396 [0.364–0.428 ] 2 × 10 −6 5.7 × 10 −10 —PerturbDiff 0.767 [0.729–0.808 ] 0.360 [0.329–0.392 ] 3.7 × 10 −22 6.9 × 10 −17 —Nearest-neighbor 0.551 [0.530–0.572 ] 0.195 [0.169–0.220 ] 1.7 × 10 −117 7.7 × 10 −83 —CellFlow 0.511 [0.480–0.544 ] 0.275 [0.239–0.310 ] 7.5 × 10 −70 7 × 10 −32 —CtxMean 0.133 [0.123–0.143 ] 0.116 [0.095–0.137 ] 1.9 × 10 −201 2.1 × 10 −137 —Additive 0.076 [0.069–0.085 ] 0.080 [0.060–0.099 ] 8 × 10 −190 1 × 10 −169 —PertMean 0.024 [0.019–0.030 ] 0.055 [0.042–0.069 ] 1.1 × 10 −122 1 × 10 −246 —LinRidge 0.017 [0.013–0.022 ] 0.055 [0.041–0.068 ] 3.3 × 10 −107 4.9 × 10 −249 —
+
+Pearson ∆
+
+GENESIS 0.995 [0.977–1.013 ] 0.473 [0.440–0.505 ] 0.56 0.10 ⋆
+
+STATE 0.839 [0.810–0.868 ] 0.315 [0.279–0.351 ] 1.6 × 10 −21 8.6 × 10 −22 —Additive 0.685 [0.642–0.731 ] 0.260 [0.223–0.298 ] 3.3 × 10 −27 1.5 × 10 −31 —PerturbDiff 0.677 [0.649–0.706 ] 0.238 [0.203–0.273 ] 1 × 10 −56 8.6 × 10 −41 —CtxMean 0.600 [0.573–0.629 ] 0.214 [0.181–0.247 ] 2.1 × 10 −74 4.7 × 10 −51 —Nearest-neighbor 0.415 [0.399–0.432 ] 0.204 [0.167–0.241 ] 2.3 × 10 −172 5.9 × 10 −46 —PertMean 0.409 [0.376–0.445 ] 0.254 [0.215–0.292 ] 1.7 × 10 −70 1.8 × 10 −31 —LinRidge 0.325 [0.295–0.358 ] 0.247 [0.209–0.286 ] 3.6 × 10 −80 3.1 × 10 −33 —CellFlow 0.310 [0.281–0.343 ] 0.213 [0.177–0.249 ] 1.6 × 10 −80 3.5 × 10 −45 —
+
+Energy distance GENESIS 1.027 [0.972–1.086 ] 0.489 [0.460–0.518 ] 0.34 0.44 ⋆
+
+CtxMean 1.372 [1.185–1.587 ] 0.371 [0.337–0.405 ] 2.5 × 10 −5 4.4 × 10 −13 —Additive 1.373 [1.229–1.533 ] 0.319 [0.286–0.351 ] 2.9 × 10 −8 2.7 × 10 −25 —PertMean 1.438 [1.288–1.606 ] 0.289 [0.257–0.320 ] 2.2 × 10 −10 1 × 10 −33 —LinRidge 1.460 [1.303–1.635 ] 0.286 [0.254–0.318 ] 1.4 × 10 −10 2.2 × 10 −34 —STATE 1.464 [1.377–1.557 ] 0.206 [0.176–0.235 ] 6.8 × 10 −30 8.6 × 10 −64 —PerturbDiff 2.852 [2.675–3.040 ] 0.033 [0.021–0.045 ] 4.1 × 10 −124 4.2 × 10 −284 —CellFlow 13.973 [13.024–14.992 ] 0.000 [0.000–0.000 ] 4 × 10 −270 0 —Nearest-neighbor 16.703 [15.521–17.976 ] 0.000 [0.000–0.000 ] 9.7 × 10 −275 0 —968 
+
+42 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint Supplementary Table 2 | GENESIS models trained on reduced data evaluated against experimental reproducibility. Models from Fig. 3a were evaluated across 530 Tahoe-100M plate pairs, scoring predictions against observations from the other plate. Training sets retained fewer perturbed conditions or fewer cells across conditions, with all controls retained. R is the ratio of mean model performance to mean experimental-repeat performance across plates; R = 1 indicates equal means. Better model performance corresponds to R > 1 for DEG overlap and Pearson 
+
+∆, and R < 1 for energy distance. Win rate is the fraction of cross-plate predictions outperforming the repeat, with ties counted as half. We report 95% confidence intervals and two-sided p values for R = 1 and win rate = 0.5, using the cluster-adjusted tests described in Methods. Stars indicate p ≥ 0.05 for both tests. 
+
+Training data Perturbed cells 
+
+R (95% CI) Win rate (95% CI) 
+
+p (R) p (win) Star Direction-matched DEG overlap 
+
+100% 89.5M 0.962 [0.943–0.980 ] 0.437 
+
+[0.408–0.467 ]
+
+8.6 × 10 −5 3 × 10 −5 —25% conditions 21.9M 0.967 [0.948–0.986 ] 0.463 
+
+[0.434–0.493 ]
+
+8 × 10 −4 0.01 —25% cells 21.9M 0.956 [0.937–0.975 ] 0.446 
+
+[0.417–0.475 ]
+
+6.9 × 10 −6 2.9 × 10 −4 —5% conditions 4.6M 0.862 [0.841–0.883 ] 0.390 
+
+[0.358–0.422 ]
+
+1.4 × 10 −29 3.8 × 10 −11 —5% cells 4.6M 0.946 [0.927–0.966 ] 0.444 
+
+[0.414–0.474 ]
+
+2 × 10 −7 2.4 × 10 −4 —
+
+Pearson ∆
+
+100% 89.5M 0.992 [0.975–1.009 ] 0.479 
+
+[0.446–0.513 ]
+
+0.37 0.22 ⋆
+
+25% conditions 21.9M 1.004 [0.985–1.023 ] 0.481 
+
+[0.447–0.515 ]
+
+0.71 0.27 ⋆
+
+25% cells 21.9M 1.000 [0.982–1.019 ] 0.475 
+
+[0.440–0.509 ]
+
+0.99 0.14 ⋆
+
+5% conditions 4.6M 0.924 [0.902–0.946 ] 0.375 
+
+[0.339–0.410 ]
+
+2.5 × 10 −10 9.5 × 10 −12 —5% cells 4.6M 1.012 [0.989–1.035 ] 0.475 
+
+[0.439–0.512 ]
+
+0.31 0.18 ⋆
+
+Energy distance 
+
+100% 89.5M 1.028 [0.973–1.087 ] 0.487 
+
+[0.459–0.515 ]
+
+0.32 0.36 ⋆
+
+25% conditions 21.9M 1.035 [0.978–1.096 ] 0.493 
+
+[0.465–0.521 ]
+
+0.23 0.64 ⋆
+
+25% cells 21.9M 1.022 [0.967–1.079 ] 0.484 
+
+[0.456–0.511 ]
+
+0.44 0.25 ⋆
+
+5% conditions 4.6M 1.152 [1.062–1.250 ] 0.402 
+
+[0.373–0.431 ]
+
+7.1 × 10 −4 1 × 10 −10 —5% cells 4.6M 1.033 [0.973–1.096 ] 0.472 
+
+[0.442–0.501 ]
+
+0.29 0.06 ⋆
+
+969 
+
+43 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 1, 2026. ;https://doi.org/10.64898/2026.10.30.763081 doi: bioRxiv preprint
+
+Supplementary Table 3 | Default GENESIS training settings, as used for the Tahoe-100M benchmark model (Fig. 2). Analysis-specific changes and training durations are described in Methods. 
+
+Setting GENESIS default Data 
+
+Input transformation log(1 +count) Genes 2,000 Batch (observed cells) 1,792 Loader scDataset v0.3.0 Block size 1,024 cells Fetch size 14 minibatches Sampling uniform over cells, without replacement 
+
+Architecture 
+
+Backbone conditional MLP Embedding width 256 Hidden widths 4,096–8,192 Activation GELU Normalization layers none Dropout none Noise uniform Output activation ReLU Output bias training mean per gene 
+
+Loss 
+
+Objective energy score + variogram Generated cells m 256 Variogram weight 0.5 Variogram exponent p 0.5 Variogram gene pairs per step 6,000 Variogram cells 896 of 1,792 observed; 256 generated each Variogram estimator debiased 
+
+Optimization 
+
+Optimizer AdamW ( β1 0.9, β2 0.95) Peak learning rate 9 × 10 −4
+
+Warm-up linear, 5% of steps (100–1,000) LR multipliers ×1, ×0.1 after 20%, ×0.01 after 40% of steps Final decay linear to ×0.1 over the last 15% of steps Weight decay 0.0001 Gradient clipping none Precision bf16 mixed Seed 64 970 
+
+44

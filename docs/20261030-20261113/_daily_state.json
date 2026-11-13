@@ -1,0 +1,377 @@
+{
+  "date": "20261030-20261113",
+  "date_label": "2026-10-30 ~ 2026-11-13",
+  "generated_at": "2026-11-13 03:42:30 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2611.02311v1",
+      "route": "20261030-20261113/2611.02311v1-cytowave-perturbation-centric-pretraining-for-single-cell-response-prediction",
+      "title": "CytoWave: Perturbation-Centric Pretraining for Single-Cell Response Prediction",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "面向单细胞遗传扰动响应预测的扰动中心预训练框架",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2611.11217v1",
+      "route": "20261030-20261113/2611.11217v1-scbig-learning-across-genes-and-cells-to-predict-single-cell-perturbation-responses",
+      "title": "scBIG++: Learning Across Genes and Cells to Predict Single-Cell Perturbation Responses",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "全基因单细胞扰动响应预测框架",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2611.13649v1",
+      "route": "20261030-20261113/2611.13649v1-predicting-single-cell-spatial-gene-expression-from-he-using-pathology-foundation-models",
+      "title": "Predicting Single-Cell Spatial Gene Expression from H&E using Pathology Foundation Models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "改造病理基础模型从H&E预测单细胞空间基因表达",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-10-30-763081-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-10-30-763081-v1-single-cell-perturbation-prediction-near-experimental-reproducibility-with-genesis",
+      "title": "Single-cell perturbation prediction near experimental reproducibility with GENESIS",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "预测单细胞扰动响应分布的生成式框架，并采用实验校准评测",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2610.41692v1",
+      "route": "20261030-20261113/2610.41692v1-from-wsis-to-bulk-spatial-and-single-cell-transcriptomics-via-multi-scale-graph-neural-networks",
+      "title": "From WSIs to Bulk, Spatial and Single-Cell Transcriptomics via Multi-Scale Graph Neural Networks",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "用多尺度图神经网络从全切片病理图像预测空间转录组",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2611.05849v1",
+      "route": "20261030-20261113/2611.05849v1-a-low-rank-decoder-bottleneck-bounds-reliability-in-foundation-model-perturbation-prediction",
+      "title": "A low-rank decoder bottleneck bounds reliability in foundation-model perturbation prediction",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "审计基础模型扰动响应预测的可靠性",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2611.10658v1",
+      "route": "20261030-20261113/2611.10658v1-the-delta-gap-cellular-world-models-for-perturbation-response-prediction-are-far-harder-than-global-correlation-implies",
+      "title": "The Delta Gap: Cellular World Models for Perturbation Response Prediction Are Far Harder Than Global Correlation Implies",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "细胞世界模型用于扰动响应预测的评测分析",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2611.14129v1",
+      "route": "20261030-20261113/2611.14129v1-continuous-3d-spatial-transcriptomics-reconstruction-via-histology-informed-implicit-neural-representations",
+      "title": "Continuous 3D Spatial Transcriptomics Reconstruction via Histology-Informed Implicit Neural Representations",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "组织学信息驱动的隐式神经表示，利用组织学图像预测基因表达",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-10-23-761347-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-10-23-761347-v1-digital-twins-forecast-individual-immune-trajectories",
+      "title": "Digital twins forecast individual immune trajectories",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "将共享虚拟细胞模型个性化构建为个体数字孪生",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-10-28-762655-v2",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-10-28-762655-v2-ember-contextualized-gene-representations-enable-compositional-prediction-across-cellular-perturbations",
+      "title": "EMBER: Contextualized gene representations enable compositional prediction across cellular perturbations",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "对单一与组合扰动效应的组合式预测",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-10-31-763027-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-10-31-763027-v1-relay-relational-in-context-learning-for-cellular-perturbation-prediction",
+      "title": "RELAY: Relational In-Context Learning for Cellular Perturbation Prediction",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "用关系式上下文学习预测细胞扰动响应",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-03-763980-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-03-763980-v1-raptorgraph-graph-based-pathway-modeling-for-causal-discovery-in-single-cell-perturbations",
+      "title": "RAPTORGraph: graph-based pathway modeling for causal discovery in single-cell perturbations",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "单细胞扰动中的因果发现与新扰动预测",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-05-764505-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-05-764505-v1-predicting-transcriptional-responses-to-unseen-compounds-through-context-modeling-and-multi-view-transfer",
+      "title": "Predicting Transcriptional Responses to Unseen Compounds through Context Modeling and Multi-View Transfer",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "通过多视图迁移预测未见化合物的药物诱导转录响应",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-07-765083-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-07-765083-v1-disentangled-generative-modeling-of-single-cell-perturbation-responses-across-dynamic-cellular-states",
+      "title": "Disentangled generative modeling of single-cell perturbation responses across dynamic cellular states",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "解耦式深度生成模型建模单细胞扰动响应",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2610.41399v1",
+      "route": "20261030-20261113/2610.41399v1-scanyomics-foundation-model-distillation-for-any-to-any-completion-of-multi-omics-virtual-cells",
+      "title": "scAnyOmics: Foundation-Model Distillation for Any-to-Any Completion of Multi-omics Virtual Cells",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "多组学虚拟细胞的任意到任意跨模态补全",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2611.02681v1",
+      "route": "20261030-20261113/2611.02681v1-histotx-early-fusion-of-he-images-and-spatial-transcriptomics-at-varying-spatial-transcriptomics-resolution-with-self-supervised-learning",
+      "title": "HistoTx: Early fusion of H&E images and spatial transcriptomics at varying spatial transcriptomics resolution with self-supervised learning",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "将H&E图像与空间转录组进行多模态早期融合",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "2611.13748v1",
+      "route": "20261030-20261113/2611.13748v1-when-covariance-is-not-enough-kernel-based-regularization-for-single-cell-counterfactuals",
+      "title": "When Covariance Is Not Enough: Kernel-Based Regularization for Single-Cell Counterfactuals",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "单细胞反事实编辑预测干预后的细胞状态",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-02-762549-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-02-762549-v1-expert-infers-causal-perturbations-from-cell-states-across-biological-and-clinical-contexts",
+      "title": "ExPert infers causal perturbations from cell states across biological and clinical contexts",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "从观测细胞状态反推因果扰动",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-02-763749-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-02-763749-v1-resolving-how-genetic-perturbations-act-through-gene-regulatory-paths",
+      "title": "Resolving how genetic perturbations act through gene regulatory paths",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "从Perturb-seq解析遗传扰动经调控路径的作用机制",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-02-763811-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-02-763811-v1-generalizable-virtual-staining-from-histopathology-to-spatial-proteomics-across-biological-scales",
+      "title": "Generalizable virtual staining from histopathology to spatial proteomics across biological scales",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "从H&E组织学预测空间蛋白的多模态模型",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-03-763968-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-03-763968-v1-where-single-cell-foundation-models-help-a-benchmark-of-annotation-perturbation-and-regulatory-inference-against-simple-baselines",
+      "title": "Where single-cell foundation models help: a benchmark of annotation, perturbation and regulatory inference against simple baselines",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "在Perturb-seq数据上基准评测原位扰动预测与监督扰动模型",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-03-763968-v2",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-03-763968-v2-where-single-cell-foundation-models-help-a-benchmark-of-annotation-perturbation-and-regulatory-inference-against-simple-baselines",
+      "title": "Where single-cell foundation models help: a benchmark of annotation, perturbation and regulatory inference against simple baselines",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "系统评测单细胞基础模型在计算扰动预测中的表现",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-08-765157-v1",
+      "route": "20261030-20261113/biorxiv-10-64898-2026-11-08-765157-v1-lingocell-interprets-gene-perturbations-through-natural-language-and-tissue-niches",
+      "title": "LingoCell interprets gene perturbations through natural language and tissue niches",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "单细胞基础模型开展单基因与组合的原位扰动模拟",
+      "first_seen_at": "2026-11-13 03:42:30 UTC",
+      "updated_at": "2026-11-13 03:42:30 UTC"
+    }
+  ]
+}

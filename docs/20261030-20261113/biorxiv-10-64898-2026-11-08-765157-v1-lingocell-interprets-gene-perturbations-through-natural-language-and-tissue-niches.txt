@@ -1,0 +1,2827 @@
+1 
+LingoCell interprets gene perturbations through natural language and 
+1 
+tissue niches 
+2 
+Yitao Yang1†, Wanzhe Xu2†, Zhenhua Zhang2,3†, Yang Cui2, Xin Yu4, Wenchao Gu5, Junjian 
+3 
+Wang3* & Kenta Nakai1,2* 
+4 
+1Human Genome Center, The Institute of Medical Science, The University of Tokyo, Tokyo, 
+5 
+Japan. 2Department of Computational Biology and Medical Science, The University of 
+6 
+Tokyo, Kashiwa, Japan. 3National and Local United Engineering Lab of Druggability and 
+7 
+New Drugs Evaluation, Guangdong Provincial Key Laboratory of New Drug Design and 
+8 
+Evaluation, School of Pharmaceutical Sciences, Sun Yat-sen University, Guangzhou 510006, 
+9 
+China. 4School of Finance and Economics, Jiangsu University, Zhenjiang, Jiangsu 212013, 
+10 
+China. 5Department of Artificial Intelligence Medicine, Graduate School of Medicine, Chiba 
+11 
+University, Chiba, Japan. †These authors contributed equally: Yitao Yang, Wanzhe Xu, 
+12 
+Zhenhua Zhang. 
+13 
+*Correspondence: Junjian Wang (wangjj87@mail.sysu.edu.cn) or Kenta Nakai 
+14 
+(knakai@ims.u-tokyo.ac.jp) 
+15 
+Abstract 
+16 
+Single-cell foundation models are general tools for resolving cell identities and disease states, 
+17 
+but struggle to interpret changes in expression magnitude in biological language, to transfer 
+18 
+to sparse spatial measurements, and to explain cellular niches. We introduce LingoCell, a 
+19 
+foundation model connecting single-cell and spatial transcriptomics. It aligns cell 
+20 
+representations with language while keeping gene expression editable, supporting cell 
+21 
+annotation, cross-batch integration, description generation, and disease-language readouts of 
+22 
+single-gene and combinatorial in silico perturbations. Extended to tissues, it annotates cells 
+23 
+without single-cell references, learns identity-conditioned niche embeddings, and performs 
+24 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+2 
+spatial in silico perturbation by replacing and editing neighbor expression. In lung 
+25 
+adenocarcinoma, LingoCell revealed synergistic disease responses to jointly weakening 
+26 
+alveolar differentiation programs and strengthening malignant programs. In colorectal cancer, 
+27 
+it revealed different programs conveyed by the same fibroblast state to T cells, macrophages, 
+28 
+and tumor cells. LingoCell provides a unified framework for prioritizing target combinations 
+29 
+and stromal intervention programs. 
+30 
+Introduction 
+31 
+Single-cell foundation models learn gene coordination by pretraining on tens of millions of 
+32 
+cells to support cell annotation, batch integration, and perturbation analysis, yet their 
+33 
+perturbation and interpretation capabilities remain constrained by how expression is 
+34 
+represented. Geneformer represents cells as gene sequences ranked by relative expression and 
+35 
+identified cardiomyopathy candidate targets through in silico deletion,1 but rank-based 
+36 
+encoding records only relative gene order, preventing magnitude adjustments that preserve 
+37 
+rank order from entering the model. scGPT jointly models gene identity and discretized 
+38 
+expression values to support annotation, integration, and fine-tuned perturbation prediction,2 
+39 
+while CellFM scaled pretraining to roughly 100 million human cells.3 Although these models 
+40 
+detect magnitude changes, their perturbation outputs are embedding shifts or predicted 
+41 
+expression profiles rather than semantic readouts defined by disease descriptions. More 
+42 
+fundamentally, none is aligned during pretraining with natural language describing cell 
+43 
+identity, function, and disease, making existing biological concepts difficult to use for 
+44 
+identifying cells in new data or interpreting molecular changes. 
+45 
+Aligning cell representations with language brings these concepts directly into the model. 
+46 
+LangCell achieves zero-shot annotation through cell–text contrastive learning but retains 
+47 
+rank-based encoding and does not generate cell descriptions.4 CellWhisperer links 
+48 
+transcriptome–text alignment to a large language model for free-text cell retrieval and 
+49 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+3 
+querying, but its analyses stop at observed expression.5 Cell2Text generates cell descriptions 
+50 
+from frozen Geneformer features, but whether expression changes map to disease-semantic 
+51 
+responses remains untested.6 Interpreting gene changes through disease language requires 
+52 
+retaining editable expression magnitude while aligning with text. 
+53 
+Even when a model interprets and edits a cell's own expression through language, models 
+54 
+trained on dissociated cells lack cellular position, adjacency, and morphology in tissues. 
+55 
+Platforms such as Visium HD have advanced spatial transcriptomics to near-single-cell 
+56 
+resolution.7 Methods such as STAGATE and GraphST integrate expression and spatial 
+57 
+adjacency to identify tissue domains,8,9 but require training on target data, do not directly 
+58 
+output cell identities, and typically need a matched single-cell reference. scGPT-spatial 
+59 
+extends continual pretraining across spatial platforms,10 yet spatial capture depth is far lower 
+60 
+than in single-cell sequencing and expression distributions of the same cell type differ 
+61 
+systematically; adapting to spatial distributions alone does not guarantee preservation of 
+62 
+single-cell identity knowledge, leaving open how to sustain cell annotation and semantic 
+63 
+understanding in spatial data. 
+64 
+Maintaining stable cell identities in tissues is also fundamental to understanding niches: the 
+65 
+same environment conveys different information to cells with different functions, and 
+66 
+neighbor features relevant to a T cell need not be those to which a tumor cell responds. 
+67 
+Existing methods mainly define niches from the environment itself: BANKSY combines a 
+68 
+cell's own expression, neighborhood mean expression, and spatial gradients,11 whereas 
+69 
+DECIPHER uses cross-scale contrastive learning to represent molecular identity and spatial 
+70 
+environment separately.12 Neither environmental representation is queried by the central cell's 
+71 
+identity, making environmental differences difficult to interpret in a specific cellular context. 
+72 
+Interpreting niche differences must ultimately resolve neighbor gene programs, yet 
+73 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+4 
+localization-associated gene analysis yields only observational associations and cannot 
+74 
+answer how altering a neighbor program changes the environment of a specific cell. 
+75 
+We therefore introduce LingoCell, a foundation model connecting cell identity, disease 
+76 
+concepts, and tissue environment through language-aligned expression representations. 
+77 
+Pretrained on more than 11 million single cells and their paired descriptions, LingoCell 
+78 
+jointly encodes gene identity and expression level and aligns them with text, supporting 
+79 
+clustering, cross-batch integration, zero-shot annotation, and description generation without 
+80 
+fine-tuning; because expression magnitude remains editable after alignment, it can also adjust 
+81 
+one or more genes and read cellular responses using interchangeable disease descriptions. 
+82 
+Transferred to tissues through measurement adaptation, LingoCell annotates Visium HD data 
+83 
+at single-cell resolution without a single-cell reference, uses the central cell's identity as a 
+84 
+query to build observer-dependent niche embeddings integrating continuous neighbor 
+85 
+molecular states and spatial structure, and performs spatial in silico perturbation by replacing 
+86 
+and editing neighbor states. Using LingoCell, we found that co-downregulating alveolar 
+87 
+differentiation programs and co-upregulating malignant programs synergistically increased 
+88 
+cellular alignment with disease descriptions in lung adenocarcinoma, distinguished fibroblast 
+89 
+environments with similar neighbor compositions but different molecular states in normal 
+90 
+colon, and revealed distinct program priorities for T cells, macrophages, and tumor cells 
+91 
+reading the same fibroblast state in colorectal cancer. As a unified foundation model spanning 
+92 
+cell atlases and tissues in situ, LingoCell enables researchers to investigate the meaning of 
+93 
+genes or neighbor programs across single-cell and tissue scales, advancing analysis from 
+94 
+describing what cells are to interpreting what molecular changes mean. 
+95 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+5 
+Results 
+96 
+Overview of LingoCell 
+97 
+LingoCell connects single-cell and spatial transcriptomics within a unified architecture (Fig. 
+98 
+1): the single-cell stage aligns editable gene expression with natural language to support 
+99 
+representation analysis, description generation, and disease-semantic perturbation (Fig. 1a–d), 
+100 
+whereas the spatial stage transfers to tissues in situ through measurement adaptation to 
+101 
+resolve identity-conditioned local environments and perform neighborhood in silico 
+102 
+perturbation (Fig. 1e–g). 
+103 
+Single-cell pretraining uses more than 11 million single cells and paired descriptions from 
+104 
+CELLxGENE (Fig. 1a).13 The expression encoder reads gene identity and expression level, 
+105 
+while the text encoder reads cell-type, tissue, and state descriptions; cross-modal contrastive 
+106 
+learning and cell-type prototype learning bring both into a shared representation space, and 
+107 
+expression recovery preserves gene-level information. Frozen identity embeddings directly 
+108 
+support annotation, clustering, and cross-batch integration (Fig. 1b), while gene 
+109 
+representations pass through an adapter to a LLaMA decoder to generate natural language 
+110 
+describing cell identity, tissue origin, and function (Fig. 1c). Because expression magnitude 
+111 
+remains editable, adjusting one or more genes in a fixed cellular context and re-encoding 
+112 
+yields a semantic shift (ΔF) along the direction defined by normal and disease descriptions as 
+113 
+a disease-semantic readout; switching the disease description without changing the 
+114 
+perturbation interprets the same expression change against different diseases (Fig. 1d). 
+115 
+On entering the spatial stage, because platforms such as Visium HD capture expression more 
+116 
+sparsely at single-cell resolution and differ systematically from single-cell sequencing, 
+117 
+LingoCell first performs measurement adaptation training on single-cell data, simulating 
+118 
+spatial capture depth and sparsity while constraining the same cell to retain consistent identity 
+119 
+embeddings across observation conditions (Fig. 1e). The adapted encoder then joins a spatial 
+120 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+6 
+attention module for self-supervised pretraining on real tissue sections (Fig. 1f and 
+121 
+Supplementary Table S1): using the central cell's identity as a query, the spatial module reads 
+122 
+neighbor expression, distances, and tissue morphology, learns tissue context through 
+123 
+expression recovery and prediction of neighborhood cell composition and pathway activity, 
+124 
+and outputs an identity embedding for spatial annotation and a niche embedding referenced to 
+125 
+that identity. 
+126 
+Niche embeddings extend in silico perturbation to tissue neighborhoods (Fig. 1g): fixing the 
+127 
+central cell (observer) and its spatial context, real states of a given neighbor type from across 
+128 
+the section (donors) are placed into its neighborhood one at a time, and the shift of the 
+129 
+observer's niche embedding along a reference axis defined by two real tissue environments 
+130 
+measures donor influence; candidate programs built from influence-associated donor genes 
+131 
+are then upregulated or downregulated in silico, and the resulting influence difference (ΔI) 
+132 
+tests effect direction and compares how different observers weight the same neighbor state. 
+133 
+LingoCell organizes single-cell representations around cell-type prototypes for 
+134 
+clustering, integration, and zero-shot annotation 
+135 
+We evaluated frozen pretrained LingoCell representations without fine-tuning on four public 
+136 
+datasets: PBMC10K (peripheral blood mononuclear cells), cross-platform Pancreas, Human 
+137 
+Immune (blood and bone marrow), and multi-organ Tabula Sapiens.14–16 Comparators 
+138 
+included expression foundation models (scGPT, Geneformer, CellFM), language-aligned 
+139 
+models (LangCell, CellWhisperer), and standard representations (PCA and highly variable 
+140 
+genes, HVG), with clustering and integration metrics computed under the scIB framework.15 
+141 
+In the pretraining atlas, LingoCell organized representations around cell identity, separating 
+142 
+24 displayed categories in a representative subset (Fig. 2a). Across the four benchmark 
+143 
+datasets, LingoCell achieved the highest mean Leiden clustering adjusted Rand index (ARI, 
+144 
+0.584) and normalized mutual information (NMI, 0.742) among the eight representation 
+145 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+7 
+methods, outperforming the runner-up CellWhisperer (mean ARI 0.517) and PCA (mean 
+146 
+NMI 0.733), with top ARI on every dataset (Fig. 2b, Supplementary Fig. S1, Supplementary 
+147 
+Table S2, and Supplementary Note 1). In PBMC10K, LingoCell separated CD14⁺ monocytes, 
+148 
+FCGR3A⁺ monocytes, and dendritic cells into distinct adjacent regions, whereas 
+149 
+CellWhisperer showed more intermingled boundaries (LingoCell ARI 0.887 and NMI 0.843, 
+150 
+versus runner-up CellWhisperer 0.828 and PCA 0.832; Fig. 2c). 
+151 
+This clustering advantage reflects the cell-type prototypes introduced during pretraining: 
+152 
+expression representations and descriptions of the same cell type are gathered around their 
+153 
+type prototype, drawing each cell toward a shared identity reference. In the prototype 
+154 
+landscape, lymphoid, myeloid, epithelial, stromal, and neural families occupied concentrated 
+155 
+regions, and strong connections in the similarity chord diagram occurred mainly within 
+156 
+related families (Fig. 2d), indicating that the prototype bank also encodes lineage 
+157 
+relationships above the cell-type level. 
+158 
+Identity-centered representations likewise favored cross-batch integration. Across Pancreas, 
+159 
+Human Immune, and Tabula Sapiens, LingoCell achieved the highest mean biological 
+160 
+conservation (0.853) and batch mixing (0.505) scores among the eight methods not using 
+161 
+target batch labels (Fig. 2e); compared with Harmony, scVI, and Scanorama, which explicitly 
+162 
+use batch labels,17–19 its biological conservation matched scVI (0.853 versus 0.855) and 
+163 
+exceeded Scanorama, while its overall score on Tabula Sapiens (0.797) surpassed all three 
+164 
+dedicated integration methods (Supplementary Fig. S2 and Supplementary Table S3). In 
+165 
+cross-platform Pancreas, β cells from different batches converged into a single identity region 
+166 
+in LingoCell but separated by sequencing protocol in LangCell (full-dataset biological 
+167 
+conservation 0.775 versus 0.521, batch mixing 0.533 versus 0.393; Fig. 2f). 
+168 
+Language alignment further enables direct text querying of identity embeddings using 
+169 
+descriptions of candidate cell types and tissue context without training a classifier. On Tabula 
+170 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+8 
+Sapiens, LingoCell's Top-1 accuracy (51.1%), Top-5 accuracy (84.1%), and macro-F1 
+171 
+(0.354) exceeded those of LangCell and CellWhisperer, more than doubling both on Top-1 
+172 
+and exceeding LangCell by 15.9 percentage points on Top-5 (Fig. 2g); on shared-layout 
+173 
+UMAPs,20 its predictions for macrophages, fibroblasts, and basal cells better matched 
+174 
+reference annotations (Fig. 2h). Zero-shot results on Human Immune and Pancreas and 
+175 
+labeled-reference comparisons with scANVI and CellTypist are shown in Supplementary Fig. 
+176 
+S3 and Supplementary Tables S4a, S4b, and S5,21,22 where LingoCell ranked in the top three 
+177 
+of the eight representation methods in mean macro-F1. 
+178 
+LingoCell translates single-cell expression profiles into molecularly grounded natural 
+179 
+language descriptions 
+180 
+Beyond querying cells with given text, LingoCell can also generate open-ended descriptions 
+181 
+de novo from transcriptomes: gene representations from the frozen expression encoder pass 
+182 
+through an adapter to the language decoder, translating expression directly into coherent 
+183 
+sentences summarizing cell identity, tissue origin, and function (Fig. 1a,c). Compared with 
+184 
+Cell2Text, which generates descriptions from single-cell expression,6 LingoCell achieved 
+185 
+RoBERTa- and BioBERT-based BERTScores of 96.60% and 94.20% (Cell2Text: 96.28% 
+186 
+and 93.90%) and extracted cell-type, tissue, and disease F1 scores of 78.72%, 80.65%, and 
+187 
+79.50%, all exceeding Cell2Text (Fig. 3a), with consistent gains in field accuracy and lexical 
+188 
+metrics including BLEU and ROUGE (Supplementary Fig. S4a,b and Supplementary Note 
+189 
+2). Generated text also links identity to biological function: kidney cells expressing AQP3, 
+190 
+FXYD4, and SCNN1B were described as renal principal cells regulating sodium and 
+191 
+potassium balance, and brain cells expressing PLP1, CNP, and MBP as oligodendrocytes 
+192 
+forming axonal myelin in the central nervous system (Fig. 3b; additional examples in 
+193 
+Supplementary Fig. S4c). 
+194 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+9 
+Continuous state differences within a single cell type further test description resolution. 
+195 
+Hepatocytes exhibit zonated metabolic specialization along the portal-to-central lobular 
+196 
+axis.23 In the human liver single-cell data of MacParland et al.,24 nearly all selected 
+197 
+hepatocytes received explicit zonation descriptions, with three representative cells 
+198 
+summarized as periportal (oxidative energy metabolism), midzonal (mixed functionality), and 
+199 
+pericentral (drug biotransformation), matching their zonation marker expression (Fig. 3c). 
+200 
+Ordered along an expression coordinate defined by periportal (ASS1, HAL) and pericentral 
+201 
+(GLUL, CYP2E1, CYP3A4) genes (Fig. 3d), or along a coordinate built from markers of the 
+202 
+healthy human liver spatial atlas of Yakubovsky et al. (Supplementary Fig. S4d),23 generated 
+203 
+descriptions shifted smoothly from predominantly periportal to predominantly pericentral. 
+204 
+Cross-attention while generating identity phrases further showed that midzonal descriptions 
+205 
+attended more to CPT1A and ABCA1, whereas pericentral descriptions attended more to 
+206 
+CBR1 and ALDH6A1 (Fig. 3e), giving the text output a traceable molecular basis. 
+207 
+LingoCell resolves disease-associated cell states and gene programs through semantic 
+208 
+queries and in silico perturbation 
+209 
+The unified expression–language space enables free text to serve directly as a semantic probe 
+210 
+of cellular function and disease states. In the lung single-nucleus atlas of Melms et al. 
+211 
+(GSE171524), comprising COVID-19 decedents and controls,25 keeping identity embeddings 
+212 
+fixed while querying “Angiogenesis” concentrated high-response cells in endothelial cells, 
+213 
+switching to “Epithelial–mesenchymal transition” (EMT) shifted the response to 
+214 
+mesenchymal fibroblasts, and “Complement system” highlighted immune populations 
+215 
+including B cells, antigen-presenting cells, and T cells (Fig. 4a). These functional concepts 
+216 
+map biological questions directly onto cell populations without prior conversion into marker 
+217 
+gene lists. 
+218 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+10 
+Switching queries to disease descriptions distinguishes state changes across cell populations 
+219 
+within an organ. Using CELLxGENE lung disease data, we compared normal-to-disease 
+220 
+representation changes against language directions for inflammation-associated versus 
+221 
+fibrotic/obstructive lung diseases (Fig. 4b): alveolar and elicited macrophages were biased 
+222 
+toward the inflammatory side, conventional dendritic cells and classical monocytes 
+223 
+responded strongly in both directions, and alveolar type II (AT2) cells were biased toward the 
+224 
+fibrotic/obstructive side. Comparing COVID-19 and lung adenocarcinoma (LUAD) 
+225 
+directions, the former highlighted classical monocytes, dendritic cells, and subsets of 
+226 
+lymphocytes, whereas the latter involved immune, vascular endothelial, and alveolar 
+227 
+epithelial cells, with capillary endothelial cells showing opposite alignment across the two 
+228 
+directions (Fig. 4c); AT2 cell changes aligned with the LUAD description, echoing the AT2-
+229 
+related transcriptional lineage in human LUAD and the attenuation of alveolar identity during 
+230 
+tumor progression.26 
+231 
+Interchangeable disease directions also screen for disease-associated candidate genes in 
+232 
+healthy cells. In healthy alveolar macrophages primarily from the Human Lung Cell Atlas 
+233 
+(HLCA),27 we upregulated single genes in silico and read responses against LUAD, 
+234 
+pulmonary sarcoidosis, and COVID-19 descriptions (Fig. 4d): CD163 and LIPA were 
+235 
+positive in all three directions; FABP4, CXCL16, and C1QB were positive in LUAD and 
+236 
+negative in COVID-19, whereas PKM and CD68 showed the opposite pattern; and SLC11A1 
+237 
+and VSIG4 favored pulmonary sarcoidosis, showing that candidate gene priority also depends 
+238 
+on the disease of interest. These results corroborate known disease biology: FABP4⁺ alveolar 
+239 
+macrophages are depleted in bronchoalveolar lavage fluid from patients with severe COVID-
+240 
+19,28 whereas glycolytic genes including PKM are upregulated in alveolar macrophages from 
+241 
+COVID-19 decedents,29 matching their opposite COVID-19 responses; and SLC11A1 
+242 
+polymorphisms are associated with sarcoidosis susceptibility across multiple populations.30,31 
+243 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+11 
+To further resolve bidirectional dose responses of multigene programs within diseased cells, 
+244 
+we applied 11 bidirectional expression adjustment levels to 85 genes in LUAD epithelial cells 
+245 
+from the Lung Cancer Atlas (LuCA)32 and read responses along the LUAD direction. 
+246 
+Response profiles clustered by direction and amplitude into five groups corresponding to 
+247 
+surfactant/MHC-II, secretory/immune, near-inert, keratin/metabolic, and invasion/EMT 
+248 
+programs (represented by FOLR1, IFITM2, CALM2, NDUFS5, and ANXA2, respectively; 
+249 
+Fig. 4e): upregulating malignancy and invasion genes (SOX4, SEC61G, ANXA2, S100A10) 
+250 
+shifted representations toward the LUAD description and downregulating them shifted 
+251 
+representations away, whereas alveolar differentiation genes (NAPSA, SFTPB, FOLR1) and 
+252 
+antigen-presentation genes (CD74, HLA-DRA) acted in the opposite direction. Consistent 
+253 
+with tumor biology, SEC61G promotes LUAD proliferation, invasion, and metastasis,33 
+254 
+NAPSA and SFTPB belong to the AT2 surfactant program,34 loss of the alveolar 
+255 
+differentiation master regulator NKX2-1 characterizes high-grade poorly differentiated 
+256 
+LUAD in mouse models,35 and tumor-intrinsic MHC-II expression shapes the LUAD 
+257 
+immune microenvironment,36 decomposing the LUAD state into interpretable components of 
+258 
+reduced differentiation, weakened antigen presentation, and enhanced invasion. 
+259 
+Two-gene perturbations further test interactions within and across programs. Co-
+260 
+downregulating gene pairs in the alveolar differentiation program and co-upregulating pairs 
+261 
+in malignancy/invasion programs yielded positive non-additive effects in all combinations of 
+262 
+the former and most of the latter (Fig. 4f and Supplementary Fig. S5e). Joint weakening of 
+263 
+alveolar genes such as NAPSA–SFTPB and joint strengthening of malignancy genes such as 
+264 
+SEC61G–S100A10 converged on the same disease state from opposite directions 
+265 
+(Supplementary Fig. S5a,b), consistent with loss of lineage identity during LUAD 
+266 
+evolution,37 while Nkx2-1 haploinsufficiency likewise synergizes with oncogenic Kras G12D 
+267 
+to promote tumor progression in mice.38 Combinatorial genetic perturbations can depart from 
+268 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+12 
+additive expectations,39 and their direction also depends on functional context: co-
+269 
+downregulation within the antigen-presentation program (such as CD74–HLA-DRA) 
+270 
+consistently produced positive non-additive effects, whereas co-upregulation between 
+271 
+malignancy/invasion and immune programs almost uniformly showed buffering (such as 
+272 
+SOX4–HLA-DRA; Supplementary Fig. S5c–e), consistent with reports that reducing tumor 
+273 
+MHC-II expression decreases T-cell infiltration36 and that SOX4 acts as a tumor-intrinsic 
+274 
+factor conferring resistance to T-cell killing.40 Fixing the NAPSA–SFTPB co-downregulated 
+275 
+state while switching disease descriptions shifted this state toward LUAD and lung squamous 
+276 
+cell carcinoma (LUSC) and away from COVID-19 and idiopathic pulmonary fibrosis (IPF; 
+277 
+Fig. 4g and Supplementary Note 3), showing that the same combinatorial change carries 
+278 
+different meanings under different disease questions. Natural language thus extends from 
+279 
+describing cells to serving as a reference for exploring gene–disease relationships. 
+280 
+LingoCell resolves cell identities and identity-conditioned niches at single-cell resolution 
+281 
+in spatial transcriptomics 
+282 
+Through measurement adaptation and spatial self-supervised pretraining, LingoCell outputs 
+283 
+both an identity embedding and a niche embedding for each segmented spatial cell (Figs. 1e,f 
+284 
+and 5). Because measurement adaptation preserves the prototype geometry learned during 
+285 
+single-cell pretraining, LingoCell directly matches the identity embeddings of Visium HD 
+286 
+segmented cells to cell-type prototypes, resolving 20, 27, and 27 cell types in kidney, normal 
+287 
+colon, and lung cancer sections, respectively, without a matched single-cell reference (Fig. 5a 
+288 
+and Supplementary Figs. S6a and S7a); mapped back onto H&E, all populations followed 
+289 
+tissue morphology and were supported by marker genes (Supplementary Figs. S6b, S7b, and 
+290 
+S8). In kidney, proximal tubules (CUBN, LRP2), loops of Henle (SLC12A1, UMOD), distal 
+291 
+and connecting tubules (SLC12A3, TRPM6), collecting ducts (AQP2, SLC4A1), and 
+292 
+podocytes (NPHS2, PODXL) aligned along the nephron and separated in the identity 
+293 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+13 
+embedding, with in situ expression of SLC12A1, SLC12A3, AQP2, and NPHS2 localizing to 
+294 
+the corresponding annotated structures in the zoomed-in field (Fig. 5a). 
+295 
+Identity annotation answers what a cell is, but not what environment it occupies. Unlike 
+296 
+principal component analysis (PCA), which summarizes variation in a cell's own expression, 
+297 
+the niche embedding characterizes the surrounding environment referenced to the cell's own 
+298 
+identity, subdividing populations by microenvironment within the same cell type. In normal 
+299 
+colon (Fig. 5b), the same fibroblasts intermingled in the identity embedding but separated in 
+300 
+the niche embedding into mucosal and muscularis groups: mucosal fibroblasts lay among 
+301 
+crypt epithelium, immune cells, and loose stroma with neighbors enriched for extracellular 
+302 
+matrix genes (DCN, LUM, C3, COL14A1), whereas muscularis fibroblasts lay between 
+303 
+smooth muscle bundles with neighbors enriched for contractile genes (DES, MYH11, 
+304 
+TAGLN, ACTA2), their difference defining a contractile–extracellular matrix axis 
+305 
+(Supplementary Note 4). This distinction persisted among cells with nearly identical neighbor 
+306 
+cell-type compositions (Supplementary Fig. S6c,d), showing that the niche embedding 
+307 
+captures continuous neighbor molecular states beyond discrete neighbor categories and 
+308 
+provides a representation basis for analyzing neighborhood gene programs. 
+309 
+LingoCell resolves observer-dependent stromal programs in colorectal cancer through 
+310 
+spatial in silico perturbation 
+311 
+To test whether the model can resolve cell identities and microenvironmental interactions in 
+312 
+highly heterogeneous tumor tissue, we applied LingoCell to the colorectal cancer (CRC) 
+313 
+Visium HD data of de Oliveira et al.7 Whereas the original study annotated 8 μm bins with 
+314 
+RCTD,41 LingoCell directly annotated segmented cells in section P5, yielding consistent 
+315 
+tissue partitions supported by the identity UMAP and canonical marker expression (Fig. 6a,b 
+316 
+and Supplementary Fig. S9a). Agreement on major cell types was 88.0% and reached 97.6% 
+317 
+in homogeneous single-type RCTD regions, with differences concentrated at tissue 
+318 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+14 
+boundaries containing mixed cell types (Supplementary Fig. S9b); in these mixed units, 
+319 
+LingoCell recovered hundreds of T cells within RCTD-labeled tumor regions that expressed 
+320 
+T-cell markers while surrounding tumor cells barely did (Fig. 6c and Supplementary Fig. 
+321 
+S9c). 
+322 
+Niche embeddings further distinguished tissue contexts sharing the same cell identity. 
+323 
+Whereas the original study combined Visium HD and Xenium to identify SELENOP/STAB1 
+324 
+macrophages near REG1A⁺LCN2⁺ tumor cells and goblet cells,7 LingoCell reproduced both 
+325 
+environments from Visium HD alone: both macrophage groups retained SELENOP–STAB1–
+326 
+C1Q features and clustered together in the identity embedding but separated clearly in the 
+327 
+niche embedding, with neighbors enriched for goblet-cell markers (MUC2, ITLN1, TFF3) 
+328 
+and tumor markers (LCN2, CEACAM5, CEACAM6), respectively (Fig. 6d). 
+329 
+Across the whole section, niche embedding clusters annotated and merged by cell 
+330 
+composition, marker genes, and pathway activity yielded 17 functional niches spanning 
+331 
+tumor states, lymphoid aggregates (TLS-like), multiple cancer-associated fibroblast (CAF) 
+332 
+zones, and vascular and contractile stroma (Fig. 6e and Supplementary Fig. S10), with 
+333 
+lymphoid aggregates forming sharply bounded niches whereas corresponding scGPT-spatial 
+334 
+and GraphST clusters intermingled within the aggregate or spread outward (Supplementary 
+335 
+Fig. S11). Tertiary lymphoid structures (TLS) recruit and organize T cells in tumors, correlate 
+336 
+in density with CRC T-cell infiltration and prognosis,42 and are supported by stromal cells 
+337 
+including CCL19⁺ fibroblasts and fibroblastic reticular cells (FRC).43,44 Because the P5 
+338 
+lymphoid follicle comprised a B-cell follicle, T cells, and CCL19⁺ fibroblasts, we used its T 
+339 
+cells as observers to interrogate the environmental information carried by neighboring 
+340 
+fibroblasts. 
+341 
+We selected T/B-cell-rich lymphoid follicle (TLS-like) regions and lymphocyte-poor, 
+342 
+malignant-epithelium-rich tumor-adjacent stroma in P5 as reference environments: both 
+343 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+15 
+contained fibroblasts (Fig. 6f), the neighbor type eliciting the largest variance in model 
+344 
+response and lying immediately adjacent to follicular T cells (Supplementary Fig. S12). 
+345 
+However, because the two regions differed simultaneously in cell composition, spatial 
+346 
+structure, and molecular state, direct comparison could not determine which stromal features 
+347 
+shaped the T-cell environment. Spatial in silico perturbation converts this question into a 
+348 
+direct model query: fixing T cells and their surrounding context while replacing 
+349 
+neighborhood fibroblasts in turn with each real donor across the section, we measured donor 
+350 
+influence by the median shift of the observer's niche embedding along the tumor-adjacent 
+351 
+stroma–lymphoid follicle reference axis (positive values indicating a more lymphoid-follicle-
+352 
+like environment). Because all donors are compared within the same local context, influence 
+353 
+directly reflects state differences within fibroblasts: it formed a continuous gradient in the 
+354 
+donor identity embedding, and positive and negative donors occupied distinct tissue regions 
+355 
+when mapped back onto the section (Fig. 6g). 
+356 
+We identified fibroblast genes consistently correlated with influence across two non-
+357 
+overlapping spatial groups and combined co-expression with an external CRC single-cell 
+358 
+fibroblast reference to construct gene programs (Methods).45 The positive T-cell program 
+359 
+comprised MGP, C3, VIM, TNXB, SFRP1, C7, DCN, CCDC80, SFRP2, PRELP, C1R, and 
+360 
+SRPX, enriched for reticular extracellular matrix organization and complement activation 
+361 
+(Fig. 6h,j). Downregulating this program in real donors shifted T-cell environmental readouts 
+362 
+away from the lymphoid follicle end (q = 3.16 × 10⁻⁴), whereas upregulation shifted them 
+363 
+toward it (q = 8.60 × 10⁻⁶; Fig. 6i and Supplementary Table S6a). The program overlapped 
+364 
+with a CCL19-marked stromal state in the external atlas (Supplementary Fig. S13g and 
+365 
+Supplementary Table S6f);45 CCL19 was detected more frequently near the P5 follicle end 
+366 
+but was too sparse to enter candidates (Supplementary Fig. S13a,b), indicating that the model 
+367 
+reads a more stably expressed composite signal reflecting a CCL19-associated lymphoid-type 
+368 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+16 
+stromal state. We therefore define it as a CCL19-associated reticular extracellular matrix–
+369 
+complement fibroblast program, consistent with reports that CCL19⁺ fibroblasts and FRC 
+370 
+support T-cell organization.43,44 
+371 
+Changing the observer altered the genes prioritized from the same fibroblast state. With 
+372 
+macrophages as observers, the positive program (SFRP2, PTGDS, SFRP1, CCDC80, TNXB, 
+373 
+VIM, CLU, CXCL12, CFD) retained the shared SFRP1–SFRP2–CCDC80–TNXB–VIM 
+374 
+backbone while adding CXCL12, CFD, and CLU to highlight chemokine sensing and 
+375 
+complement processing (Fig. 6h,j and Supplementary Table S6f), where CXCL12 can form a 
+376 
+stromal–myeloid signaling interface via CXCR4.46 With tumor cells at the opposite end of the 
+377 
+reference axis as observers, the model read a distinct program (COL4A1, CXCL14, ID1, 
+378 
+LOXL2, NOTCH3, IFI27, SPARC, COL4A2, COL5A1, F3, MCAM, PFN1) dominated by 
+379 
+blood vessel development, angiogenesis, and collagen fibril crosslinking, matching 
+380 
+perivascular stromal states in the external atlas (Fig. 6h,j and Supplementary Table S6f,g)45 
+381 
+and consistent with reports that CXCL14⁺ fibroblasts line tumor epithelium in CRC and that 
+382 
+high LOXL2 expression in colon CAFs correlates with poor prognosis.47,48 Bidirectional 
+383 
+editing shifted both observers in the expected directions (macrophage downregulation and 
+384 
+upregulation adjusted P = 3.06 × 10⁻⁵⁸ and 2.80 × 10⁻³⁸; tumor cells < 10⁻⁸⁴ in both directions; 
+385 
+Fig. 6i and Supplementary Table S6a). 
+386 
+Across all three observers, positive T-cell and macrophage program genes correlated 
+387 
+positively with influence, whereas negative tumor-cell program genes correlated negatively 
+388 
+(Fig. 6h): rather than identifying three unrelated fibroblast subtypes, the model recovered a 
+389 
+shared stromal axis extending from a lymphoid-follicle-associated reticular and complement 
+390 
+stromal state to a vascular, basement-membrane, and matrix-remodeling state, assigning 
+391 
+different priorities to genes along this axis according to observer identity. Defining an axis 
+392 
+score by the standardized score difference between immune-observer and tumor-observer 
+393 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+17 
+programs, fibroblasts around lymphoid aggregates in section P1 of the same study favored the 
+394 
+immune end whereas inter-tumoral stroma favored the tumor end (Fig. 6k, Supplementary 
+395 
+Figs. S13c and S14a, and Supplementary Table S6b,c); in the matched single-cell atlas, the 
+396 
+two ends corresponded to the original study's Fibroblast subpopulation and to pericyte and 
+397 
+myofibroblast subpopulations (Fig. 6l and Supplementary Fig. S14b); and in the independent 
+398 
+Valdeolivas standard Visium cohort, both immune-observer programs scored higher in 
+399 
+lymphoid-aggregate-adjacent stroma across most subjects (Supplementary Fig. S15, 
+400 
+Supplementary Table S6d,e, and Supplementary Note 5).49 Whereas analyses based on 
+401 
+neighborhood composition, colocalization, or ligand–receptor pairing mainly describe what is 
+402 
+present in an environment, observer-conditioned spatial in silico perturbation further 
+403 
+addresses which environmental components convey information to a specified immune or 
+404 
+tumor cell. 
+405 
+Discussion 
+406 
+LingoCell unifies editable molecular inputs with interpretable biological references within a 
+407 
+single foundation model: the single-cell stage supports precise editing through joint encoding 
+408 
+of gene identity and expression magnitude while providing disease-concept readouts through 
+409 
+natural-language alignment, and the spatial stage uses a cell's own identity as the query 
+410 
+reference for reading neighborhood states. Single-cell and in situ tissue analyses thus follow 
+411 
+the same paradigm, modifying molecular inputs within a defined cellular context and 
+412 
+interpreting responses along biologically intelligible directions. 
+413 
+Semantic perturbation requires that expression changes both enter the model and acquire 
+414 
+biological meaning: expression models such as scGPT are magnitude-sensitive but lack 
+415 
+language references,2 whereas alignment models such as LangCell have language references 
+416 
+but are restricted by rank-based encoding to deleting or fronting genes.1,4 LingoCell unifies 
+417 
+both in a single encoder so that genes can be adjusted stepwise across ordered levels and read 
+418 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+18 
+directly along disease-language directions. Expression changes and language references can 
+419 
+thus be controlled independently: fixing the disease reference compares direction, amplitude, 
+420 
+and non-additivity across single-gene and combinatorial edits, whereas fixing the edited state 
+421 
+while switching language references re-examines the same molecular change across diseases 
+422 
+without retraining classifiers, making language an analytical coordinate adaptable to the 
+423 
+research question. 
+424 
+Transferring to spatial data is challenged by sparse capture altering how the same cell 
+425 
+appears, such that direct continual training can misread measurement sparsity as identity 
+426 
+differences. LingoCell's measurement adaptation training teaches the model to distinguish 
+427 
+lower capture depth from a different cell identity before learning spatial context; the 
+428 
+preserved cell-type knowledge supports reference-free spatial annotation and provides a 
+429 
+stable reference for niche comparisons within the same cell type. 
+430 
+Previous methods mostly define niches from the environment itself, aggregating 
+431 
+neighborhood information without conditioning on the central cell's identity.11,12 LingoCell 
+432 
+instead starts from who is observing, using the central cell's own identity as a query to 
+433 
+generate a niche embedding complementary to its identity embedding. The environment thus 
+434 
+comprises continuous neighbor molecular states rather than only discrete neighbor categories, 
+435 
+distinguishing microenvironments with similar neighbor compositions; the same neighbor 
+436 
+state is read as different environments under different observer identities, matching the 
+437 
+biological intuition that the same stroma carries different meanings for T cells, macrophages, 
+438 
+and tumor cells. 
+439 
+This structure allows neighbor states to be individually replaced or edited and re-evaluated 
+440 
+through the environmental computation, localizing environmental readouts to candidate gene 
+441 
+programs and testing their effect directions. Because conclusions derive from changes in full 
+442 
+model outputs upon input modification rather than single-layer attention weights, the 
+443 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+19 
+resulting programs have explicit observers, directions, and comparison contexts, providing 
+444 
+prioritized leads for validating immune and peritumoral stromal interactions. 
+445 
+In spatial cells with limited molecular coverage, fine-grained state resolution remains 
+446 
+bounded by observable transcripts, and expanding pretraining across tissues, platforms, and 
+447 
+language descriptions should broaden applicability; combining expression–semantic and 
+448 
+expression–environment relationships from in silico perturbation with Perturb-seq and spatial 
+449 
+functional experiments will help connect predictions to biological responses, while richer text 
+450 
+and morphological inputs can be naturally integrated. Overall, LingoCell enables the meaning 
+451 
+of genes and their combinations to be interpreted across both disease semantics and tissue 
+452 
+environments, offering a unified approach to prioritizing targets and generating testable 
+453 
+hypotheses from cell atlases and tissue sections. 
+454 
+Methods 
+455 
+Data sources and preprocessing 
+456 
+Data sources. Expression matrices and cell annotations for single-cell pretraining were 
+457 
+obtained from CZ CELLxGENE Discover and combined with paired cell descriptions to 
+458 
+construct the expression–language corpus (Supplementary Table S1a).13 Spatial pretraining 
+459 
+used publicly released Visium HD data from 10x Genomics (Supplementary Table S1b), with 
+460 
+inputs including cell-associated expression, spatial coordinates, and registered tissue image 
+461 
+features. Single-cell downstream analyses used PBMC10K, Pancreas, Human Immune, and 
+462 
+Tabula Sapiens to evaluate cell representations and annotation, and the MacParland human 
+463 
+liver atlas and lung atlases for description generation, semantic queries, and in silico 
+464 
+perturbation (Supplementary Table S1c). Spatial applications used kidney, tumor-adjacent 
+465 
+normal colon, and lung cancer data to resolve cell identity and local environments, together 
+466 
+with the CRC Visium HD data of de Oliveira et al.,7 with the P5 section used for identity, 
+467 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+20 
+niche, and in silico perturbation analyses and the P1 section, the matched single-cell atlas, 
+468 
+and data from independent studies used for program expression and spatial localization 
+469 
+analyses (Supplementary Table S1d). 
+470 
+Single-cell data preprocessing. The raw expression matrix is denoted 𝑋∈ℝ!×# (𝑁 cells, 𝐺 
+471 
+genes, with 𝑥$% the observed expression of gene 𝑔 in cell 𝑖). After gene identifiers are 
+472 
+mapped to a unified vocabulary, each cell undergoes total-count normalization, log1p 
+473 
+transformation, and within-cell ordered binning to obtain discrete expression levels 𝑣$%: 
+474 
+𝑙$% = log /1 + 𝑠 
+𝑥$%
+∑𝑥$&
+&
+5 , 𝑣$% = 𝑄$8𝑙$%9, 
+475 
+where 𝑠 is the total-count normalization scale, 𝑙$% is the transformed expression, and 𝑄$ is the 
+476 
+binning map for cell 𝑖 (51 expression levels), retaining up to 1,200 nonzero-expressed genes 
+477 
+per cell. 
+478 
+Spatial transcriptomic data preprocessing. Visium HD data were processed using 10x 
+479 
+Genomics Space Ranger (v4.1). Nuclei and cells were segmented using registered H&E 
+480 
+images, and spatial expression signals were associated with segmented cells to obtain cell-
+481 
+associated expression matrices and spatial coordinates. 
+482 
+Single-cell expression encoding and input representation 
+483 
+Expression input and gene representations. The expression encoder receives two 
+484 
+components: gene tokens representing gene identity and discrete expression levels 
+485 
+representing the expression of the corresponding genes. Let 𝐺$ denote the set of genes 
+486 
+actually entering the model for cell 𝑖 and 𝑣$% the discrete expression level of gene 𝑔. The cell 
+487 
+input is represented as: 
+488 
+𝑋$ = :(𝑔, 𝑣$%): 𝑔∈𝐺$>. 
+489 
+Gene identities are converted to vectors 𝑒$%
+'()( = 𝐸%(𝑔) through a unified vocabulary and a 
+490 
+learnable gene embedding mapping 𝐸%, and discrete expression levels 𝑣$% are mapped to 
+491 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+21 
+expression value vectors 𝑒$%
+*+,-( = 𝐸.8𝑣$%9 through a multilayer perceptron 𝐸.; the two are 
+492 
+summed to obtain the gene representation supplied to the Transformer: 
+493 
+𝑒$% = 𝐸%(𝑔) + 𝐸.(𝑣$%). 
+494 
+Expression value encoding. The discrete expression level 𝑣$% is mapped to an expression 
+495 
+value vector through a multilayer perceptron 𝐸.: 
+496 
+𝑒$%
+*+,-( = 𝐸.8𝑣$%9. 
+497 
+A CLS token is added at the beginning of the input sequence, and its corresponding 
+498 
+Transformer output is used to obtain the identity embedding of the cell. Padding positions do 
+499 
+not participate in valid attention calculations or the expression recovery objective. 
+500 
+Gene expression encoder. The expression encoder uses a Transformer architecture that 
+501 
+jointly encodes gene identity and expression value (12 layers, 8 attention heads per layer, 
+502 
+hidden dimension 512), similar to scGPT, and is trained from scratch.2 For cell 𝑖, the CLS 
+503 
+token input embedding 𝑒/01 and the joint representations 𝑒$% of the input genes are passed to 
+504 
+the expression Transformer 𝐹2 to obtain the output sequence: 
+505 
+𝐻$ = 𝐹2 DE𝑒/01, :𝑒$%>%∈#!FG, 
+506 
+where representations at gene positions are used for expression recovery and conditional 
+507 
+language generation. 
+508 
+Identity embedding. The output at the CLS position, 𝐻$,/01, is sequentially subjected to 
+509 
+layer normalization (LN) and L2 normalization (norm) to obtain the identity embedding used 
+510 
+for cell annotation, clustering, cross-batch integration, and semantic perturbation: 
+511 
+𝑧$ = norm DLN8𝐻$,/019G. 
+512 
+Text encoding and language generation 
+513 
+Text encoder. The paired cell description 𝑇$ is encoded by PubMedBERT (𝐵5, 12 
+514 
+Transformer layers with a hidden dimension of 768) initialized with pretrained weights.50 Its 
+515 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+22 
+CLS output is mapped by a projection network 𝐴6 trained from scratch to the same 512 
+516 
+dimensions as the identity embedding and normalized to obtain the text representation: 
+517 
+𝑡$ = norm /LN D𝐴68𝐵5(𝑇$)/019G5. 
+518 
+Expression–text alignment. For each cell, its paired description and descriptions with the 
+519 
+same cell identity form the positive set 𝑃(𝑖), and 𝐶(𝑖) denotes the set of valid candidate texts. 
+520 
+The expression-to-text contrastive loss is: 
+521 
+𝑙7→6(𝑖) = −
+1
+∣𝑃(𝑖) ∣V log
+exp8𝑧$
+9𝑡:/𝜏9
+∑
+exp(𝑧$
+9𝑡;/𝜏)
+;∈<($)
+,
+:∈?($)
+ 
+522 
+where 𝑡: and 𝑡; are the text representations of positive text 𝑝 and candidate text 𝑘, 
+523 
+respectively, and 𝜏 is the similarity scaling parameter. Swapping expression and text yields 
+524 
+the reverse loss, and the two are averaged to obtain the alignment loss 𝐿+,@'). 
+525 
+Language decoder. The language decoder 𝑝A is based on TinyLlama (22 Transformer layers 
+526 
+with a hidden dimension of 2,048) initialized with pretrained weights,51 with cross-attention 
+527 
+added to its last 12 layers to read cell expression information. The expression encoder output 
+528 
+sequence 𝐻$ is converted by an adapter 𝐴% into the conditional input for the decoder, which 
+529 
+generates the reference description 𝑤$,B:D! (valid length 𝐾$) token by token under the 
+530 
+description instruction 𝑞. The language generation loss is: 
+531 
+𝐿,+)' = −
+1
+∑𝐾$
+$
+V V log𝑝A D𝑤$E ∣𝑤$,FE, 𝑞, 𝐴%(𝐻$)G ,
+D!
+EGB
+$
+ 
+532 
+where 𝑤$,FE denotes the reference text preceding the 𝑙th token. 
+533 
+Single-cell expression–language pretraining 
+534 
+Single-cell pretraining proceeds in two stages: the first stage takes cell expression, paired text 
+535 
+descriptions, and cell-type labels as inputs to jointly learn the expression encoder, text 
+536 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+23 
+encoder, and cell-type prototypes; the second stage freezes the expression encoder and trains 
+537 
+the adapter and language decoder for expression-conditioned language generation. 
+538 
+Expression recovery. Expression levels are masked at 40% of positions among genes with 
+539 
+nonzero expression and predicted using contextual representations at gene positions, text 
+540 
+conditions, and identity embeddings combined with target gene identities, respectively. The 
+541 
+expression recovery loss 𝐿(HIJ measures the difference between predicted and true expression 
+542 
+levels, allowing the encoder to retain gene expression information. 
+543 
+Identity prototype constraints. Cell-type prototypes covering 785 cell types are constructed 
+544 
+on the expression and text sides separately, and known type labels constrain the similarity 
+545 
+between identity embeddings and their corresponding prototypes. The identity prototype loss 
+546 
+𝐿IJKLK provides a shared identity reference for cells of the same type. 
+547 
+Two-stage training objectives. In the first stage, the joint representation learning loss is a 
+548 
+weighted sum of three terms (𝜆 denotes the weights of the loss terms): 
+549 
+𝐿M(,, = 𝜆(HIJ𝐿(HIJ + 𝜆+,@')𝐿+,@') + 𝜆IJKLK𝐿IJKLK. 
+550 
+In the second stage, with the expression encoder frozen, the adapter 𝐴% and language decoder 
+551 
+𝑝A are trained by minimizing the language generation loss 𝐿,+)' conditioned on the cell 
+552 
+expression sequence and description instruction 𝑤$,B:D!. 
+553 
+Measurement adaptation training for spatial transcriptomics 
+554 
+To bridge the differences in capture depth and sparsity between single-cell and spatial 
+555 
+transcriptomics, LingoCell introduces measurement adaptation training between single-cell 
+556 
+pretraining and spatial pretraining, adapting the expression encoder to spatial measurement 
+557 
+conditions while retaining existing cell identity and semantic references. 
+558 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+24 
+Observation transformation. An observation transformation 𝑇 targeting the spatial 
+559 
+measurement distribution is applied to the reference expression input 𝑋$ of each cell to obtain 
+560 
+expression input under spatial measurement conditions: 
+561 
+𝑋c$ = 𝑇(𝑋$). 
+562 
+Adaptation training objectives. Training jointly optimizes three objectives: an expression 
+563 
+recovery loss 𝐿KNO that predicts expression in the transformed observation, an identity 
+564 
+consistency term that constrains the identity embeddings of the same cell under 𝑋c$ and 𝑋$ to 
+565 
+remain consistent, and a semantic preservation term 𝐿O(P that retains existing expression–text 
+566 
+relationships and cell-type prototype references. 
+567 
+Identity-conditioned spatial encoding 
+568 
+Neighborhood input. The spatial model combines central-cell expression, neighbor 
+569 
+expression, spatial distances, and tissue image information to learn identity and niche 
+570 
+embeddings. Expression of the central cell and its 20 spatially nearest neighbors is processed 
+571 
+by the adapted expression encoder, and neighbor identity embeddings are combined with 
+572 
+encodings of the distances from the central cell to its neighbors. 
+573 
+Tissue image feature extraction. Registered H&E image patches centered on each cell are 
+574 
+divided into four subregions, and the frozen pretrained pathology vision model MUSK 
+575 
+extracts 1,024-dimensional image embeddings from each subregion,52 which are mapped 
+576 
+through an adapter and supplied as image inputs to the spatial model. 
+577 
+Spatial information aggregation. The central cell's own gene expression is encoded by the 
+578 
+adapted expression encoder to obtain the identity embedding ℎ$ used to identify cell type 
+579 
+(denoted 𝑢$ = ℎ$/∥ℎ$ ∥Q after L2 normalization). Using ℎ$ as a query, the spatial attention 
+580 
+module integrates the identity embeddings of neighboring cells, spatial distances, and tissue 
+581 
+image features through 8-head cross-attention to obtain environmental information 𝑠$. After 
+582 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+25 
+mapping, the component along the central cell's identity direction is removed to obtain the 
+583 
+niche embedding describing the local environment: 
+584 
+𝑛$ = 𝑃$ LN(𝑊R𝑃$𝑠$ + 𝑏R), 
+585 
+where 𝑃$ = 𝐼−𝑢$𝑢$
+9 is the orthogonal projection operator for the identity direction, 𝑊R and 
+586 
+𝑏R are learnable parameters, and LN denotes layer normalization. 
+587 
+Spatial pretraining 
+588 
+Spatially conditioned expression recovery. During training, expression levels of some 
+589 
+genes in the central cell are masked, and the model combines the resulting gene 
+590 
+representations with aggregated spatial context to predict expression levels at the masked 
+591 
+positions. The mean squared error between predicted and measured expression levels gives 
+592 
+the spatial expression recovery loss 𝐿OI+L@+, (HIJ, incorporating neighbor and tissue image 
+593 
+information into the prediction of central-cell expression. 
+594 
+Neighborhood summary prediction. Cell-type prototypes from single-cell pretraining are 
+595 
+used to compute soft identity assignments for neighbors, and AUCell activities of pathway 
+596 
+gene sets represent their molecular activities.53 Weighted aggregation yields summaries of 
+597 
+neighborhood cell composition and molecular activity, which the model predicts from the 
+598 
+central cell's niche embedding, with the niche loss 𝐿)@MT( measuring the differences between 
+599 
+predictions and summary targets. 
+600 
+Training implementation. LingoCell was implemented in PyTorch and trained sequentially 
+601 
+through single-cell expression–language pretraining, expression-conditioned language 
+602 
+decoder training, spatial measurement adaptation, and spatial self-supervised pretraining on 
+603 
+16 NVIDIA H100 GPUs; all downstream analyses were performed by direct inference with 
+604 
+the frozen pretrained models. 
+605 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+26 
+Single-cell representation evaluation and description generation 
+606 
+Cell clustering. A nearest-neighbor graph is constructed from identity embeddings extracted 
+607 
+by the frozen expression encoder for Leiden clustering.54 For comparison with reference cell 
+608 
+types, the partition with the highest NMI is selected from a common set of candidate 
+609 
+resolutions, and ARI is calculated for that partition: 
+610 
+ARI =
+𝐴−𝑈𝑉/𝑇
+1
+2 (𝑈+ 𝑉) −𝑈𝑉/𝑇
+, 
+611 
+where 𝐴 is the number of cell pairs belonging to both the same reference type and the same 
+612 
+predicted cluster, 𝑈 and 𝑉 are the numbers of cell pairs belonging to the same reference type 
+613 
+and the same predicted cluster, respectively, and 𝑇 is the total number of cell pairs. 
+614 
+Cross-batch integration. Cells from different batches are passed through the same frozen 
+615 
+expression encoder, a nearest-neighbor graph is constructed from the combined identity 
+616 
+embeddings, and biological conservation and batch mixing are evaluated using scIB 
+617 
+metrics:15 
+618 
+𝑍= r{𝑧(𝑋$): 𝑏$ = 𝑏},
+U
+ 
+619 
+where 𝑧(𝑋$) is the identity embedding of cell 𝑖 and 𝑏$ is its batch label. LingoCell does not 
+620 
+use batch labels of the target data to generate representations. Harmony, scVI, and Scanorama 
+621 
+are compared as integration methods that use batch information.17–19 
+622 
+Zero-shot cell annotation using text references. Without training or fine-tuning on the 
+623 
+target data, cosine similarities are calculated directly between the identity embedding 𝑧$ of 
+624 
+each cell to be annotated and the text representations 𝑡V of candidate cell-type descriptions, 
+625 
+and the candidate with the highest similarity is assigned as the predicted type 𝑦v$: 
+626 
+𝑦v$ = argmax
+V cos(𝑧$, 𝑡V). 
+627 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+27 
+Cell description generation and evaluation. Gene representations of cells are passed 
+628 
+through the adapter to the language decoder to generate natural-language descriptions. 
+629 
+Generated descriptions are compared with reference descriptions using BERTScore based on 
+630 
+RoBERTa and BioBERT for semantic similarity,55–57 BLEU and ROUGE for lexical 
+631 
+matching,58,59 and weighted F1 scores for cell-type, tissue, and disease information extracted 
+632 
+from the generated text: 
+633 
+𝐹B,; = 2𝑃;𝑅;
+𝑃; + 𝑅;
+, 𝐹B,W(@'TL(X =
+∑𝑛;𝐹B,;
+;
+∑𝑛;
+;
+, 
+634 
+where 𝑃; and 𝑅; are the precision and recall of information extraction for class 𝑘, 
+635 
+respectively, and 𝑛; is the number of cells in that class in the reference descriptions. In the 
+636 
+human liver single-cell data, zonation descriptions generated for hepatocytes are further 
+637 
+compared with the expression distributions of zonation-related genes. 
+638 
+Gene association analysis of generated descriptions. Cross-attention to the set of analyzed 
+639 
+input genes 𝐺$
+∗ is extracted when the language decoder generates the hepatocyte zonal 
+640 
+identity phrase 𝑤$. With 𝑅$% denoting the relative attention rank of gene 𝑔 within cell 𝑖 
+641 
+(higher attention corresponds to a larger value), the difference in mean relative rank between 
+642 
+the target phrase group 𝑤 and other phrase groups is calculated: 
+643 
+𝐷%Z = 𝔼}𝑅$% ∣𝑤$ = 𝑤, 𝑔∈𝐺$
+∗• −𝔼}𝑅$% ∣𝑤$ ≠𝑤, 𝑔∈𝐺$
+∗•. 
+644 
+A larger 𝐷%Z indicates a stronger relative association between gene 𝑔 and target phrase 𝑤. 
+645 
+Single-cell semantic querying and in silico perturbation 
+646 
+Natural-language queries and disease-state analysis. With 𝑡B and 𝑡[ denoting the 
+647 
+normalized text representations of the target biological process or disease description and its 
+648 
+reference description (homeostatic descriptions for process queries, and normal descriptions 
+649 
+matched for cell type and tissue context for disease queries), the semantic query score is the 
+650 
+projection of the identity embedding 𝑧$ onto their difference: 
+651 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+28 
+𝑆\(𝑧$) = 𝑧$
+9(𝑡B −𝑡[). 
+652 
+Single-gene in silico perturbation. With the expression encoder frozen, an expression level 
+653 
+adjustment 𝛿 is applied to gene 𝑔 (denoted ℰ%,](𝑋$)), the cell is re-encoded, and semantic 
+654 
+query scores before and after perturbation are compared, giving the semantic shift ΔF in Fig. 
+655 
+1d: 
+656 
+Δ𝑆$%
+\ (𝛿) = 𝑆\ /𝑧Dℰ%,](𝑋$)G5 −𝑆\8𝑧(𝑋$)9, 
+657 
+where 𝑧(⋅) is the identity embedding output by the expression encoder. Single-gene 
+658 
+upregulation screens and upregulation response profiles are corrected for the common 
+659 
+response within the same cell, whereas downregulation response profiles use raw responses. 
+660 
+Two-gene perturbation and combinatorial responses. In cells where both genes 𝑎 and 𝑏 
+661 
+enter the model input, semantic query scores are calculated for the unperturbed state (𝑧$
+[), the 
+662 
+individual perturbations (𝑧$
+^, 𝑧$
+U), and the joint perturbation (𝑧$
+^U), and the non-additive effect 
+663 
+of the combination is defined as: 
+664 
+𝜀$,^U
+\
+= 𝑆\8𝑧$
+^U9 −𝑆\(𝑧$
+^) −𝑆\8𝑧$
+U9 + 𝑆\(𝑧$
+[). 
+665 
+The sign of the non-additive effect indicates enhancement or attenuation along the query 
+666 
+direction relative to the sum of the two individual responses. 
+667 
+Spatial cell annotation and niche analysis 
+668 
+Spatial cell identity annotation. According to the tissue of origin of each spatial sample, cell 
+669 
+types from the corresponding normal tissue are selected from the single-cell pretraining atlas, 
+670 
+retaining immune, stromal, vascular, and other types to form the candidate type set 𝐶_. The 
+671 
+identity embedding ℎ$ of each spatial cell is compared with the expression-side prototypes 𝑝V 
+672 
+of the candidate types, the type with the highest cosine similarity is assigned as the initial 
+673 
+annotation, and the annotations are checked against marker gene expression and spatial 
+674 
+location (Fig. 5a and Supplementary Figs. S6–S8): 
+675 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+29 
+𝑐̂$ = argmax
+V∈<"cos(ℎ$, 𝑝V). 
+676 
+For colorectal cancer sections, malignancy-related prototypes do not participate in initial type 
+677 
+assignment. The model first identifies epithelial cells, then calculates their highest similarity 
+678 
+to malignancy-related prototypes, using the malignancy similarity distribution of immune and 
+679 
+stromal cells in the same section as a reference. When the high-similarity peak of epithelial 
+680 
+cells clearly exceeds the upper boundary of the reference distribution, a high quantile of the 
+681 
+reference distribution is used as the threshold, and epithelial cells above it are labeled as 
+682 
+malignant epithelium (Fig. 6). 
+683 
+Neighborhood composition matching and molecular-state analysis. To analyze whether 
+684 
+niche embeddings contain information beyond neighboring cell-type composition, we 
+685 
+selected 15 nearest neighbors for each central cell among normal colon fibroblasts based on 
+686 
+spatial coordinates, calculated the proportions of cell types in each neighborhood, performed 
+687 
+nearest-neighbor matching between muscularis-associated and mucosa-associated niche 
+688 
+groups on these proportions without reusing matched cells, and measured compositional 
+689 
+differences by the L1 distance between the mean neighborhood compositions of the two 
+690 
+groups. From the mean expression 𝑥
+¯
+$% of gene 𝑔 in the neighborhood of cell 𝑖, a continuous 
+691 
+molecular axis is defined as the difference in mean expression between the contraction-
+692 
+related gene set 𝐺MK) and the extracellular matrix-related gene set 𝐺P+L: 
+693 
+𝐴$ =
+1
+∣𝐺MK) ∣V 𝑥
+¯
+$% −
+1
+∣𝐺P+L ∣V 𝑥
+¯
+$%.
+%∈##$%
+%∈#&'(
+ 
+694 
+Principal component analysis is performed on the niche embeddings of matched cells, and the 
+695 
+first principal component (niche PC1, with its display direction aligned with the molecular 
+696 
+axis) serves as a continuous environmental coordinate whose Pearson correlation with the 
+697 
+molecular axis is calculated. Linear regression then removes the components of each 
+698 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+30 
+explained by neighboring cell-type proportions, and the correlation between the residuals 
+699 
+evaluates their association after controlling for neighborhood composition. 
+700 
+Spatial in silico perturbation and gene program analysis 
+701 
+Tissue reference axes. Tumor-adjacent stroma and lymphoid follicle (TLS-like) regions in 
+702 
+colorectal cancer tissue serve as reference environments. The mean niche embeddings 𝑎Va and 
+703 
+𝑎V
+b of observer type 𝑐 in the two regions are calculated separately, and their difference 
+704 
+defines a tissue reference axis on which the coordinate of any niche embedding 𝑛 is: 
+705 
+𝐴V(𝑛) = 100 
+(𝑛−𝑎Va)9(𝑎Vb −𝑎Va)
+∥𝑎V
+b −𝑎Va ∥Q
+Q
+. 
+706 
+The coordinates of the two reference endpoints are 0 and 100, and a separate reference axis is 
+707 
+constructed for each observer type. 
+708 
+Neighbor-state replacement and influence calculation. Central cells serve as observers, 
+709 
+and the fibroblasts used to replace neighbors serve as donors. Taking T cells as an example, 
+710 
+fibroblast donors are selected from the entire section, and each donor's identity embedding in 
+711 
+turn replaces the identity embeddings of four existing fibroblasts around a T cell, with the T 
+712 
+cell's own expression, other neighbors, spatial positions, and tissue images unchanged. After 
+713 
+each replacement, the observer's niche embedding is recalculated, and the influence of donor 
+714 
+𝑑 on observer type 𝑐 is defined as the median of the induced axial change across the observer 
+715 
+set 𝑂V: 
+716 
+𝐼V(𝑑) = median
+c∈d)
+E𝐴VD𝑛c
+(e)G −𝐴VD𝑛c
+([)GF, 
+717 
+where 𝑛c
+([) and 𝑛c
+(e) are the niche embeddings of observer 𝑜 before replacement and after 
+718 
+insertion of donor 𝑑, respectively. Positive influence indicates that the model's environmental 
+719 
+readout shifts toward the lymphoid follicle endpoint, and negative influence indicates a shift 
+720 
+toward the tumor-adjacent stroma endpoint. 
+721 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+31 
+Influence-associated gene programs. With T cells, macrophages, and tumor cells as 
+722 
+observers separately, Spearman correlations are calculated between the expression of each 
+723 
+gene in donor fibroblasts and donor influence 𝐼V(𝑑). Expression coverage, association 
+724 
+directions across spatial groups, gene co-expression, and external fibroblast expression 
+725 
+references45 are combined to select influence-associated genes into candidate gene programs, 
+726 
+and the programs associated with the same fibroblast states are compared across observer 
+727 
+contexts. 
+728 
+Gene program editing. Genes of a candidate program 𝐺 that actually enter the model are 
+729 
+upregulated or downregulated (𝜎) in donor fibroblasts and re-encoded to obtain 𝑑#,f. Donors 
+730 
+before and after editing (𝑑[ and 𝑑#,f) are placed at the same neighbor positions of the same 
+731 
+observer, and influence is compared between the two conditions: 
+732 
+Δ𝐼V(𝑑, 𝐺, 𝜎) = 𝐼V(𝑑#,f) −𝐼V(𝑑[). 
+733 
+Upregulation and downregulation are summarized separately among donors whose 
+734 
+expression was actually modified. 
+735 
+Statistical analysis 
+736 
+Associations between continuous variables were evaluated using Pearson or Spearman 
+737 
+correlation. Nonparametric comparisons across groups were performed using two-sided 
+738 
+Mann–Whitney U tests or Kruskal–Wallis tests, and paired comparisons or before-versus-
+739 
+after donor editing comparisons were performed using Wilcoxon signed-rank tests. Overlaps 
+740 
+between candidate gene programs and external stromal state marker sets were evaluated using 
+741 
+hypergeometric tests, and Gene Ontology (GO) and Reactome pathway enrichment analyses 
+742 
+were performed using g:Profiler with false discovery rate (FDR) correction. Multiple 
+743 
+hypothesis testing was adjusted using Benjamini–Hochberg (FDR) or Bonferroni correction 
+744 
+according to the analysis design. Exact sample sizes, test types, and adjusted statistics for 
+745 
+each analysis are reported in the corresponding main text, figure legends, and Supplementary 
+746 
+Tables. 
+747 
+Data availability 
+748 
+All datasets analyzed in this study are publicly available. Single-cell pretraining data were 
+749 
+obtained from CZ CELLxGENE Discover (https://cellxgene.cziscience.com/), and spatial 
+750 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+32 
+pretraining datasets were obtained from the 10x Genomics public Visium HD repository 
+751 
+(https://www.10xgenomics.com/datasets). Single-cell benchmark and reference atlas datasets 
+752 
+are available through scvi-tools, scIB, Tabula Sapiens, the Human Lung Cell Atlas, and the 
+753 
+Lung Cancer Atlas. Additional liver, kidney, brain, and lung single-cell or single-nucleus 
+754 
+datasets are available in the Gene Expression Omnibus (GEO) under accession numbers 
+755 
+GSE115469, GSE211785, GSE138852, and GSE171524, respectively. Colorectal cancer 
+756 
+datasets are available in GEO under accession numbers GSE280318, GSE132465, and 
+757 
+GSE144735, and on Zenodo under record 7551712 (https://zenodo.org/records/7551712). 
+758 
+Detailed dataset sources and access links are provided in Supplementary Table S1. 
+759 
+Code availability 
+760 
+The source code and implementation of LingoCell are publicly available on GitHub at 
+761 
+https://github.com/y-itao/Lingocell. An interactive web server for online analysis is 
+762 
+accessible at https://lingocell.com/. 
+763 
+References 
+764 
+1. Theodoris, C. V. et al. Transfer learning enables predictions in network biology. Nature 
+765 
+618, 616–624 (2023). 
+766 
+2. Cui, H. et al. scGPT: toward building a foundation model for single-cell multi-omics using 
+767 
+generative AI. Nat. Methods 21, 1470–1480 (2024). 
+768 
+3. Zeng, Y. et al. CellFM: a large-scale foundation model pre-trained on transcriptomics of 
+769 
+100 million human cells. Nat. Commun. 16, 4679 (2025). 
+770 
+4. Zhao, S., Zhang, J., Wu, Y., Luo, Y. & Nie, Z. LangCell: Language-Cell Pre-training for 
+771 
+Cell Identity Understanding. Proceedings of the 41st International Conference on 
+772 
+Machine Learning, PMLR 235, 61159–61185 (2024). 
+773 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+33 
+5. Schaefer, M. et al. Multimodal learning enables chat-based exploration of single-cell data. 
+774 
+Nat. Biotechnol. 44, 1722–1732 (2026). 
+775 
+6. Kharouiche, O., Markogiannakis, A., Fei, X., Chatzianastasis, M. & Vazirgiannis, M. 
+776 
+Cell2Text: Multimodal LLM for Generating Single-Cell Descriptions from RNA-Seq 
+777 
+Data. arXiv 2509.24840v2 (2025). 
+778 
+7. de Oliveira, M. F. et al. High-definition spatial transcriptomic profiling of immune cell 
+779 
+populations in colorectal cancer. Nat. Genet. 57, 1512–1523 (2025). 
+780 
+8. Dong, K. & Zhang, S. Deciphering spatial domains from spatially resolved transcriptomics 
+781 
+with an adaptive graph attention auto-encoder. Nat. Commun. 13, 1739 (2022). 
+782 
+9. Long, Y. et al. Spatially informed clustering, integration, and deconvolution of spatial 
+783 
+transcriptomics with GraphST. Nat. Commun. 14, 1155 (2023). 
+784 
+10. Wang, C. X. et al. scGPT-spatial: Continual Pretraining of Single-Cell Foundation Model 
+785 
+for Spatial Transcriptomics. bioRxiv 2025.02.05.636714 (2025). 
+786 
+11. Singhal, V. et al. BANKSY unifies cell typing and tissue domain segmentation for 
+787 
+scalable spatial omics data analysis. Nat. Genet. 56, 431–441 (2024). 
+788 
+12. Xia, C.-R., Cao, Z.-J. & Gao, G. DECIPHER for learning disentangled cellular 
+789 
+embeddings in large-scale heterogeneous spatial omics data. Nat. Commun. 16, 7991 
+790 
+(2025). 
+791 
+13. CZI Cell Science Program et al. CZ CELLxGENE Discover: a single-cell data platform 
+792 
+for scalable exploration, analysis and modeling of aggregated data. Nucleic Acids Res. 
+793 
+53, D886–D900 (2025). 
+794 
+14. Gayoso, A. et al. A Python library for probabilistic analysis of single-cell omics data. Nat. 
+795 
+Biotechnol. 40, 163–166 (2022). 
+796 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+34 
+15. Luecken, M. D. et al. Benchmarking atlas-level data integration in single-cell genomics. 
+797 
+Nat. Methods 19, 41–50 (2022). 
+798 
+16. Tabula Sapiens Consortium. The Tabula Sapiens: A multiple-organ, single-cell 
+799 
+transcriptomic atlas of humans. Science 376, eabl4896 (2022). 
+800 
+17. Korsunsky, I. et al. Fast, sensitive and accurate integration of single-cell data with 
+801 
+Harmony. Nat. Methods 16, 1289–1296 (2019). 
+802 
+18. Lopez, R., Regier, J., Cole, M. B., Jordan, M. I. & Yosef, N. Deep generative modeling 
+803 
+for single-cell transcriptomics. Nat. Methods 15, 1053–1058 (2018). 
+804 
+19. Hie, B., Bryson, B. & Berger, B. Efficient integration of heterogeneous single-cell 
+805 
+transcriptomes using Scanorama. Nat. Biotechnol. 37, 685–691 (2019). 
+806 
+20. McInnes, L., Healy, J. & Melville, J. UMAP: Uniform Manifold Approximation and 
+807 
+Projection for Dimension Reduction. arXiv 1802.03426 (2018). 
+808 
+21. Xu, C. et al. Probabilistic harmonization and annotation of single-cell transcriptomics 
+809 
+data with deep generative models. Mol. Syst. Biol. 17, e9620 (2021). 
+810 
+22. Domínguez Conde, C. et al. Cross-tissue immune cell analysis reveals tissue-specific 
+811 
+features in humans. Science 376, eabl5197 (2022). 
+812 
+23. Yakubovsky, O. et al. A spatial atlas of the healthy human liver from live donors. Nature 
+813 
+653, 1148–1157 (2026). 
+814 
+24. MacParland, S. A. et al. Single cell RNA sequencing of human liver reveals distinct 
+815 
+intrahepatic macrophage populations. Nat. Commun. 9, 4383 (2018). 
+816 
+25. Melms, J. C. et al. A molecular single-cell lung atlas of lethal COVID-19. Nature 595, 
+817 
+114–119 (2021). 
+818 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+35 
+26. Wang, Z. et al. Deciphering cell lineage specification of human lung adenocarcinoma 
+819 
+with single-cell RNA sequencing. Nat. Commun. 12, 6500 (2021). 
+820 
+27. Sikkema, L. et al. An integrated cell atlas of the lung in health and disease. Nat. Med. 29, 
+821 
+1563–1577 (2023). 
+822 
+28. Liao, M. et al. Single-cell landscape of bronchoalveolar immune cells in patients with 
+823 
+COVID-19. Nat. Med. 26, 842–844 (2020). 
+824 
+29. Li, S. et al. Cellular metabolic basis of altered immunity in the lungs of patients with 
+825 
+COVID-19. Med. Microbiol. Immunol. 211, 49–69 (2022). 
+826 
+30. Akçakaya, P. et al. The functional SLC11A1 gene polymorphisms are associated with 
+827 
+sarcoidosis in Turkish population. Mol. Biol. Rep. 39, 5009–5016 (2012). 
+828 
+31. Dubaniewicz, A. et al. Association between SLC11A1 (formerly NRAMP1) and the risk 
+829 
+of sarcoidosis in Poland. Eur. J. Hum. Genet. 13, 829–834 (2005). 
+830 
+32. Salcher, S. et al. High-resolution single-cell atlas reveals diversity and plasticity of tissue-
+831 
+resident neutrophils in non-small cell lung cancer. Cancer Cell 40, 1503–1520.e8 (2022). 
+832 
+33. Xu, S. et al. Sec61γ is a vital protein in the endoplasmic reticulum membrane promoting 
+833 
+tumor metastasis and invasion in lung adenocarcinoma. Br. J. Cancer 128, 1478–1490 
+834 
+(2023). 
+835 
+34. Ueno, T. et al. Processing of pulmonary surfactant protein B by napsin and cathepsin H. 
+836 
+J. Biol. Chem. 279, 16178–16184 (2004). 
+837 
+35. Winslow, M. M. et al. Suppression of lung adenocarcinoma progression by Nkx2-1. 
+838 
+Nature 473, 101–104 (2011). 
+839 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+36 
+36. Johnson, A. M. et al. Cancer Cell-Intrinsic Expression of MHC Class II Regulates the 
+840 
+Immune Microenvironment and Response to Anti-PD-1 Therapy in Lung 
+841 
+Adenocarcinoma. J. Immunol. 204, 2295–2307 (2020). 
+842 
+37. Marjanovic, N. D. et al. Emergence of a high-plasticity cell state during lung cancer 
+843 
+evolution. Cancer Cell 38, 229–246.e13 (2020). 
+844 
+38. Maeda, Y. et al. KrasG12D and Nkx2-1 haploinsufficiency induce mucinous 
+845 
+adenocarcinoma of the lung. J. Clin. Invest. 122, 4388–4400 (2012). 
+846 
+39. Norman, T. M. et al. Exploring genetic interaction manifolds constructed from rich 
+847 
+single-cell phenotypes. Science 365, 786–793 (2019). 
+848 
+40. Bagati, A. et al. Integrin αvβ6–TGFβ–SOX4 pathway drives immune evasion in triple-
+849 
+negative breast cancer. Cancer Cell 39, 54–67.e9 (2021). 
+850 
+41. Cable, D. M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. 
+851 
+Nat. Biotechnol. 40, 517–526 (2022). 
+852 
+42. Di Caro, G. et al. Occurrence of tertiary lymphoid tissue is associated with T-cell 
+853 
+infiltration and predicts better prognosis in early-stage colorectal cancers. Clin. Cancer 
+854 
+Res. 20, 2147–2158 (2014). 
+855 
+43. Zhang, Y. et al. CCL19-producing fibroblasts promote tertiary lymphoid structure 
+856 
+formation enhancing anti-tumor IgG response in colorectal cancer liver metastasis. 
+857 
+Cancer Cell 42, 1370–1385.e9 (2024). 
+858 
+44. Onder, L. et al. Fibroblastic reticular cells generate protective intratumoral T cell 
+859 
+environments in lung cancer. Cell 188, 430–446.e20 (2025). 
+860 
+45. Lee, H.-O. et al. Lineage-dependent gene expression programs influence the immune 
+861 
+landscape of colorectal cancer. Nat. Genet. 52, 594–603 (2020). 
+862 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+37 
+46. Davidson, S. et al. Single-Cell RNA Sequencing Reveals a Dynamic Stromal Niche That 
+863 
+Supports Tumor Growth. Cell Rep. 31, 107628 (2020). 
+864 
+47. Pelka, K. et al. Spatially organized multicellular immune hubs in human colorectal 
+865 
+cancer. Cell 184, 4734–4752.e20 (2021). 
+866 
+48. Torres, S. et al. LOXL2 Is Highly Expressed in Cancer-Associated Fibroblasts and 
+867 
+Associates to Poor Colon Cancer Survival. Clin. Cancer Res. 21, 4892–4902 (2015). 
+868 
+49. Valdeolivas, A. et al. Profiling the heterogeneity of colorectal cancer consensus molecular 
+869 
+subtypes using spatial transcriptomics. npj Precis. Oncol. 8, 10 (2024). 
+870 
+50. Gu, Y. et al. Domain-specific language model pretraining for biomedical natural language 
+871 
+processing. ACM Trans. Comput. Healthc. 3, 2 (2022). 
+872 
+51. Zhang, P., Zeng, G., Wang, T. & Lu, W. TinyLlama: An Open-Source Small Language 
+873 
+Model. arXiv 2401.02385 (2024). 
+874 
+52. Xiang, J. et al. A vision–language foundation model for precision oncology. Nature 638, 
+875 
+769–778 (2025). 
+876 
+53. Aibar, S. et al. SCENIC: single-cell regulatory network inference and clustering. Nat. 
+877 
+Methods 14, 1083–1086 (2017). 
+878 
+54. Traag, V. A., Waltman, L. & van Eck, N. J. From Louvain to Leiden: guaranteeing well-
+879 
+connected communities. Sci. Rep. 9, 5233 (2019). 
+880 
+55. Liu, Y. et al. RoBERTa: A Robustly Optimized BERT Pretraining Approach. arXiv 
+881 
+1907.11692 (2019). 
+882 
+56. Lee, J. et al. BioBERT: a pre-trained biomedical language representation model for 
+883 
+biomedical text mining. Bioinformatics 36, 1234–1240 (2020). 
+884 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+38 
+57. Zhang, T., Kishore, V., Wu, F., Weinberger, K. Q. & Artzi, Y. BERTScore: Evaluating 
+885 
+Text Generation with BERT. International Conference on Learning Representations 
+886 
+(2020). 
+887 
+58. Papineni, K., Roukos, S., Ward, T. & Zhu, W.-J. Bleu: a Method for Automatic 
+888 
+Evaluation of Machine Translation. Proceedings of the 40th Annual Meeting of the 
+889 
+Association for Computational Linguistics, 311–318 (2002). 
+890 
+59. Lin, C.-Y. ROUGE: A Package for Automatic Evaluation of Summaries. Text 
+891 
+Summarization Branches Out, 74–81 (2004). 
+892 
+Acknowledgements 
+893 
+Computational resources for model inference and device testing were provided by the 
+894 
+SHIROKANE supercomputer system at the Human Genome Center, The Institute of Medical 
+895 
+Science, The University of Tokyo. Model training and data analyses were performed using 
+896 
+the Supermicro ARS-111GL-DNHR-LCC and FUJITSU Server PRIMERGY CX2550 M7 
+897 
+(Miyabi) systems at the Joint Center for Advanced High-Performance Computing (JCAHPC). 
+898 
+This work was supported by the Japan Society for the Promotion of Science (JSPS) 
+899 
+KAKENHI (grant no. JP26K25585) and the Japan Science and Technology Agency (JST) 
+900 
+SPRING program (grant no. JPMJSP2108). 
+901 
+Author contributions 
+902 
+Y.Y., W.X., and Z.Z. contributed equally to this work. Conceptualization: Y.Y.; 
+903 
+methodology: Y.Y. and W.X.; software: Y.Y., W.X., and Z.Z.; formal analysis: Y.Y., W.X., 
+904 
+and Z.Z.; investigation: Y.Y., W.X., Z.Z., Y.C., X.Y., and W.G.; data curation: Y.Y., W.X., 
+905 
+and Z.Z.; statistical review: Y.Y., Z.Z., Y.C., and J.W.; web server development: W.X.; 
+906 
+original manuscript writing: Y.Y. and X.Y.; manuscript review and editing: W.X., Z.Z., X.Y., 
+907 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+39 
+Y.C., W.G., J.W., and K.N.; supervision: K.N. All authors read and approved the final 
+908 
+manuscript. 
+909 
+Competing interests 
+910 
+The authors declare no competing interests. 
+911 
+Figures and legends 
+912 
+ 
+913 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+40 
+ 
+914 
+Fig. 1 | LingoCell framework connecting single-cell expression, natural language, and 
+915 
+tissue neighborhoods. 
+916 
+a, Expression–language pretraining: gene identities, expression levels, and paired 
+917 
+descriptions of single cells are encoded by the expression Transformer and text encoder, 
+918 
+respectively. Expression recovery, cross-modal alignment, and cell-type prototype learning 
+919 
+form a shared representation space, and gene features are passed through an adapter to the 
+920 
+LLaMA decoder to generate cell descriptions. b, Identity embeddings are used for cell 
+921 
+annotation, clustering, and cross-batch integration. c, Cell descriptions are generated from 
+922 
+expression. d, Language-guided single-cell in silico perturbation: normal and disease 
+923 
+descriptions define a semantic direction, cells are re-encoded after gene expression levels are 
+924 
+adjusted, and the semantic shift along this direction (ΔF) measures the response; the disease 
+925 
+reference is interchangeable. e, Spatial measurement adaptation: changes in measurement 
+926 
+depth and sparsity are simulated to adapt the expression encoder to spatial measurements 
+927 
+through objectives including identity consistency. f, Spatial pretraining: central-cell 
+928 
+expression, neighbor expression, spatial distances, and H&E images are integrated to produce 
+929 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+41 
+identity embeddings and niche embeddings referenced to identity. g, Spatial in silico 
+930 
+perturbation: tumor-adjacent stroma and lymphoid follicle (TLS-like) environments define a 
+931 
+niche reference axis, states of real fibroblast donors are inserted into observer neighborhoods, 
+932 
+axial shifts of observer niches measure donor influence, and differences in influence before 
+933 
+and after gene program upregulation or downregulation (ΔI) compare the program emphasis 
+934 
+of different observers. CLS, identity features summarizing cell information; gene tokens, 
+935 
+gene features; TLS, tertiary lymphoid structure. 
+936 
+ 
+937 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+42 
+ 
+938 
+Fig. 2 | Identity embeddings, prototype organization, and basic single-cell functions of 
+939 
+LingoCell. 
+940 
+a, Identity embedding UMAP of representative cells in the pretraining atlas, colored by cell 
+941 
+class. b, Mean Leiden ARI and NMI of eight representation methods across four benchmark 
+942 
+datasets. c, UMAPs of LingoCell, CellWhisperer, and PCA on PBMC10K, colored by 
+943 
+reference cell type and annotated with ARI and NMI. d, Cell-type prototype landscape (left; 
+944 
+circle area is proportional to the number of pretraining cells of that type) and a chord diagram 
+945 
+of cosine similarities between representative prototypes (right; only connections with 
+946 
+similarity ≥0.30 are shown). e, Mean biological conservation (Sbio) and batch mixing 
+947 
+(Sbatch) scores across Pancreas, Human Immune, and Tabula Sapiens; triangles indicate 
+948 
+integration methods that use target batch labels. f, UMAPs of LingoCell and LangCell on 
+949 
+Pancreas, with β cells colored by batch and other cells gray, annotated with Sbio and Sbatch. 
+950 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+43 
+g, Top-1 accuracy, Top-5 accuracy, and macro-F1 for zero-shot annotation by three 
+951 
+language-aligned models on Tabula Sapiens. h, UMAPs of reference annotations and 
+952 
+LingoCell and LangCell predictions on Tabula Sapiens, highlighting macrophages, 
+953 
+fibroblasts, and basal cells. ARI, adjusted Rand index; NMI, normalized mutual information; 
+954 
+macro-F1, macro-averaged F1. 
+955 
+ 
+956 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+44 
+ 
+957 
+Fig. 3 | LingoCell generates natural language descriptions from single-cell expression 
+958 
+and resolves continuous hepatocyte zonation. 
+959 
+a, Weighted F1 for cell-type, tissue, and disease information in descriptions generated by 
+960 
+LingoCell and Cell2Text (Llama-1B model), and BERTScore based on RoBERTa and 
+961 
+BioBERT. b, Excerpts of generated descriptions for a renal principal cell and an 
+962 
+oligodendrocyte, with generated identity phrases in bold; dot plots above show the mean 
+963 
+expression (color) and proportion of expressing cells (dot size) for three marker genes across 
+964 
+cell types in the same dataset, with the types of the example cells in bold. c, Expression z 
+965 
+scores of zonation marker genes in three representative hepatocytes and corresponding 
+966 
+excerpts of periportal, midzonal, and pericentral descriptions. d, Hepatocytes assigned 
+967 
+zonation descriptions arranged along a periportal–pericentral expression coordinate, with 
+968 
+local proportions of the three description classes above and smoothed expression z scores of 
+969 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+45 
+zonation-related genes below. e, Cross-attention associations between zonal identity phrases 
+970 
+and input genes, grouped into zone-associated genes and canonical reference genes; color 
+971 
+indicates the difference in mean attention rank relative to other phrases, and dot size the 
+972 
+proportion of cells in the group with the corresponding gene in the input. PP, periportal; MZ, 
+973 
+midzonal; CV, pericentral. 
+974 
+ 
+975 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+46 
+ 
+976 
+Fig. 4 | LingoCell links semantic queries to in silico perturbation of disease-associated 
+977 
+gene programs. 
+978 
+a, UMAP of the GSE171524 lung single-nucleus atlas, colored by cell type and scores for the 
+979 
+queries “Angiogenesis”, “Epithelial–mesenchymal transition”, and “Complement system”. b, 
+980 
+Alignment of normal-to-disease representation changes in lung cell types with language 
+981 
+directions for inflammation-associated lung diseases (HP, NSIP, and pulmonary sarcoidosis) 
+982 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+47 
+and fibrotic/obstructive lung diseases (PF and COPD). Colored as in a; the dashed line 
+983 
+indicates equality. c, Alignment of normal-to-disease representation changes in lung cell 
+984 
+types with COVID-19 and LUAD language directions, grouped by cell lineage. d, Mean 
+985 
+semantic shifts along the LUAD, pulmonary sarcoidosis, and COVID-19 directions after 
+986 
+upregulating candidate genes in healthy alveolar macrophages. Red, toward the 
+987 
+corresponding disease description; blue, away from it; dot size, proportion of cells covered by 
+988 
+each gene. e, Responses along the LUAD direction to different expression adjustment levels 
+989 
+for each gene in LUAD epithelial cells, clustered into five groups by response pattern, with 
+990 
+response curves of representative genes below. f, Two-gene connection diagrams for co-
+991 
+downregulation within the alveolar differentiation program (left) and co-upregulation within 
+992 
+the malignancy/invasion-associated program (right). Arcs indicate positive non-additive 
+993 
+effects (line width, effect size; solid and dashed lines, positive effects in more than half and 
+994 
+no more than half of cells, respectively); node color indicates single-gene loading and node 
+995 
+size the number of connected genes. g, Mean joint semantic shifts of the same cell states after 
+996 
+NAPSA and SFTPB co-downregulation along the LUAD, LUSC, COVID-19, and IPF text 
+997 
+directions. HP, hypersensitivity pneumonitis; NSIP, nonspecific interstitial pneumonia; PF, 
+998 
+pulmonary fibrosis; COPD, chronic obstructive pulmonary disease; LUAD, lung 
+999 
+adenocarcinoma; LUSC, lung squamous cell carcinoma; IPF, idiopathic pulmonary fibrosis. 
+1000 
+ 
+1001 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+48 
+ 
+1002 
+Fig. 5 | LingoCell resolves cell identities and identity-related local niches at single-cell 
+1003 
+resolution. 
+1004 
+a, Cell identity annotation in a kidney section: the whole section with H&E and annotations 
+1005 
+(left), segmented cell outlines overlaid on H&E in the circled field of view (upper middle), in 
+1006 
+situ expression of SLC12A1 (loop of Henle), SLC12A3 (distal tubule), AQP2 (collecting 
+1007 
+duct), and NPHS2 (podocytes) in the same field (lower middle), and a UMAP of identity 
+1008 
+embeddings (right); colored by cell class. Scale bar, 1 mm. b, Identities and niches of normal 
+1009 
+colon fibroblasts: UMAPs of the same fibroblasts in identity and niche embeddings (upper 
+1010 
+left), expression of extracellular matrix and contraction genes in neighbors of mucosa-
+1011 
+associated and muscularis-associated fibroblasts (lower left), enlarged views of the mucosa 
+1012 
+and muscularis propria with fibroblasts colored by niche coordinate and other cells by lineage 
+1013 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+49 
+(middle), and the distribution of fibroblasts across the whole section colored by niche 
+1014 
+coordinate (right; rectangles mark the enlarged views). Scale bar, 1 mm. 
+1015 
+ 
+1016 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+50 
+ 
+1017 
+Fig. 6 | Spatial in silico perturbation resolves observer-dependent stromal programs in 
+1018 
+CRC. 
+1019 
+a, RCTD annotations of 8 μm bins from the original study (left), LingoCell annotations of 
+1020 
+segmented cells (middle), and an identity embedding UMAP (right) in section P5, colored by 
+1021 
+cell class. Scale bar, 1 mm. b, Dot plot of canonical marker gene expression across cell 
+1022 
+classes (dot size, detection rate; color, standardized mean expression). c, Example field of T 
+1023 
+cells recovered by LingoCell in a region annotated as tumor by RCTD: H&E with outlines of 
+1024 
+recovered cells (left) and T-cell marker gene expression (right). Scale bar, 50 μm. d, UMAPs 
+1025 
+of the same SELENOP⁺ macrophages in identity and niche embeddings, colored by goblet-
+1026 
+associated and LCN2 tumor-associated neighborhoods and by marker expression in the 
+1027 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 
+
+
+51 
+macrophages or their neighbors. Three outlying cells are omitted from the identity-
+1028 
+embedding displays. e, Functional niches grouped from niche embedding clusters. Scale bar, 
+1029 
+1 mm. f, Two reference environments for spatial perturbation: anchor T cells at the two ends 
+1030 
+of the reference axis (orange, lymphoid follicle (TLS-like) end; blue, tumor-adjacent stroma 
+1031 
+end) and cell composition within 50 μm. g, Influence of fibroblast donors from the T-cell 
+1032 
+perspective in identity embedding UMAP (left) and tissue coordinates (right). h, Correlations 
+1033 
+between program gene expression in fibroblast donors and influence from T-cell, 
+1034 
+macrophage, and tumor-cell perspectives (dots mark members of each observer program). i, 
+1035 
+Median ΔI of fibroblast donors after bidirectional program editing (purple, downregulation; 
+1036 
+pink, upregulation). j, Functional enrichment of the three programs in external CRC 
+1037 
+fibroblasts (dot size, overlapping gene count; color, −log₁₀FDR). k, Axis scores of fibroblasts 
+1038 
+in section P1 (black, B cells in the lymphoid aggregate; sand, tumor cells; scale bar, 1 mm). l, 
+1039 
+Axis scores of fibroblasts in the P1–P5 single-cell atlas from the same study: original UMAP 
+1040 
+(left) and box plots grouped by fibroblast subpopulations (right). CRC, colorectal cancer; 
+1041 
+TLS, tertiary lymphoid structure; FDR, false discovery rate. 
+1042 
+.
+CC-BY-NC-ND 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 10, 2026. 
+; 
+https://doi.org/10.64898/2026.11.08.765157
+doi: 
+bioRxiv preprint 

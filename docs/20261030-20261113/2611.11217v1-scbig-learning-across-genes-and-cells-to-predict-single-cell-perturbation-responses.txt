@@ -1,0 +1,678 @@
+Title: scBIG++: Learning Across Genes and Cells to Predict Single-Cell Perturbation Responses
+
+URL Source: https://arxiv.org/pdf/2611.11217v1
+
+Published Time: Tue, 10 Nov 2026 03:30:00 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+> Preprint 1
+
+# scBIG++: Learning Across Genes and Cells to Predict Single-Cell Perturbation Responses 
+
+Jiafa Ruan, Zican Qiao, Zongxin Yang, Ruijie Quan, and Yi Yang, Fellow, IEEE 
+
+Abstract —Predicting single-cell transcriptional responses to ge-netic and chemical interventions supports gene-function discovery and regulatory analysis. Existing studies often focus only on highly variable genes, restricting the expression changes available for downstream analysis. Cells exposed to the same intervention can also show heterogeneous expression responses, with coordinated gene programs active to different degrees. We propose scBIG++, a full-gene perturbation prediction framework that models this heterogeneity by connecting expression-adaptive gene modules with population-conditioned generation. To preserve shared gene structure while accommodating cellular variation, Gene-Relation Clustering organizes genes into common windows, within which Dynamic SoftSub learns expression-dependent submodule memberships. This shared organization enables Set-GCAE to exchange information about corresponding gene groups across control cells, placing individual representations in their source-population context. The cell representations initialize a latent flow, while their pooled summary and the perturbation representation condition response generation. Generated states are decoded into expression profiles covering all assayed protein-coding genes retained after preprocessing, supporting comprehensive analysis of perturbation-induced expression changes. Experiments across six genetic and chemical settings spanning 6,539–19,451 genes demonstrate competitive perturbation-effect recovery and full-gene expression reconstruction under unseen targets and combinations, cross-cell-line transfer, and held-out compounds. Our implementation is available at scBIG++ .
+
+Index Terms —single-cell perturbation prediction, genome-scale transcriptomics, gene modules, conditional flow matching. 
+
+I. I NTRODUCTION 
+
+Predicting how genetic and chemical interventions alter single-cell transcriptional states is a central task in functional genomics, supporting gene-function discovery, regulatory-mechanism analysis, and therapeutic hypothesis generation [2], [3], [4]. Advances in CRISPR perturbation technologies and single-cell RNA sequencing have enabled assays such as Perturb-seq to measure intervention-induced expression changes at cellular resolution [2], [5], [6], [7]. Yet existing measurements cover only a small fraction of the possible targets, combinations, doses, and cellular contexts. This motivates computational models that use an observed control population and an intervention description to predict the expression distribution of the perturbed population. 
+
+Jiafa Ruan, Ruijie Quan, and Yi Yang are with the Institute of Fundamental and Transdisciplinary Research, the College of Artificial Intelligence, and the State Key Laboratory of Brain-Machine Intelligence, Zhejiang University, Hangzhou, China (e-mails: Jiafa Ruan@zju.edu.cn; quanruijie@zju.edu.cn; yangyics@zju.edu.cn, respectively). Zican Qiao and Zongxin Yang are with the College of Artificial Intelligence, Zhejiang University, Hangzhou, China (e-mails: zicanqiao13@gmail.com; yangzongxin.ai@zju.edu.cn, respectively). A preliminary version of this work appeared at ICML 2026 [1]. Corresponding author: Ruijie Quan. 
+
+The genes covered by a prediction determine which down-stream responses can be examined for gene-function discov-ery and regulatory analysis [2], [8]. To reduce expression dimensionality, many published perturbation-prediction settings focus on highly variable genes (HVGs) [4], [9], [10], [11], [12], [13]. However, biologically informative responses can involve coordinated changes that are modest at the level of individual genes. For example, Mootha et al. [14] identified coordinated downregulation of oxidative-phosphorylation genes in diabetic muscle through gene-set analysis, despite subtle individual expression changes. Overexpression of PGC-1 α in a mouse muscle cell line further showed that this gene program responds to a common regulator. Such findings illustrate the value of examining coordinated expression changes across pathway members. When a predictor outputs only HVGs, expression changes for excluded members are unavailable for this downstream analysis. We therefore study full-gene prediction across all assayed protein-coding genes retained after preprocessing in each experimental setting, providing complete predicted expression profiles for comprehensive downstream response analysis. Genes often respond through coordinated functional pro-grams, so full-gene prediction also requires representations that capture their dependencies [8], [15]. Generative methods condition cellular responses on interventions, while transcrip-tomic foundation models provide reusable representations for prediction; gene-program membership generally remains implicit in these representations [4], [9], [13], [16]. Graph-based and regulatory-network methods make gene relations explicit through curated interactions, inferred networks, or adaptively refined graphs [17], [18], [19], [20]. However, when the same graph is reused across cells, its connectivity remains fixed despite differences in cellular state. Available interaction priors also provide incomplete coverage of context-dependent gene relationships [17], [21], [22], [23]. These limitations motivate representations that combine shared biological structure with gene contributions that adapt to input expression. Our conference model, scBIG [1], introduced a module-level organization for coordinated response prediction. Gene-Relation Clustering (GRC) groups related genes into modules, the Gene-Cluster-Aware Encoder (GCAE) models dependencies among modules, and a conditional flow predicts responses in the resulting structured representation. However, each gene retains the same module assignment across cells. Even cells with similar identities can express programs such as G1/S and G2/M to different degrees [24], motivating gene contributions that adapt to each cell’s expression. This adaptation must also preserve the shared organization needed to compare arXiv:2611.11217v1 [cs.LG] 8 Nov 2026 Preprint 2(b) Quantitative Comparison 
+
+> 6.81 5.46
+> 5.07
+> Norman
+> 9.65 10.05
+> 9.43
+> Replogle
+> 0.6722 0.8249
+> 0.8592
+> Norman
+> 0.6643 0.6786
+> 0.7034
+> Replogle
+> 0.6774
+> Norman
+> 0.8160
+> 0.8521
+> Norman
+> 0.6398 0.6713
+> 0.6856
+> Replogle
+> 0.6985 0.6867
+> 0.7615
+> 0.3907 0.5572
+> 0.5754
+> Replogle
+> ρΔ ↑ DES ↑ L2 ↓
+> Disc. Cosine ↑
+
+Norman & Replogle   
+
+> CellFlow scBIG scBIG++
+
+(a) From scBIG to scBIG++ Common* Gene Coverage Module Representation       
+
+> Selected gene panel
+> HVGs + target genes
+> All retained protein-coding genes
+> Full-gene encoding and reconstruction
+> Individual Genes Fixed Relations
+> Gene-wise features
+> Dynamic SoftSub
+> Shared window, cell-specific soft memberships
+> Cell i
+> s1 s2 s3 s4 g1 g2 g3 g4
+> Cell j
+> s1 s2 s3 s4 g1 g2 g3 g4
+> Refined windows → cross-cell conditioning
+> Population-conditioned prediction
+> Control set
+
+scBIG      
+
+> Selected gene panel
+> HVGs + target genes
+> Static GRC Modules
+> M1 M2 M3
+> Fixed membership across cells
+> Prediction Unit
+> Independent cell-wise prediction
+> Control Predicted
+> Independent cell-wise prediction
+> Control Predicted
+> Set-GCAE
+> Source summary s0
+> Conditional Flow
+> p: perturbation
+> Predicted set
+> Full-gene
+
+scBIG++ 
+
+Fig. 1. Overview of the scBIG++ extension and representative full-gene results. (a) The common reduced-gene setup, conference scBIG, and scBIG++ are compared in gene-space coverage, gene-program organization, and prediction unit. scBIG++ retains shared windows while adding Dynamic SoftSub, full-gene encoding and reconstruction, and population-conditioned set-to-set prediction. (b) Radial comparisons of selected full-gene metrics on Norman and Replogle settings for CellFlow, scBIG, and scBIG++. Arrows indicate whether higher or lower values are preferred. 
+
+corresponding programs across cells. State-dependent activity also varies among cells within the same control population. These cells provide both individual starting states and information about the prevalence and variation of those states. At prediction time, encoding each cell in isolation prevents other observed control cells from informing its representation. Using the population as context therefore calls for a model that incorporates the distribution of starting states while retaining each cell’s expression pattern. The resulting challenge is to adapt gene contributions to individual states and share information across the source population, using gene groups that remain comparable across cells. To address these requirements, we introduce SC BIG++, a full-gene perturbation prediction framework that connects dynamic module representations with population-conditioned generation. Given an unordered control population and a perturbation description, SC BIG++ generates a perturbed population over the complete retained gene space. Its central design is to keep gene groups comparable across cells while adapting their local representations and exchanging population information through those groups. Figure 1 summarizes the main extensions from scBIG and representative full-gene prediction results. At the gene level, GRC organizes related genes into shared local windows, providing a structural basis for full-gene encoding. Within each window, D YNAMIC SOFT SUB learns continuous submodule memberships from input expression and uses them to weight gene features during aggregation. Gene contributions can thus vary with cellular state while the parent windows retain the same gene correspondence across cells. This correspondence makes the refined representations suitable for exchanging information about the same gene groups across the control population. At the population level, the Set-Enhanced Gene-Cluster-Aware Encoder (Set-GCAE) exchanges information across corresponding windows in different source cells. Each cell representation can therefore draw on expression patterns in the control population while retaining its individual state. The resulting cell representations initialize a latent flow, and their pooled summary provides a permutation-invariant description of the source population. This summary and the perturbation representation condition the flow, allowing response generation to use both individual starting states and population context. The generated latent states are then decoded into full-gene expression profiles. The shared windows therefore connect state-dependent gene modeling to population-conditioned response generation. To limit the cost of learning this pipeline across the complete measured gene space, SC BIG++ separates full-gene representation learning, set adaptation, decoder calibration, and latent-flow estimation into successive training stages. The final flow is optimized in a fixed representation space, so response-generation training does not repeatedly update the high-dimensional gene-encoding trunk. We evaluate SC BIG++ in six settings derived from Nor-man [8], Replogle [2], and ComboSciPlex [4], spanning unseen gene combinations, held-out targets, cross-cell-line transfer, and unseen chemical conditions across 6,539–19,451 genes. SC BIG++ improves full-gene response correlation over scBIG on all three Norman protocols and achieves the highest reported correlation among the compared methods in RPE1 and strict cross-cell-line transfer. Matched-objective ablations show complementary contributions from dynamic module refinement and population conditioning. Biological analyses show expression-dependent gene assignments, a 17.5% reduction in program-response error relative to the matched No SoftSub model, and recovery of the observed dominant program in 27 of 32 test combinations. Our main contributions are summarized as follows: 1) A population-conditioned framework for full-gene per-turbation prediction. We introduce SC BIG++ to generate Preprint 3
+
+perturbed populations across all retained assayed protein-coding genes, connecting structured gene representations with source-population information. 2) Expression-adaptive module representations within a shared scaffold. DYNAMIC SOFT SUB learns continuous local submodule memberships from each cell’s expression while preserving the window correspondence needed for cross-cell modeling. 3) Population context in representation learning and response generation. Set-GCAE exchanges information across corresponding gene windows, and a pooled source summary conditions the latent flow, coupling individual cell states with population context. 4) Evaluation across genetic and chemical perturbations. 
+
+We assess full-gene response prediction, the contributions of dynamic gene modeling and population context, and the biological properties of the learned representations across six evaluation settings. This work extends our conference paper, scBIG [1], in four respects. First, expression-conditioned D YNAMIC SOFT SUB 
+
+adds continuous local submodule memberships within the original GRC scaffold, allowing gene contributions to vary with cellular state ( cf. §III-B). Second, Set-GCAE and the source-set summary extend cell-wise response prediction to conditional generation between unordered populations, in-corporating population context into both encoding and flow conditioning ( cf. §III-C and §III-D). Third, full-gene encoding and decoding expand prediction to all assayed protein-coding genes retained after preprocessing, supporting comprehensive response analysis across the complete measured gene space (cf. §III-A and §III-D). Fourth, evaluation is expanded to six genetic and chemical settings. Matched-objective ablations and set-size controls examine the contributions of dynamic assignments and population context, while functional and program-level analyses examine expression-dependent gene organization, response prediction, nonadditive combinations, and dominant-program recovery ( cf. §IV). II. R ELATED WORK 
+
+Single-cell perturbation prediction has developed along three connected directions. The first direction models how an intervention changes cellular expression. The second introduces biological structure or large-scale pretrained representations to organize genes and cell states. The third treats an experiment as a population-level observation and models transformations between cellular distributions. We review these directions in turn and position SC BIG++ at their intersection. 
+
+Single-Cell Perturbation Response Prediction. Generative models established the basic formulation of predicting a perturbed expression profile from an observed cell and an intervention. scGen [9] models latent response shifts, while trVAE [25] and CPA [4] condition variational representations on treatment and cellular context. scPreGAN [26] combines an autoencoder with adversarial generation. scVIDR [10] estimates cell-type-specific latent shifts and dose responses; scDisIn-Fact [27] separates condition-associated factors; biolord [28] learns disentangled biological factors; and SAMS-VAE [29] models perturbation-associated latent variables. PerturbNet [30] uses conditional normalizing flows for responses to unseen genetic and chemical interventions. These representations sup-port different forms of response transfer, but do not necessarily expose which genes jointly drive a predicted program. GEARS [17] uses a gene-interaction graph to predict multigene perturbations, GraphVCI [18] refines relational infor-mation during variational causal inference, and GRAPE [19] models heterogeneous genetic perturbations with a graph representation. CellOracle [20] infers regulatory programs and simulates transcription-factor perturbations. Unlasting [31] applies dual conditional diffusion bridges, CellFlow [32] uses flow matching for phenotype distributions, PerturbDiff [12] uses conditional functional diffusion, and scDFM [33] learns a distributional flow-matching model. STATE [34] predicts perturbation responses across cell sets. These methods broaden prediction from a single response profile to heterogeneous populations, while leaving expression-dependent module mem-bership as an open design choice. Taken together, these methods have moved the field from latent response shifts toward structured and distributional generation. Harmonized datasets and recent benchmarks show why expression error, perturbation-induced change, and popu-lation similarity must be assessed separately [35], [36], [37], [38]. Our focus is to connect these developments: SC BIG++ uses expression-adaptive gene organization over the complete retained gene space while mapping an unordered source population to a perturbed population. 
+
+Biological Structure, Gene Programs, and Foundation Models. Feature-selection methods address a complementary aspect of high-dimensional expression modeling. Matsuda et al. [39] use distortion-free principal components to select highly variable genes for cell clustering. Our task instead requires predicting responses across all retained genes. Bio-logical priors provide several ways to organize genes before prediction. STRING [21] supplies protein-association networks, Reactome [22] curates pathway relations, and SCENIC [40] infers regulatory programs and their activity. scVI [41] learns probabilistic cell-state representations, while scArches [42] maps new data to reference atlases. Fixed interaction and pathway priors describe shared gene relationships; the activity of their members in a particular cell must be inferred from expression. Gene-program methods represent a cell through the strengths of overlapping expression programs. cNMF [24] identifies programs associated with cell identity and activity, while gene-expression topic modeling [43], scETM [44], and scIN-SIGHT [45] learn shared or context-associated patterns. GSEA [15] connects gene sets to functional categories, Gene Ontology [46] provides a controlled vocabulary for those categories, VEGA [47] incorporates annotated modules into a decoder, and Spectra [48] guides program discovery with biological knowledge. SCENIC [40] and CellOracle [20] connect coordinated expression to transcription-factor activity and in-silico perturbation. Perturb-seq studies show how these responses reveal genetic interactions and gene function [2], [8]. These analyses improve interpretation, while SC BIG++ makes the within-program contributions part of the response Preprint 4
+
+generator. Foundation models pretrain on large transcriptomic collec-tions. scBERT [49], Geneformer [3], scGPT [13], scFounda-tion [50], GeneCompass [16], CellFM [51], and CellVQ [52] provide reusable gene or cell representations. scGPT, sc-Foundation, and GeneCompass have also been evaluated on perturbation-related tasks. scPRINT [53] incorporates gene-network inference, Nicheformer [54] incorporates spatial context, and CellPLM [55] models relations among cells. Zero-shot evaluation shows that downstream adaptation remains decisive for perturbation transfer [56]; benchmark studies fur-ther expose differences among pretrained representations [38]. ChromaPert [57] uses chromatin accessibility to condition state-dependent responses. scBIG [1] combines GeneCompass semantics and STRING interactions in a shared GRC scaffold; 
+
+> SC
+
+BIG++ retains this organization while learning expression-dependent within-window contributions. 
+
+Population and Distributional Modeling. Single-cell ex-periments observe unordered populations, making set learn-ing suitable for incorporating source-population information. Deep Sets [58] uses permutation-invariant aggregation, Set Transformer [59] adds attention among set elements, and Perceiver [60] provides a latent attention bottleneck. scPoli [61] learns sample representations, and CellPLM [55] models rela-tions among cells. STATE [34] predicts perturbation responses across cell sets, while CellFlow [32] models heterogeneous cellular response distributions. SC BIG++ extends this line by exchanging information across corresponding gene groups before generation and by conditioning each response on a pooled source summary. TrajectoryNet [62] models temporal transformations with optimal transport, CellOT [63] transports control states to perturbed states, and CINEMA-OT [64] estimates cellular treatment effects. SCREEN [65] uses optimal transport to predict single-cell gene-expression perturbation responses. scPRAM [66] aligns control and perturbed states with attention. Flow Matching [67], [68] learns vector fields by regression; CellFlow [32] and scDFM [33] apply conditional flow models to heterogeneous responses. This distributional viewpoint motivates coupling a source-population representation to gene groups that remain comparable across cells. 
+
+> SC
+
+BIG++ treats the source and target as unordered cell sets and combines set-level context with structured gene representations. Set-GCAE exchanges information across cor-responding gene windows before generation, while a pooled source summary conditions the flow together with each cell representation. The resulting interface links three requirements in one model: complete-gene encoding, adaptive organization within shared gene groups, and population-conditioned genera-tion of heterogeneous responses. III. M ETHODOLOGY 
+
+Task and overview. Given an unordered set of control cells 
+
+X0 = {x0,i }Ni=1 and a perturbation p, SC BIG++ predicts a set of perturbed expression profiles: 
+
+bX1 = Fθ (X0, p ), X0, bX1 ∈ RN ×G, (1) where G is the number of assayed protein-coding genes retained after preprocessing. Training uses independently sampled control and perturbed populations. The model produces one expression vector per source cell, and reordering the input cells produces the corresponding reordering of its outputs. The design addresses three connected requirements: orga-nizing the full gene space efficiently, adapting local gene representations to cellular state, and incorporating population context into each prediction. As shown in Figure 2, GRC establishes a shared gene scaffold, Dynamic SoftSub refines its local representations, and Set-GCAE exchanges information across corresponding windows in control cells. A conditional flow then generates perturbed cell latents from the source states and a pooled population summary, followed by full-gene decoding. Progressive training separates representation learning, set adaptation, decoder calibration, and flow estimation so that the generative model can be optimized in a fixed latent space. 
+
+A. Full-Gene Scaffold and Gene Windows 
+
+To organize the high-dimensional gene space, we use the Gene-Relation Clustering (GRC) scaffold introduced in scBIG [1]. GRC combines GeneCompass embeddings [16] with the STRING interaction network [21]. Let eg be the embedding of gene g, μk the semantic center of group Ck, and 
+
+Agh the binary interaction indicator obtained by thresholding STRING scores at 700. The gene-to-group assignment cost is 
+
+Cgk = 1 − cos( eg , μ k) + 1 − 1
+
+|C k|
+
+X
+
+> h∈C k
+
+Agh . (2) The two terms favor semantic similarity and interaction coherence, respectively. Entropically regularized assignment with capacity-constrained rounding produces balanced groups. We use equal weights for the two terms, Sinkhorn regularization 0.1, three refinement steps, and random state 42. The resulting gene order is shared by all cells in a setting. 
+
+Shared gene windows establish correspondence across cells. We center expression using the training mean and divide the ordered gene vector into Kg = ⌈G/L ⌉ windows of width 
+
+L = 64 . A batch of B cells is zero-padded at the end and reshaped from [B, G ] to [B, K g , L ]. GRC groups contain 63 or 64 genes, so a fixed window can span adjacent groups. Each window is projected to a parent token cbk ∈ RE for cell b and window k, with E = 256 . A projected mean of its GeneCompass embeddings supplies biological positional information. 
+
+B. Expression-Conditioned Dynamic SoftSub 
+
+Genes within a shared window can contribute differently across cell states. A single parent token summarizes their joint expression, while Dynamic SoftSub adds a local representation of these varying contributions. For cell b, window k, and local position i, we project the scalar expression value and add a learned position embedding ℓi:
+
+hbki = Dropout(LN (GELU( Wxxbki + bx) + ℓi)) . (3) Preprint 5Gene-Relation Clustering 
+
+... Cell N 
+
+... ... Cell 1      
+
+> 𝑔 !𝑔 "𝑔 #𝑔 $𝑔 %𝑔 &
+
+... Cell 2 ... Cell 3 
+
+> GeneCompass
+> （Foundation Model ）
+> Semantic Embeddings PPI Network
+> （STRING ）
+> Interaction Graph
+
+Balanced Assignment via OT 
+
+Parent Gene Clusters 
+
+... 
+
+> “Cell Cycle” “Stress”
+
+... ... ... ... 
+
+Dynamic SoftSub Refinement         
+
+> MLP + Softmax Parent Cluster
+> ...
+> ...
+> Cell i
+> ...
+> Cell j
+> 𝑠 "𝑠 #𝑠 $𝑠 %
+> Assignment 𝑾 𝒊
+> 𝑠 "𝑠 #𝑠 $𝑠 %
+> Assignment 𝑾 (
+> Weighted Pooling SoftSub Tokens
+> ... ... ... ... ... ... ... ...
+> Semantic PE A
+> Linear Projection
+> 𝑿 𝒔𝒆𝒕 𝝐ℝ 𝑵×𝑲×𝑳
+> Input
+> ... ... ... ...
+> SoftSub Token Self-Attention SoftSub Mean  SoftSub Summary
+> R
+> Parent Token
+> C
+> Scalar-Gated Residual  Refined Token
+> C'
+> Cross-Attention
+> QKV
+> Self-Attention Cross-Attention
+> KV
+
+𝐼 
+
+> Q
+> I' I''
+> Average Pooling Linear Projection Head
+
+𝑧 
+
+> Set-Cluster-Attention
+
+Set-Enhanced Gene-Cluster Aware Encoder (Set-GCAE) Set-Cluster-Attention (SCA) 
+
+> Cluster 1
+> ... ... ... ...
+
+...   
+
+> Cell 1 Cell 2 Cell 3 Cell N
+> ...
+> Cluster 2 Cluster 3 Cluster k
+
+Same-Cluster Set-Attention 
+
+> ...
+> h!"
+> h#"
+> h$"
+> h%"
+> ...
+> ℎ!" &'(
+> ℎ#" &'(
+> ℎ$" &'(
+> ℎ%" &'(
+
+...   
+
+> Cell-to-Cell Attention 𝑨 𝒌 [N ×N] Residual + FFN
+> 𝑯 𝒔𝒆𝒕 𝝐ℝ 𝑵×𝑲×𝑬
+
+Progressive Training Strategy        
+
+> 1234
+> SoftSub GCAE Full Decoder
+> Decoder Block 2 Set-GCAE Decoder Blocks 0-1
+> SCA +Latent Head GCAE Full Decoder
+> Conditional Vector Field
+> Representation Learning Set Adaptation Decoder Calibration Flow Training
+> Frozen Module Fine-Tuning ACluster Average Addition Inducing Points 𝐼
+
+Set-GCAE  
+
+> Gene-Relation Cluster
+> ℝ𝑵×𝑮 ℝ𝑵×𝑲×𝑳
+
+𝐗 𝒔𝒆𝒕 𝝐ℝ 𝑵×𝑮 
+
+Control Cell Set 
+
+> Cell 1 Cell 2 Cell 3 Cell N
+> ...
+> Dynamic SoftSub
+
+Decoder 
+
+> Conditional Flow Matching
+
+𝑧 '()* 𝑧 +()* 
+
+> Flow Dynamics
+
+𝐗 %𝒔𝒆𝒕 𝝐ℝ 𝑵×𝑮 
+
+Predicted Perturbed Cell Set  
+
+> Gene Embedding Pert Gene Time
+> 𝒕~𝑼[𝟎, 𝟏]
+
+Overall scBIG++ Framework 
+
+Fig. 2. Overview of SC BIG++. GRC organizes genes into shared windows, and Dynamic SoftSub refines their representations using expression-dependent memberships. Set-GCAE exchanges information across corresponding windows in control cells. The resulting cell latents and population summary condition a flow that generates perturbed states for full-gene decoding. The lower-right panel shows the training stages. 
+
+The local embeddings are shared across windows. An assign-ment head fq , consisting of a 256-unit GELU layer and a four-output projection, maps each gene token to S = 4 submodule memberships: 
+
+qbki, : = fq (hbki ), wbki, : = softmax( qbki, :). (4) Softmax is applied over the four slots, so each gene distributes its contribution across submodules. These expression-driven memberships define the q-only configuration used in the experiments. Each submodule token is a weighted average, 
+
+ubks =
+
+PLi=1 wbki,s hbki 
+
+max 
+
+PLi=1 wbki,s , ε 
+
+ , (5) where ε = 10 −6 stabilizes normalization. Genes contribute continuously according to their membership weights, and mass normalization keeps token magnitudes comparable across submodules. 
+
+A gated update combines local refinement with the parent representation. The aggregated tokens pass through a 256-unit GELU projection with dropout, followed by four-head self-attention among the submodules within each window. Let 
+
+rbk be the mean of its output tokens. A learned scalar gate performs the update: 
+
+gbk = σ(Dense([ cbk ; rbk ])) , (6) 
+
+c′
+
+bk = LayerNorm ( cbk + gbk MLP out (rbk )) . (7) Here, σ is the sigmoid function and [ ; ] denotes concatenation. The gate controls the contribution of local refinement to the parent token. Continuous memberships allow gradual changes in gene contributions across expression states while preserving the shared window organization. Section IV examines these memberships through component ablations and functional analyses. 
+
+C. Set-GCAE and Population Encoding 
+
+Set-GCAE combines within-cell and cross-cell informa-tion exchange. The refined tokens first pass through three GCAE blocks [1], each using M = 16 inducing tokens and eight attention heads. The inducing tokens aggregate window information, interact in a compact latent space, and return the updated information to the windows through cross-attention. This Perceiver-style bottleneck [60] models dependencies across the gene space while limiting the cost of within-cell attention. Each block uses token width 256, MLP width 512, and dropout 0.1. For a batch of Bs control sets, the resulting tokens are rearranged as 
+
+T ∈ RBs×N ×Kg ×E −→ RBs×Kg ×N ×E . (8) Set-Cluster-Attention (SCA) then applies one four-head self-attention block over the N cells independently at each window. Each cell can use information about the same genes in other members of its source population. This makes the encoded state depend on both its own expression and the distribution of local gene patterns across the set. Attention without cell-position embeddings preserves permutation equivariance [59]: permuting the input cells produces the same permutation of the encoded cell states. 
+
+A pooled summary carries population context into generation. Pooling the updated tokens over windows and applying a linear head yields a 50-dimensional latent z0,i for each cell. Their mean provides a shared population summary: 
+
+s0 = 1
+
+N
+
+NX
+
+i=1 
+
+z0,i ∈ R50 . (9) Set-GCAE therefore returns N cell latents together with an invariant summary. The cell latents retain individual states, Preprint 6
+
+while s0 supplies the same population context to every velocity prediction. This gives population information two roles: SCA influences representation learning at the window level, and s0
+
+conditions response generation in latent space. 
+
+D. Set-Conditional Flow and Full-Gene Decoding 
+
+A population-conditioned flow generates perturbed cell states. We use conditional flow matching [67], [68] to transport control latents Z0 to perturbed latents Z1. For independently sampled source and target cells, draw ti ∼ U (0 , 1) and define 
+
+zt,i = (1 − ti)z0,i + tiz1,i , ui = z1,i − z0,i . (10) The velocity field receives zt, a sinusoidal time embedding with 64 frequencies, the perturbation representation ep, and the source summary s0. It uses two 512-unit SiLU blocks with dropout 0.1 and a 50-dimensional output, and is trained by 
+
+Lvelocity = E
+
+h
+
+∥vθ (zt, t, e p, s 0) − u∥22
+
+i
+
+. (11) Conditioning on both zt and s0 allows the field to predict cell-specific changes in the context of the source population. Genetic interventions use frozen 5120-dimensional ESM2 embeddings [69]; chemical interventions use 2048-bit, radius-2 Morgan fingerprints. Combinations are represented by the mean of their constituent vectors. These representations supply target information through the same conditioning interface, allowing the encoder and flow architecture to support both genetic and chemical settings. 
+
+Full-gene decoding returns predictions in the original gene order. At inference, we integrate the learned field from 
+
+t = 0 to 1 for every control latent. The decoder expands each endpoint into Kg tokens, applies three GCAE decoder blocks, and projects each window to L expression values. Trimming padding, adding the expression mean, and restoring gene order yields the predicted population in (1). Decoder calibration aligns this reconstruction with the latents produced by the set encoder. 
+
+Source-relative encoding supports cross-cell-line transfer. 
+
+HepG2, Jurkat, and RPE1 provide training responses, and K562 controls define the basal reference at test time. Expression is centered relative to each line’s controls; encoded latents are also source-centered and scaled using training statistics. The field receives the relative cell latent and a 100-dimensional summary combining the relative-set mean with source-line context, each of width 50. The centering and scaling operations are reversed during reconstruction to return predictions to the target line’s expression coordinates. 
+
+E. Progressive Training and Model Selection 
+
+Training separates full-gene representation learning from latent response generation. We first pretrain Dynamic SoftSub, GCAE, and the decoder with full-gene reconstruction MSE for 100 epochs, using batch size 32 and learning rate 10 −4.Reconstruction is evaluated every five epochs. We then freeze the gene-token trunk and decoder and train SCA and the cell-latent head for 20,000 steps, using one set of N = 128 cells per batch and a reconstruction objective through the frozen decoder. Cells are sampled with replacement within each condition. This stage adapts the cell representations to population context while retaining the learned gene organization. Next, we cache Kset = 64 latent sets per condition together with their cell indices and control-source identities. Decoder calibration updates the final decoder block and output head for 5,000 steps, sampling control and perturbed sets with probabilities 0.25 and 0.75. The encoder and calibrated decoder are then fixed. We train the velocity field for 50,000 steps with batch size 8, learning rate 10 −4, Adam, and global-norm gradient clipping at 1.0, using (11) as the objective. Default candidate checkpoints are saved at 10k, 20k, 30k, 40k, and 50k steps. The checkpoint with the highest validation 
+
+ρ∆ is selected. Cross-cell-line selection averages validation scores across the three source lines. Each setting uses its own scaffold, cache, and calibrated decoder. The selected field generates one perturbed population per sampled control set, using eight ODE integration steps by default. Norman holdout singles use 4,000 decoder-calibration steps and select the 10k flow checkpoint; holdout doubles reuse that checkpoint. Replogle RPE1 uses 1,000 calibration steps, flow dropout 0.05, learning rate 5 × 10 −5, a selected 2k checkpoint, and 32 ODE integration steps. Cross-cell-line training uses balanced source-line batches and the relative representation described above. The pipeline, GRC, and cache-sampling seeds are 1, 42, and 1, respectively, and the GCAE wrapper uses a fixed internal JAX key. 
+
+F. Computational Properties 
+
+GRC is constructed offline. For token width E, local SoftSub aggregation costs O(N GSE ), while Set-Cluster-Attention costs O(Kg N 2E). Population attention is quadratic in set size and linear in the number of windows. For fixed embedding width and bottleneck size, decoding scales linearly with G.Caching the encoded populations allows flow training to operate entirely in the 50-dimensional latent space, exchanging latent-storage cost for lower computation during generative optimization. At N = 1 , SCA has a single cell to attend to and s0
+
+summarizes that cell alone. Larger sets expose the encoder and velocity field to variation among control cells. The set-size study in Section IV examines this transition, and the component ablations separately assess local refinement, SCA, and the source summary. IV. E XPERIMENTS 
+
+We evaluate whether SC BIG++ predicts perturbation-induced changes across the complete measured gene space and whether its gains persist when the target, cell line, or perturbation modality changes. Six settings from Norman, Replogle, and ComboSciPlex cover these questions. We then examine which components contribute to the predictions and whether the learned representations capture biological programs. All six settings use their complete post-preprocessing protein-coding gene universes, so the benchmark comparisons and the program analyses evaluate predictions in the same gene space. Preprint 7                                                                                                                                                                             
+
+> TABLE I MAIN -TEXT EVALUATION SETTINGS ,GENE UNIVERSES ,AND PERTURBATION SPLITS .Setting GGeneralization target Perturbation split (train/val/test) Norman additive [8] 19,451 Unseen CRISPRa combinations 166 / 32 / 32 perturbations Norman holdout (single) [8] 19,451 Unseen perturbation genes Seen-gene train / 21-gene val / 21 unseen singles Norman holdout (double) [8] 19,451 Unseen gene pairs Same train/val as above / 5 unseen doubles Replogle holdout (RPE1) [2] 8,523 Unseen CRISPRi targets 1,037 / 115 / 384 conditions Cross-cell-line transfer [2], [70] 6,539 Unseen cellular context HepG2/Jurkat/RPE1 train/val / 2,053 K562 test ComboSciPlex drug [4] 16,804 Unseen drugs and combinations Seen-drug train/val / 5 held-out test conditions TABLE II FULL -GENE QUANTITATIVE RESULTS ON NORMAN ADDITIVE PERTURBATIONS .
+> Type Method Public Pearson ∆↑Pearson ∆D↑ACC∆ D↑DES ↑L2↓MSE ↓MAE ↓Disc .Cosine ↑
+> Statistical Control (reference) –––––10.18 0.0061 0.0321 –
+> Graph GEARS [17] Nat. Biotechnol.’24 0.6843 0.5886 0.8938 0.4258 6.71 0.0025 0.0221 0.7060 GraphVCI [18] ICLR’23 0.5720 0.6167 0.8203 0.2696 7.75 0.0033 0.0255 0.5851
+> Foundation
+> scGPT [13] Nature Methods’24 0.5374 0.5738 0.7391 0.3315 9.88 0.0057 0.0373 0.5513 scFoundation [50] Nature Methods’24 0.6728 0.6133 0.8906 0.4099 6.93 0.0027 0.0233 0.6945 GeneCompass [16] Cell Research’24 0.6778 0.6144 0.8844 0.4201 6.80 0.0025 0.0228 0.7009 CellFM [51] Nat. Commun.’25 0.6725 0.6219 0.8922 0.4182 6.87 0.0026 0.0230 0.6941 CellVQ [52] Nat. Commun.’26 0.6741 0.5886 0.8938 0.4179 6.75 0.0025 0.0222 0.6953
+> Generative
+> CPA [4] Mol. Syst. Biol.’23 0.5282 0.6134 0.9219 0.4959 8.61 0.0043 0.0296 0.5316 CellFlow [32] bioRxiv’25 0.6774 0.7846 0.8734 0.6985 6.81 0.0026 0.0215 0.6722 PerturbDiff [12] ICML’26 0.5409 0.4362 0.7681 0.3582 12.18 0.0088 0.0346 0.5543 STATE [34] Cell’26 0.5427 0.4605 0.8375 0.2656 10.24 0.0055 0.0409 0.5711 scBIG [1] ICML’26 0.8160 0.7317 0.9359 0.6867 5.46 0.0017 0.0197 0.8249
+> scBIG++ †Proposed 0.8521 0.8045 0.9672 0.7615 5.07 0.0015 0.0178 0.8592
+
+A. Experimental Setup 
+
+Datasets and evaluation settings. Norman contains approx-imately 91,000 K562 cells with 105 single-gene and 131 double-gene CRISPRa interventions [8]. Its additive split tests gene pairs whose individual targets were observed during training, whereas the target-holdout split tests unseen targets as both single and double interventions. These three settings distinguish recombination of known effects from prediction for unseen perturbation genes. Replogle supplies an RPE1 CRISPRi target-holdout setting [2]. The cross-cell-line setting combines perturbation responses from HepG2, Jurkat, RPE1, and K562 and reserves K562 responses for testing [2], [70]. ComboSciPlex supplies A549 responses to small molecules, doses, and combinations for a held-out-compound setting [4]. Table I gives the six settings, gene universes, and split definitions; G denotes the complete assayed protein-coding gene universe retained after preprocessing. 
+
+Evaluation protocol. Training data fit the model, validation data select checkpoints and setting-specific choices, and test data are scored with the selected model. Norman holdout doubles use the checkpoint selected on the single-holdout validation set, so the double-target setting tests the same trained model on a different perturbation order. Cross-cell-line validation is macro-averaged over HepG2, Jurkat, and RPE1; K562 perturbed cells enter only the final test. The benchmark matrices already contain X = log(1 + raw count) .We retain their split and gene order and reorder predictions to 
+
+test.var_names before scoring. Per condition, we sample one source set of 128 control cells with replacement, using training controls for within-context tasks and K562 test controls for transfer. Predicted means use 128 generated cells except in ComboSciPlex, which uses 64. Cell-distribution comparisons use fixed samples of 64 predicted and 64 observed cells in a 50-dimensional PCA space fitted on training expression; conditions with fewer observed cells contribute only to response and mean-expression metrics. 
+
+Baselines and output coverage. The main tables com-pare the unperturbed control reference; GEARS [17] and GraphVCI [18]; scGPT [13], scFoundation [50], GeneCom-pass [16], CellFM [51], and CellVQ [52]; and CPA [4], STATE [34], CellFlow [32], PerturbDiff [12], and scBIG [1]. The control row repeats the unperturbed mean and provides a reference for the value of modeling an intervention. The methods shown in each table reflect the perturbation modality and available outputs for that setting. Scores use each method’s available conditions; a dash marks an unavailable result. For 
+
+> SC
+
+BIG++, the evaluated conditions cover 383 of 384 RPE1 conditions and 2,050 of 2,053 transfer conditions. 
+
+Metrics. Let P be the evaluated perturbation conditions, μ0 the control mean, and μp and bμp the observed and predicted means for condition p. Define ∆p = μp − μ0 and b∆p = bμp − μ0.The response subset Dp contains the 20 genes with the largest observed absolute mean shifts and is distinct from the Wilcoxon-significant set used by DES. 
+
+Response direction and identification. ρ∆ is the macro-average Pearson correlation between b∆p and ∆p over all genes; 
+
+ρ∆D applies the same calculation to Dp. The comparison tables label these correlations Pearson ∆ and Pearson ∆D, respec-tively. The former tests whether the predicted response follows the observed full-gene pattern, whereas the latter focuses on the genes with the largest observed shifts. Directional accuracy Preprint 8
+
+TABLE III FULL -GENE QUANTITATIVE RESULTS ON NORMAN HOLDOUT PERTURBATIONS .
+
+Type Method Public Pearson ∆ ↑ Pearson ∆D ↑ ACC∆ D ↑ DES ↑ L2 ↓ MSE ↓ MAE ↓ Disc . Cosine ↑
+
+Single perturbation 
+
+Statistical Control (reference) – – – – – 8.01 0.0040 0.0254 –
+
+Graph GEARS [17] Nat. Biotechnol.’24 0.6304 0.5589 0.8524 0.3509 5.99 0.0022 0.0196 0.6526 
+
+Foundation 
+
+scGPT [13] Nature Methods’24 0.5421 0.6153 0.8571 0.3659 7.91 0.0036 0.0265 0.5541 scFoundation [50] Nature Methods’24 0.6368 0.5612 0.8452 0.3686 6.01 0.0022 0.0196 0.6579 GeneCompass [16] Cell Research’24 0.6106 0.5597 0.8429 0.3392 6.07 0.0022 0.0197 0.6309 CellFM [51] Nat. Commun.’25 0.5695 0.5234 0.8190 0.3110 6.19 0.0023 0.0204 0.5885 CellVQ [52] Nat. Commun.’26 0.6377 0.5595 0.8571 0.3554 6.02 0.0022 0.0197 0.6600 
+
+Generative 
+
+CPA [4] Mol. Syst. Biol.’23 0.5928 0.5327 0.8743 0.3236 6.22 0.0024 0.0219 0.6177 CellFlow [32] bioRxiv’25 0.6790 0.6115 0.8643 0.5547 6.40 0.0027 0.0203 0.6900 PerturbDiff [12] ICML’26 0.5944 0.4731 0.8310 0.3709 17.71 0.0205 0.0509 0.6121 STATE [34] Cell’26 0.5010 0.5562 0.8071 0.1826 9.03 0.0045 0.0348 0.5369 scBIG [1] ICML’26 0.7333 0.6616 0.8619 0.5561 7.08 0.0034 0.0241 0.7439 
+
+scBIG++ † Proposed 0.7370 0.6803 0.8762 0.5850 6.52 0.0026 0.0213 0.7508 Double perturbation 
+
+Statistical Control (reference) – – – – – 11.12 0.0080 0.0350 –
+
+Graph GEARS [17] Nat. Biotechnol.’24 0.7484 0.7605 0.9700 0.4978 5.98 0.0019 0.0201 0.7688 
+
+Foundation 
+
+scGPT [13] Nature Methods’24 0.7401 0.6723 0.9600 0.5103 7.10 0.0027 0.0244 0.7571 scFoundation [50] Nature Methods’24 0.7699 0.7671 0.9700 0.5348 6.07 0.0019 0.0203 0.7895 GeneCompass [16] Cell Research’24 0.7445 0.7618 0.9700 0.4910 5.91 0.0019 0.0199 0.7651 CellFM [51] Nat. Commun.’25 0.6829 0.7298 0.9300 0.4361 6.72 0.0024 0.0228 0.6985 CellVQ [52] Nat. Commun.’26 0.7365 0.7556 0.9600 0.4813 6.25 0.0021 0.0212 0.7564 
+
+Generative 
+
+CPA [4] Mol. Syst. Biol.’23 0.7727 0.6822 0.9680 0.5829 7.12 0.0029 0.0242 0.7917 CellFlow [32] bioRxiv’25 0.8361 0.7061 0.9700 0.7498 7.86 0.0043 0.0244 0.8463 PerturbDiff [12] ICML’26 0.7028 0.5537 0.9480 0.4338 10.29 0.0057 0.0311 0.7268 STATE [34] Cell’26 0.6394 0.6812 0.9300 0.3512 9.39 0.0049 0.0353 0.6742 scBIG [1] ICML’26 0.8544 0.7199 0.9600 0.7140 6.83 0.0028 0.0234 0.8633 
+
+scBIG++ † Proposed 0.8937 0.7606 0.9900 0.7454 5.08 0.0016 0.0177 0.9032 GEARS CPA STATE CellFlow PerturbDiff scBIG scBIG++ −0.2 0.0 0.2 0.4 0.6 0.8 1.0 
+
+> ρΔ
+> ▼ < -0.2
+
+Norman Additive 
+
+> GEARS CPA STATE CellFlow PerturbDiff scBIG scBIG++ −0.2 0.0 0.2 0.4 0.6 0.8 1.0
+> ρΔ
+> ▼ < -0.2
+
+Norman Holdout Single 
+
+> GEARS CPA STATE CellFlow PerturbDiff scBIG scBIG++ 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+> ρΔ
+
+Norman Holdout Double 
+
+Fig. 3. Condition-wise full-gene response correlation ( ρ∆) on the three Norman settings. Gray points show individual test perturbations, boxes show the interquartile ranges and medians, and white diamonds mark condition means. Downward triangles at the lower display limit indicate values below −0.2. The distributions complement the aggregate estimates in Tables II and III. 
+
+on the response subset is 
+
+ACC∆ D = 120 |P| 
+
+X
+
+> p∈P
+
+X
+
+> g∈D p
+
+I
+
+h
+
+sgn( b∆pg ) = sgn(∆ pg )
+
+i
+
+, (12) DES is the Spearman correlation between predicted and observed log-fold changes over the protocol-defined Wilcoxon-significant genes. Together, these metrics assess correlation, sign agreement, and recovery of significant response structure. 
+
+Condition-mean error. L2, MSE, and MAE compare bμp
+
+with μp over the complete gene universe and are macro-averaged over conditions. They quantify absolute expression reconstruction, which is useful alongside the change-from-control metrics: a model may reproduce the mean expression state yet miss the intervention response, or recover a response direction while shifting the overall mean. 
+
+Mean-response similarity. Discriminative cosine compares the predicted and observed mean response directions relative to control within the distribution protocol. Higher values are better for ρ∆, ρ∆D, ACC∆ D, DES, and discriminative cosine; lower values are better for L2, MSE, and MAE. 
+
+Implementation details. Training follows Section III-E; each setting has its own GRC scaffold, set cache, decoder calibration, Preprint 9
+
+TABLE IV FULL -GENE QUANTITATIVE RESULTS ON REPLOGLE RPE1 HOLDOUT PERTURBATIONS .
+
+Type Method Public Pearson ∆ ↑ Pearson ∆D ↑ ACC∆ D ↑ DES ↑ L2 ↓ MSE ↓ MAE ↓ Disc . Cosine ↑
+
+Statistical Control (reference) – – – – – 10.04 0.0152 0.0746 –
+
+Graph GEARS [17] Nat. Biotechnol.’24 0.5864 0.5209 0.9157 0.4717 10.56 0.0156 0.0822 0.6179 
+
+Foundation 
+
+scGPT [13] Nature Methods’24 0.4371 0.5728 0.8026 0.5824 9.52 0.0124 0.0717 0.4125 scFoundation [50] Nature Methods’24 0.5961 0.5386 0.9224 0.5163 10.75 0.0158 0.0839 0.6259 GeneCompass [16] Cell Research’24 0.5951 0.5420 0.9227 0.5167 10.66 0.0156 0.0830 0.6254 CellFM [51] Nat. Commun.’25 0.5903 0.5347 0.9211 0.5503 11.33 0.0170 0.0877 0.6208 CellVQ [52] Nat. Commun.’26 0.5924 0.5330 0.9199 0.4973 10.61 0.0156 0.0828 0.6232 
+
+Generative 
+
+CellFlow [32] bioRxiv’25 0.6398 0.4698 0.8943 0.3907 9.65 0.0139 0.0723 0.6643 PerturbDiff [12] ICML’26 0.4682 0.4601 0.8756 0.3437 11.98 0.0185 0.0929 0.5153 STATE [34] Cell’26 0.6103 0.5445 0.9274 0.5270 10.36 0.0143 0.0819 0.6345 scBIG [1] ICML’26 0.6713 0.5228 0.9138 0.5572 10.05 0.0138 0.0757 0.6786 
+
+scBIG++ † Proposed 0.6856 0.5230 0.9256 0.5754 9.43 0.0122 0.0714 0.7034 GEARS CPA STATE CellFlow PerturbDiff scBIG scBIG++ Observed         
+
+> UMAP1 UMAP1 UMAP1 UMAP1 UMAP1 UMAP1 UMAP1 UMAP1
+> Norman Additive
+> KLF1 + MAP2K6
+> UMAP2
+> Replogle RPE1
+> ATIC
+> UMAP2
+> Observed Predicted
+
+Fig. 4. Observed and predicted single-cell distributions for KLF1+MAP2K6 in Norman additive (top) and ATIC in Replogle RPE1 (bottom). Blue and orange shading show observed and predicted cell densities in a shared UMAP embedding within each row; the rightmost panels show the observed distributions alone. 
+
+and validation-selected flow checkpoint. JAX, Flax, and Optax implement the model. Genetic perturbations use their target representations, while RDKit supplies 2048-bit radius-2 Morgan fingerprints for ComboSciPlex without changing the gene encoder or conditional-flow interface. Experiments use two NVIDIA RTX PRO 6000 Blackwell Server Edition GPUs with 96 GB memory each, global pipeline seed 1, GRC seed 42, and cache-sampling seed 1. 
+
+B. Full-Gene Genetic Perturbation Results 
+
+Benchmark summary. Tables II, III, and IV report the Norman and RPE1 settings over all retained genes. Norman additive tests the ability to compose previously observed single-target responses, while the two target-holdout rows ask whether this ability carries over when the intervention gene itself was unseen during training. The RPE1 setting tests the same full-gene prediction objective under a different CRISPR screen and cell background. All entries are single-seed estimates; boldface and underlining mark the best and second-best prediction scores, with double-holdout MSE ties underlined at reported precision. Percentage changes below are relative changes calculated from unrounded scores. 
+
+Unseen combinations and perturbation genes. On Norman additive, SC BIG++ improves full-gene response correlation over scBIG by 4.4% and correlation on the top 20 response genes by 9.9%, while reducing MSE by 12.0%. These changes indicate that the predicted expression shift follows the observed combination response more closely, including the genes with the largest effects. For held-out singles, full-gene response correlation is 0.7370 versus 0.7333 for scBIG, and MSE falls from 0.0034 to 0.0026. For held-out doubles, correlation reaches 0.8937 versus 0.8544, while MSE falls from 0.0028 to 0.0016. The clearer unseen-target correlation gain occurs for doubles; both splits improve mean-expression reconstruction. Figure 3 shows variation across individual perturbations. 
+
+Cell-context dependence. On Replogle RPE1, SC BIG++ improves full-gene response correlation over scBIG by 2.1% and reduces MSE by 11.9% (Table IV). Response recovery and absolute reconstruction improve together in this CRISPRi setting. The model also has the strongest displayed L2 and discriminative-cosine scores, linking its mean-response gain to a closer predicted shift from the control population. These results extend the full-gene modeling approach from activating genes in K562 to inhibiting genes in RPE1, while the single-seed protocol leaves uncertainty about small ranking differences. The UMAP examples in Figure 4 compare the generated and observed cell populations rather than only their means. For Norman KLF1+MAP2K6 , SC BIG++ follows the main elongated response region; for Replogle ATIC , it reaches much of the observed region while assigning different densities to its subregions. These cases make the distinction between mean-response accuracy and the frequency of individual cell states visible. They also motivate evaluating population structure in addition to condition-level expression summaries. Preprint 10                                                                                 
+
+> TABLE V FULL -GENE QUANTITATIVE RESULTS ON REPLOGLE CROSS -CELL -LINE TRANSFER (K562 TEST ).
+> Type Method Public Pearson ∆↑Pearson ∆D↑ACC∆ D↑DES ↑L2↓MSE ↓MAE ↓Disc .Cosine ↑
+> Statistical Control (reference) –––––6.07 0.0075 0.0547 –
+> Foundation scGPT [13] Nature Methods’24 0.2743 0.3335 0.7511 0.2456 17.82 0.0489 0.1493 0.3250
+> Generative
+> CellFlow [32] bioRxiv’25 0.0671 0.1666 0.4179 0.0164 50.47 0.3914 0.5545 -0.0473 PerturbDiff [12] ICML’26 0.1920 0.1976 0.6469 0.2195 32.37 0.1622 0.2603 0.1907 STATE [34] Cell’26 0.2204 0.1816 0.7144 0.1018 20.13 0.0623 0.1784 0.2612
+> scBIG++ †Proposed 0.4510 0.3989 0.8774 0.3066 9.08 0.0143 0.0825 0.4563 0.0 0.2 0.4 0.6 0.8 1.0
+
+ρΔ
+
+> 0.3202 0.3612 0.6382 0.5996 0.7523
+> 0.0 0.2 0.4 0.6 0.8 1.0
+
+ρΔD
+
+> 0.4401 0.6780 0.8136 0.7024 0.8851
+> 0.0 0.2 0.4 0.6 0.8 1.0
+
+ACCΔ D
+
+> 0.8600 0.8800 0.9080 0.8700 0.9800
+> 0246810 12
+
+MSE       
+
+> 11.476 6.006 3.866 6.368 3.173
+> scGPT CPA PerturbDiff STATE scBIG++
+> Fig. 5. ComboSciPlex drug perturbation results for five selected methods. scGPT and CPA use RDKit drug fingerprints. Arc angles encode scores, with the MSE scale reversed so that lower errors yield longer arcs. MSE is shown in units of 10 −3.
+
+C. Cross-Context and Chemical Generalization 
+
+Transfer summary. The remaining two settings change the information available for generalization: cross-cell-line transfer changes the target cellular context, while ComboSciPlex changes the intervention description from a gene target to a chemical fingerprint. In strict cross-cell-line transfer, SC BIG++ raises full-gene response correlation by 64.4% and reduces MSE by 70.8% relative to scGPT, the next-best method shown in Table V on both metrics. This result is specific to the displayed K562 transfer protocol. The unchanged-control reference retains a lower MSE (0.0075 versus 0.0143) but cannot represent a perturbation-induced shift. The contrast separates basal-profile reconstruction from prediction of the intervention response. On ComboSciPlex, SC BIG++ improves correlation on the top 20 response genes by 8.8% and reduces MSE by 17.9% relative to PerturbDiff among the displayed methods in Figure 5. The corresponding full-gene response correlation and direction-accuracy panels show that the benefit spans complementary views of the drug response. Here the perturbation embedding is replaced by a Morgan fingerprint, whereas the full-gene encoder, population conditioning, and flow interface are retained. This result extends the framework to held-out chemicals without introducing a separate drug-specific prediction architecture. 
+
+D. Diagnostic Experiments and Biological Programs 
+
+The benchmark results show where SC BIG++ predicts well; the following analyses test how its added components contribute and what the learned modules represent. Table VI reports matched-objective ablations, set-size sensitivity, functional coherence, and context-dependent assignments on Norman. Figure 6 then tests whether the generated cells recover coordinated biological responses, including effects of dou-ble perturbations that differ from adding two single-target responses. Component and set-size experiments use the q-only configuration (Section III-B). 
+
+Component ablations and set size. Table VI(a) separates the contribution of Dynamic SoftSub from the two population paths. With SoftSub removed while Set-Cluster-Attention (SCA) and the source-set summary s0 are retained, ρ∆ falls from 0.8521 to 0.8157 and MSE rises from 0.0015 to 0.001940. Adding expression-dependent local assignments therefore improves full-gene response correlation and mean reconstruction within the population-conditioned model. Shuffling the learned as-signments also reduces ρ∆ to 0.8271, indicating that the gain depends on the learned assignment pattern. Removing SCA or s0 separately gives smaller changes, while removing both reduces ρ∆ to 0.8344. Increasing the source set from one to 32 cells raises ρ∆ by 33.2% and approximately halves MSE (Table VI(b)). This is the clearest direct evidence that the observed control population supplies useful context beyond a single source cell. The default 
+
+N = 128 is selected by validation response correlation; N = 64 
+
+gives the best test ρ∆ and MSE, and performance declines at 
+
+N = 256 . Permuting cells in a fixed set changes latent outputs and metrics only at approximately 10 −6, consistent with the intended permutation behavior. 
+
+Functional refinement and context-dependent assignments. 
+
+We next examine whether Dynamic SoftSub refines the fixed parent windows into gene groups with more coherent biological annotations. Learned assignments in 304 Norman parent windows are compared with 200 matched random partitions per window, preserving the gene set, effective slot sizes, and slot mass. Assignments are aggregated from 166 training conditions. Hard gain is the reduction in normalized annotation Preprint 11 
+
+TABLE VI COMPONENT AND POPULATION ANALYSES ON NORMAN ADDITIVE . ( A,B) C OMPONENT ABLATIONS AND SET -SIZE SENSITIVITY UNDER THE FINAL OBJECTIVE ; GRAY MARKS THE DEFAULT CONFIGURATION . ( C) F UNCTIONAL -COHERENCE GAINS OVER MATCHED RANDOM PARTITIONS (×10 −3 ). ( D)EXCESS JENSEN –S HANNON DIVERGENCE OVER RESAMPLING NOISE (×10 −4 ). B RACKETS DENOTE BOOTSTRAP 95% CONFIDENCE INTERVALS ; p USES A ONE -SIDED CONDITION -LEVEL WILCOXON TEST .
+
+(a) Component ablations 
+
+Setting ρ∆ ↑ ρ∆D ↑ ACC∆ D ↑ MSE ↓
+
+w/o SCA 0.8409 0.7970 0.9563 0.001643 
+
+w/o s0 0.8321 0.7964 0.9563 0.001684 
+
+w/o SCA and s0 0.8344 0.7985 0.9531 0.001707 
+
+w/o SoftSub 0.8157 0.7749 0.9766 0.001940 
+
+q-shuffled SoftSub 0.8271 0.7953 0.9641 0.001743 
+
+scBIG++ 0.8521 0.8045 0.9672 0.0015 
+
+(c) Functional coherence 
+
+Annotation Coverage Hard gain [95% CI] Soft gain [95% CI] GO-BP 75.3% 2.80 [1.27, 4.33] 2.80 [1.50, 4.25] DoRothEA 89.6% 2.14 [1.27, 2.98] 5.60 [3.60, 7.49] 
+
+(b) Set-size sensitivity 
+
+Set size N ρ∆ ↑ ρ∆D ↑ ACC∆ D ↑ MSE ↓
+
+1 0.6203 0.6760 0.8266 0.003852 32 0.8264 0.7816 0.9625 0.001967 64 0.8522 0.7882 0.9625 0.001365 128 0.8521 0.8045 0.9672 0.0015 256 0.8255 0.7785 0.9563 0.001608 
+
+(d) Context-dependent shifts 
+
+Split n Mean JS excess [95% CI] Positive p
+
+Train 166 1.00 [0.37, 1.70] 43.4% 0.354 Validation 32 4.46 [2.72, 6.26] 81.3% 1.13 × 10 −5
+
+Test 32 1.39 [0.42, 2.46] 59.4% 0.0155 All 230 1.54 [0.99, 2.14] 50.9% 0.00148 0.04 0.06 0.08 0.10 
+
+Program MAE ↓   
+
+> No SoftSub Random SoftSub q-Shuffled scBIG++
+> 0.0702 0.0655 0.0658 0.0579 0.7 0.8 0.9 1.0
+
+NDCG@10 ↑         
+
+> Mismatched perturbation Train mean scBIG++
+> 0.740 0.799 0.912 0.00 0.02 0.04 0.06
+> MAE reduction vs. No SoftSub
+> MHC-I presentation MHC-II presentation Interferon Erythroid DNA replication DNA damage RNA Pol II G2/M Ribosome biogenesis Purine synthesis Integrated stress Apoptosis Trefoil panel
+> CEBPE PTPN12 Additive Obs. double Pred. double
+> CSF3R SPI1 LST1 GAB2 TYROBP FCER1G LYN CTSS CD33 BTK AIF1 PRKCB
+> Myeloid · validation
+> PTPN12 UBASH3B Additive Obs. double Pred. double
+> GYPA GYPB GYPC ALAS2 AHSP HBA1 HBA2 HBB HBG1 HBG2 HBD FECH SLC4A1 EPB42 KLF1 GATA1 TAL1 NFE2
+> Erythroid · test
+> −4 04Observed / predicted / additive response ( Δz)
+> 0.0 0.5 1.0 1.5 2.0
+> Observed gene response ( Δz)
+> 0.0 0.5 1.0 1.5 2.0 Predicted / additive response ( Δz) scBIG++ MAE = 0.100 Additive MAE = 0.280 r = 0.983
+> PTPN12 + UBASH3B
+> Additive scBIG++
+> Prior Observed Predicted
+> BAK1 + KLF1 CBL + PTPN9 CBL + UBASH3B CEBPA + ZC3HAV1 CEBPE + CNN1 CEBPE + ZC3HAV1 CNN1 + MAPK1 CNN1 + UBASH3B FOSB + PTPN12 IRF1 + SET KLF1 + MAP2K6 OSR2 + UBASH3B PTPN12 + UBASH3B PTPN12 + ZBTB25 UBASH3A + UBASH3B
+
+(a) Program-response prediction (b) Perturbation-specific ranking (c) Gains across biological programs (d) Combination-specific gene responses (e) Gene-response agreement (f) Dominant biological programs 
+
+> Erythroid Myeloid Interferon MHC-I presentation
+
+Fig. 6. Biological program prediction in perturbed cells. (a) Program-response MAE for four matched variants on 32 Norman Additive test combinations and 13 fixed marker panels. (b) Response ranking across 964 fixed SoftSub slots. (c) Program-specific MAE reduction relative to No SoftSub; orange and gray indicate lower and higher mean error. Points and bars in (a–c) show means and condition-bootstrap 95% confidence intervals. (d) Measured single, additive, measured double, and predicted double responses for CEBPE+PTPN12 (validation, 12 myeloid-associated genes) and PTPN12+UBASH3B (test, 18 erythroid-associated genes), using a shared standardized scale. (e) Gene-response agreement for the same erythroid example; the dashed line denotes identity. 
+
+(f) Prior-associated, observed dominant, and predicted dominant programs for all 15 test combinations with literature-prior coverage. Divided tiles represent multiple prior-associated programs. Direct intervention targets are excluded from response readouts. 
+
+entropy based on dominant-slot labels. Soft gain is the increase in shared-annotation rate weighted by continuous gene-pair co-assignment, evaluated against within-window membership permutations. GO Biological Process and DoRothEA regu-lons [71] show positive gains; 59.9% and 67.1% of parent windows, respectively, exceed their matched hard-partition nulls (Table VI(c)). The two measures connect discrete annotation coherence with the continuous memberships used by the predictor. We then measure how the learned grouping responds to cellular state. Relative to the training-control reference, assignment probabilities shift across expression contexts beyond within-condition resampling variation, measured by excess Jensen–Shannon divergence (Table VI(d)). Only about 1% of Preprint 12 
+
+dominant assignments change. Within each condition, however, gene-wise response amplitude and assignment divergence have mean Spearman correlations of 0.823, 0.858, and 0.836 in the training, validation, and test splits. Under IRF1+SET, HLA-B co-assignment with HLA-DRA/DPA1 falls from 0.894 to approximately 0.424; the corresponding observed shifts are 0.588 for HLA-B and 0.032/0.036 for HLA-DRA/DPA1. Under FOXA1+FOXA3, TFF3–TFF1 co-assignment falls from 0.960 to 0.577, alongside shifts of 0.379 and 0.079. These examples show that continuous memberships separate genes with unequal response amplitudes even when they occupy the same parent window. 
+
+Biological program prediction. We score each program by averaging marker-gene responses standardized against training controls, with a standard-deviation floor of 0.25 and intervention targets excluded. The four ablation variants use 64 generated cells per condition; ranking and dominant-program analyses use 128. Across 32 test combinations and 13 programs, Dynamic SoftSub reduces program-response MAE from 0.0702 to 0.0579 relative to No SoftSub, which retains both population components. MAE is 17.5% lower overall and lower in 12 of 13 programs (paired condition-bootstrap 95% CI for the MAE difference, Dynamic SoftSub minus No SoftSub: [−0.0221 , −0.0023] ). The largest reductions occur for DNA replication (27.8%) and the trefoil epithelial panel (24.8%). MHC-II antigen presentation is the exception: its MAE increases from 0.0046 to 0.0088. The gains therefore concentrate on programs whose marker responses vary coher-ently across the test combinations, while the MHC-II panel remains sensitive to amplitude error. For 964 slots with gene weights fixed from training, perturbation-specific response ranking reaches NDCG@10 of 0.912, compared with 0.799 for the training-mean response and 0.740 for disjoint-target predictions (Figure 6(b)). Dynamic SoftSub thus improves both program-level response estimation and the localization of responsive gene groups. 
+
+Combination-specific responses. Two Norman combinations illustrate nonadditive program behavior (Figure 6(d,e)) [8]. In the CEBPE+PTPN12 validation combination, the observed myeloid program score falls from 0.988 under CEBPE alone to 0.344 under the double perturbation; addition predicts 0.948, whereas SC BIG++ predicts 0.392. At the gene level, the model gives 0.106 MAE over the 12-gene panel, compared with 0.579 for addition, an 81.6% reduction. In the PTPN12+UBASH3B test combination, the observed erythroid score rises to 0.485, compared with an additive expectation of 0.277; the model predicts 0.466. ALAS2, HBA1, HBA2, and HBG2 all show larger observed combination responses than their single-target additive values; for ALAS2, the observed, predicted, and additive responses are 1.857, 1.658, and 0.940, respectively. The model reduces the 18-gene panel MAE from 0.280 for addition to 0.100, a 64.3% reduction. Across all 32 test combinations and 13 programs, the mean MAE is 0.0546 for SC BIG++ and 0.0508 for addition, so the case-level gains identify specific nonadditive responses rather than a uniform advantage over addition. 
+
+Dominant program recovery. Among 14 fixed marker panels, the predicted highest-scoring program matches the observed one in 27 of 32 test combinations (84.4%), compared with 26 of 32 for additive composition. For the 15 combinations with literature-prior coverage, the predicted and observed leading panels agree in all 15 cases, compared with 13 of 15 for addition. IRF1 is linked to interferon-stimulated and MHC-I genes [72], while KLF1 is linked to erythroid transcription [73]. The agreement is visible in IRF1+SET, whose leading panel is MHC-I, and KLF1+MAP2K6, whose leading panel is erythroid. Their amplitudes remain heterogeneous: predicted and observed MHC-I scores for IRF1+SET are 0.090 and 1.398, whereas erythroid scores for KLF1+MAP2K6 are 0.273 and 0.421. Program identity and response magnitude therefore provide complementary evidence about the generated state. V. C ONCLUSION 
+
+We presented SC BIG++ for population-conditioned per-turbation prediction across the full measured gene space. Dynamic SoftSub adapts local gene representations to each cell’s expression, while Set-GCAE and a shared source sum-mary incorporate control-population context into latent flow generation. Progressive training supports full-gene reconstruc-tion across 6,539–19,451 genes. Evaluation on six genetic and chemical settings shows improved response correlation over scBIG on all three Norman protocols, with competitive performance on Replogle, cross-cell-line transfer, and held-out drugs. Component ablations and functional analyses support the contributions of adaptive local representations and population conditioning. The framework provides a basis for studying coordinated transcriptional responses across cellular states; future work can extend population modeling to rare states and more diverse cellular contexts. REFERENCES [1] J. Ruan, R. Quan, L. Xu, Z. Yang, and Y. Yang, “Beyond independent genes: Learning module-inductive representations for single-cell gene perturbation prediction,” in Proc. 43rd Int. Conf. Mach. Learn. (ICML) ,2026. [Online]. Available: https://icml.cc/virtual/2026/poster/61574 [2] J. M. Replogle et al. , “Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq,” Cell , vol. 185, no. 14, pp. 2559–2575.e28, 2022, doi: 10.1016/j.cell.2022.05.013. [3] C. V. Theodoris et al. , “Transfer learning enables predictions in network biology,” Nature , vol. 618, no. 7965, pp. 616–624, 2023, doi: 10.1038/s41586-023-06139-9. [4] M. Lotfollahi et al. , “Predicting cellular responses to complex perturba-tions in high-throughput screens,” Mol. Syst. Biol. , vol. 19, no. 6, 2023, art. no. e11517, doi: 10.15252/msb.202211517. [5] A. Dixit et al. , “Perturb-Seq: dissecting molecular circuits with scalable single-cell RNA profiling of pooled genetic screens,” Cell , vol. 167, no. 7, pp. 1853–1866.e17, 2016, doi: 10.1016/j.cell.2016.11.038. [6] D. A. Jaitin et al. , “Dissecting immune circuits by linking CRISPR-pooled screens with single-cell RNA-seq,” Cell , vol. 167, no. 7, pp. 1883–1896.e15, 2016, doi: 10.1016/j.cell.2016.11.039. [7] P. Datlinger et al. , “Pooled CRISPR screening with single-cell transcrip-tome readout,” Nat. Methods , vol. 14, no. 3, pp. 297–301, 2017, doi: 10.1038/nmeth.4177. [8] T. M. Norman et al. , “Exploring genetic interaction manifolds constructed from rich single-cell phenotypes,” Science , vol. 365, no. 6455, pp. 786– 793, 2019, doi: 10.1126/science.aax4438. [9] M. Lotfollahi, F. A. Wolf, and F. J. Theis, “scGen predicts single-cell perturbation responses,” Nat. Methods , vol. 16, no. 8, pp. 715–721, 2019, doi: 10.1038/s41592-019-0494-8. [10] O. Kana, R. Nault, D. Filipovic, D. Marri, T. Zacharewski, and S. Bhattacharya, “Generative modeling of single-cell gene expression for dose-dependent chemical perturbations,” Patterns , vol. 4, no. 8, 2023, art. no. 100817, doi: 10.1016/j.patter.2023.100817. Preprint 13 
+
+[11] G. Wang, T. Liu, J. Zhao, Y. Cheng, and H. Zhao, “Modeling and pre-dicting single-cell multi-gene perturbation responses with scLAMBDA,” 
+
+bioRxiv , 2024, preprint, doi: 10.1101/2024.12.04.626878. [12] X. Yuan, X. Liu, Y. S. Zhang, Z. Zhang, H. Guo, and J. Tang, “PerturbDiff: Functional diffusion for single-cell perturbation modeling,” in Proc. 43rd Int. Conf. Mach. Learn. (ICML) , 2026. [Online]. Available: https://icml.cc/virtual/2026/poster/60643 [13] H. Cui et al. , “scGPT: toward building a foundation model for single-cell multi-omics using generative AI,” Nat. Methods , vol. 21, no. 8, pp. 1470–1480, 2024, doi: 10.1038/s41592-024-02201-0. [14] V. K. Mootha et al. , “PGC-1 α-responsive genes involved in oxidative phosphorylation are coordinately downregulated in human diabetes,” Nat. Genet. , vol. 34, no. 3, pp. 267–273, 2003, doi: 10.1038/ng1180. [15] A. Subramanian et al. , “Gene set enrichment analysis: a knowledge-based approach for interpreting genome-wide expression profiles,” Proc. Natl. Acad. Sci. USA , vol. 102, no. 43, pp. 15 545–15 550, 2005, doi: 10.1073/pnas.0506580102. [16] X. Yang et al. , “GeneCompass: deciphering universal gene regulatory mechanisms with a knowledge-informed cross-species foundation model,” 
+
+Cell Res. , vol. 34, no. 12, pp. 830–845, 2024, doi: 10.1038/s41422-024-01034-y. [17] Y. Roohani, K. Huang, and J. Leskovec, “Predicting transcriptional out-comes of novel multigene perturbations with GEARS,” Nat. Biotechnol. ,vol. 42, no. 6, pp. 927–935, 2024, doi: 10.1038/s41587-023-01905-6. [18] Y. Wu et al. , “Predicting cellular responses with variational causal inference and refined relational information,” in Proc. Int. Conf. Learn. Represent. (ICLR) , 2023. [Online]. Available: https://openreview.net/forum?id=ICYasJBlZNs [19] C. Chi, J. Xia, J. Zhou, J. Cheng, C. Yu, and S. Z. Li, “GRAPE: Heterogeneous graph representation learning for genetic perturbation with coding and non-coding biotype,” in Proc. 34th Int. Joint Conf. Artif. Intell. (IJCAI) , 2025, pp. 4949–4957, doi: 10.24963/ijcai.2025/551. [20] K. Kamimoto, B. Stringa, C. M. Hoffmann, K. Jindal, L. Solnica-Krezel, and S. A. Morris, “Dissecting cell identity via network inference and in silico gene perturbation,” Nature , vol. 614, no. 7949, pp. 742–751, 2023, doi: 10.1038/s41586-022-05688-9. [21] D. Szklarczyk et al. , “STRING v11: protein–protein association networks with increased coverage, supporting functional discovery in genome-wide experimental datasets,” Nucleic Acids Res. , vol. 47, no. D1, pp. D607– D613, 2019, doi: 10.1093/nar/gky1131. [22] A. Fabregat et al. , “The Reactome pathway knowledgebase,” Nu-cleic Acids Res. , vol. 46, no. D1, pp. D649–D655, 2018, doi: 10.1093/nar/gkx1132. [23] M. Milano, G. Agapito, and M. Cannataro, “Challenges and limitations of biological network analysis,” BioTech , vol. 11, no. 3, 2022, art. no. 24, doi: 10.3390/biotech11030024. [24] D. Kotliar et al. , “Identifying gene expression programs of cell-type identity and cellular activity with single-cell RNA-Seq,” eLife , vol. 8, 2019, art. no. e43803, doi: 10.7554/elife.43803. [25] M. Lotfollahi, M. Naghipourfar, F. J. Theis, and F. A. Wolf, “Con-ditional out-of-distribution generation for unpaired data using transfer VAE,” Bioinformatics , vol. 36, no. suppl. 2, pp. i610–i617, 2020, doi: 10.1093/bioinformatics/btaa800. [26] X. Wei, J. Dong, and F. Wang, “scPreGAN, a deep generative model for predicting the response of single-cell expression to perturbation,” 
+
+Bioinformatics , vol. 38, no. 13, pp. 3377–3384, 2022, doi: 10.1093/bioin-formatics/btac357. [27] Z. Zhang, X. Zhao, M. Bindra, P. Qiu, and X. Zhang, “scDisInFact: disentangled learning for integration and prediction of multi-batch multi-condition single-cell RNA-sequencing data,” Nat. Commun. , vol. 15, no. 1, 2024, art. no. 912, doi: 10.1038/s41467-024-45227-w. [28] Z. Piran, N. Cohen, Y. Hoshen, and M. Nitzan, “Disentanglement of single-cell data with biolord,” Nat. Biotechnol. , vol. 42, no. 11, pp. 1678–1683, 2024, doi: 10.1038/s41587-023-02079-x. [29] M. Bereket and T. Karaletsos, “Modelling cellular perturbations with the sparse additive mechanism shift variational autoencoder,” in Advances in Neural Information Processing Systems ,vol. 36, 2023, pp. 1–12, doi: 10.52202/075280-0001. [Online]. Available: https://proceedings.neurips.cc/paper files/paper/2023/hash/ 0001ca33ba34ce0351e4612b744b3936-Abstract-Conference.html [30] H. Yu, W. Qian, Y. Song, and J. D. Welch, “PerturbNet predicts single-cell responses to unseen chemical and genetic perturbations,” Mol. Syst. Biol. ,vol. 21, no. 8, pp. 960–982, 2025, doi: 10.1038/s44320-025-00131-3. [31] C. Chi et al. , “Unlasting: Unpaired single-cell multi-perturbation estimation by dual conditional diffusion implicit bridges,” arXiv preprint arXiv:2506.21107v1 , 2025, version 1. [Online]. Available: https://arxiv.org/abs/2506.21107v1 [32] D. Klein et al. , “CellFlow enables generative single-cell phenotype model-ing with flow matching,” bioRxiv , 2025, doi: 10.1101/2025.04.11.648220. [33] C. Yu, C. Wang, B. Liao, and T. Wu, “scDFM: Distributional flow matching model for robust single-cell perturbation prediction,” in 
+
+Proc. Int. Conf. Learn. Represent. (ICLR) , 2026. [Online]. Available: https://openreview.net/forum?id=QSGanMEcUV [34] A. K. Adduri et al. , “Predicting cellular responses to perturbation across diverse contexts with State,” Cell , vol. 189, no. 19, pp. 5914–5931.e20, 2026, doi: 10.1016/j.cell.2026.07.052. [35] S. Peidli et al. , “scPerturb: harmonized single-cell perturbation data,” 
+
+Nat. Methods , vol. 21, no. 3, pp. 531–540, 2024, doi: 10.1038/s41592-023-02144-y. [36] C. Ahlmann-Eltze, W. Huber, and S. Anders, “Deep-learning-based gene perturbation effect prediction does not yet outperform simple linear baselines,” Nat. Methods , vol. 22, no. 8, pp. 1657–1661, 2025, doi: 10.1038/s41592-025-02772-6. [37] R. Vi˜ nas Torn´ e et al. , “Systema: A framework for evaluating genetic perturbation response prediction beyond systematic variation,” Nat. Biotechnol. , vol. 44, no. 6, pp. 1050–1059, 2026, doi: 10.1038/s41587-025-02777-8. [38] G. Csendes, G. Sanz, K. Z. Szalay, and B. Szalai, “Benchmarking foundation cell models for post-perturbation RNA-seq prediction,” BMC Genomics , vol. 26, no. 1, 2025, art. no. 393, doi: 10.1186/s12864-025-11600-2. [39] M. Matsuda, Y. Futamura, X. Ye, and T. Sakurai, “Distortion-free PCA on sample space for highly variable gene detection from single-cell RNA-seq data,” Front. Comput. Sci. , vol. 17, no. 1, 2023, art. no. 171310, doi: 10.1007/s11704-022-1172-z. [40] S. Aibar et al. , “SCENIC: single-cell regulatory network inference and clustering,” Nat. Methods , vol. 14, no. 11, pp. 1083–1086, 2017, doi: 10.1038/nmeth.4463. [41] R. Lopez, J. Regier, M. B. Cole, M. I. Jordan, and N. Yosef, “Deep generative modeling for single-cell transcriptomics,” Nat. Methods ,vol. 15, no. 12, pp. 1053–1058, 2018, doi: 10.1038/s41592-018-0229-2. [42] M. Lotfollahi et al. , “Mapping single-cell data to reference atlases by transfer learning,” Nat. Biotechnol. , vol. 40, no. 1, pp. 121–130, 2022, doi: 10.1038/s41587-021-01001-7. [43] H. M. Levitin et al. , “De novo gene signature identification from single-cell RNA-seq with hierarchical Poisson factorization,” Mol. Syst. Biol. ,vol. 15, no. 2, 2019, art. no. e8557, doi: 10.15252/msb.20188557. [44] Y. Zhao, H. Cai, Z. Zhang, J. Tang, and Y. Li, “Learning interpretable cel-lular and gene signature embeddings from single-cell transcriptomic data,” 
+
+Nat. Commun. , vol. 12, no. 1, 2021, art. no. 5261, doi: 10.1038/s41467-021-25534-2. [45] K. Qian, S. Fu, H. Li, and W. V. Li, “scINSIGHT for interpreting single-cell gene expression from biologically heterogeneous data,” Genome Biol. , vol. 23, no. 1, 2022, art. no. 82, doi: 10.1186/s13059-022-02649-3. [46] Gene Ontology Consortium, “The Gene Ontology (GO) database and informatics resource,” Nucleic Acids Res. , vol. 32, no. suppl. 1, pp. D258–D261, 2004, doi: 10.1093/nar/gkh036. [47] L. Seninge, I. Anastopoulos, H. Ding, and J. Stuart, “VEGA is an interpretable generative model for inferring biological network activity in single-cell transcriptomics,” Nat. Commun. , vol. 12, no. 1, 2021, art. no. 5684, doi: 10.1038/s41467-021-26017-0. [48] R. Z. Kunes, T. Walle, M. Land, T. Nawy, and D. Pe’er, “Supervised discovery of interpretable gene programs from single-cell data,” Nat. Biotechnol. , vol. 42, no. 7, pp. 1084–1095, 2024, doi: 10.1038/s41587-023-01940-3. [49] F. Yang et al. , “scBERT as a large-scale pretrained deep language model for cell type annotation of single-cell RNA-seq data,” Nat. Mach. Intell. ,vol. 4, no. 10, pp. 852–866, 2022, doi: 10.1038/s42256-022-00534-z. [50] M. Hao et al. , “Large-scale foundation model on single-cell transcrip-tomics,” Nat. Methods , vol. 21, no. 8, pp. 1481–1491, 2024, doi: 10.1038/s41592-024-02305-7. [51] Y. Zeng et al. , “CellFM: a large-scale foundation model pre-trained on transcriptomics of 100 million human cells,” Nat. Commun. , vol. 16, no. 1, 2025, art. no. 4679, doi: 10.1038/s41467-025-59926-5. [52] J. Wang, C. Tan, Z. Gao, S. Shao, S. Liu, and S. Z. Li, “Illuminating cell states by a comprehensive and interpretable single cell foundation model,” 
+
+Nat. Commun. , vol. 17, no. 1, 2026, art. no. 4037, doi: 10.1038/s41467-026-70071-5. [53] J. Kalfon, J. Samaran, G. Peyr´ e, and L. Cantini, “scPRINT: pre-training on 50 million cells allows robust gene network predictions,” Nat. Commun. ,vol. 16, no. 1, 2025, art. no. 3607, doi: 10.1038/s41467-025-58699-1. [54] A. Tejada-Lapuerta et al. , “Nicheformer: a foundation model for single-cell and spatial omics,” Nat. Methods , vol. 22, no. 12, pp. 2525–2538, 2025, doi: 10.1038/s41592-025-02814-z. Preprint 14 
+
+[55] H. Wen et al. , “CellPLM: Pre-training of cell language model beyond single cells,” in Proc. 12th Int. Conf. Learn. Represent. (ICLR) , 2024. [Online]. Available: https://openreview.net/forum?id=BKXvPDekud [56] K. Z. Kedzierska, L. Crawford, A. P. Amini, and A. X. Lu, “Zero-shot evaluation reveals limitations of single-cell foundation models,” Genome Biol. , vol. 26, no. 1, 2025, art. no. 101, doi: 10.1186/s13059-025-03574-x. [57] J. Ruan, C. He, R. Quan, F. Xue, Z. Yang, and Y. Yang, “Beyond the transcriptome: Chromatin-informed prediction of cell-state-dependent perturbation responses,” arXiv preprint arXiv:2610.09054 , 2026, doi: 10.48550/arXiv.2610.09054. [58] M. Zaheer, S. Kottur, S. Ravanbakhsh, B. Poczos, R. R. Salakhutdinov, and A. Smola, “Deep Sets,” in Advances in Neural Information Processing Systems , vol. 30, 2017. [Online]. Available: https://proceedings.neurips. cc/paper/2017/hash/f22e4747da1aa27e363d86d40ff442fe-Abstract.html [59] J. Lee, Y. Lee, J. Kim, A. Kosiorek, S. Choi, and Y. W. Teh, “Set Transformer: A framework for attention-based permutation-invariant neural networks,” in Proc. 36th Int. Conf. Mach. Learn. (ICML) , ser. Proceedings of Machine Learning Research, vol. 97. PMLR, 2019, pp. 3744–3753. [Online]. Available: https://proceedings.mlr.press/v97/lee19d. html [60] A. Jaegle, F. Gimeno, A. Brock, O. Vinyals, A. Zisserman, and J. Carreira, “Perceiver: General perception with iterative attention,” in 
+
+Proc. 38th Int. Conf. Mach. Learn. (ICML) , ser. Proceedings of Machine Learning Research, vol. 139, 2021, pp. 4651–4664. [Online]. Available: https://proceedings.mlr.press/v139/jaegle21a.html [61] C. De Donno et al. , “Population-level integration of single-cell datasets enables multi-scale analysis across samples,” Nat. Methods , vol. 20, no. 11, pp. 1683–1692, 2023, doi: 10.1038/s41592-023-02035-2. [62] A. Tong, J. Huang, G. Wolf, D. Van Dijk, and S. Krishnaswamy, “TrajectoryNet: A dynamic optimal transport network for modeling cellular dynamics,” in Proc. 37th Int. Conf. Mach. Learn. (ICML) , ser. Proceedings of Machine Learning Research, vol. 119. PMLR, 2020, pp. 9526–9536. [Online]. Available: https://proceedings.mlr.press/v119/ tong20a.html [63] C. Bunne et al. , “Learning single-cell perturbation responses using neural optimal transport,” Nat. Methods , vol. 20, no. 11, pp. 1759–1768, 2023, doi: 10.1038/s41592-023-01969-x. [64] M. Dong et al. , “Causal identification of single-cell experimental perturbation effects with CINEMA-OT,” Nat. Methods , vol. 20, no. 11, pp. 1769–1779, 2023, doi: 10.1038/s41592-023-02040-5. [65] H. Wang, Y. Wang, Q. Jiang, Y. Zhang, and S. Chen, “SCREEN: predicting single-cell gene expression perturbation responses via optimal transport,” Front. Comput. Sci. , vol. 18, no. 3, 2024, art. no. 183909, doi: 10.1007/s11704-024-31014-9. [66] Q. Jiang, S. Chen, X. Chen, and R. Jiang, “scPRAM accurately predicts single-cell gene expression perturbation response based on attention mechanism,” Bioinformatics , vol. 40, no. 5, 2024, art. no. btae265, doi: 10.1093/bioinformatics/btae265. [67] Y. Lipman, R. T. Q. Chen, H. Ben-Hamu, M. Nickel, and M. Le, “Flow matching for generative modeling,” in Proc. Int. Conf. Learn. Represent. (ICLR) , 2023. [Online]. Available: https: //openreview.net/forum?id=PqvMRDCJT9t [68] A. Tong et al. , “Improving and generalizing flow-based generative models with minibatch optimal transport,” Transactions on Machine Learning Research , 2024. [Online]. Available: https://openreview.net/ forum?id=CD9Snc73AW [69] Z. Lin et al. , “Evolutionary-scale prediction of atomic-level protein structure with a language model,” Science , vol. 379, no. 6637, pp. 1123– 1130, 2023, doi: 10.1126/science.ade2574. [70] A. Nadig et al. , “Transcriptome-wide analysis of differential expression in perturbation atlases,” Nat. Genet. , vol. 57, no. 5, pp. 1228–1237, 2025, doi: 10.1038/s41588-025-02169-3. [71] L. Garcia-Alonso, C. H. Holland, M. M. Ibrahim, D. Turei, and J. Saez-Rodriguez, “Benchmark and integration of resources for the estimation of human transcription factor activities,” Genome Res. , vol. 29, no. 8, pp. 1363–1375, 2019, doi: 10.1101/gr.240663.118. [72] M. Abou El Hassan et al. , “Properties of STAT1 and IRF1 enhancers and the influence of SNPs,” BMC Mol. Biol. , vol. 18, no. 1, 2017, art. no. 6, doi: 10.1186/s12867-017-0084-1. [73] M. N. Gnanapragasam et al. , “KLF1 coordinates specialized tran-scriptional networks required to maintain the integrity of terminal erythropoiesis,” J. Cell Sci. , vol. 138, no. 21, 2025, art. no. jcs264036, doi: 10.1242/jcs.264036.

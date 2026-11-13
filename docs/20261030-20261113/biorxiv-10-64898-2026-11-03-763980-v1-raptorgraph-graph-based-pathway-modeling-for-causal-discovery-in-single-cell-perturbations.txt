@@ -1,0 +1,1181 @@
+Title: RAPTORGraph: graph-based pathway modeling for causal discovery in single-cell perturbations
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.11.03.763980v1.full.pdf
+
+Number of Pages: 26
+
+Markdown Content:
+# RAPTORGraph: graph-based pathway modeling for causal discovery in single-cell perturbations 
+
+Yeremia Gunawan Adhisantoso 1, Stephanie Kristin Schr¨ oder 1, Maximilian Greß 1, Mikel Hernaez 2,3,4* , Jan Voges 1,5,6,7* 
+
+1 Institute of Information Processing, Leibniz Universit¨ at Hannover, Hannover, Germany 
+
+2 Computational Biology Program, CIMA University of Navarra, CCUN, IdiSNA, Pamplona, Spain 
+
+3 Data Science and Artificial Intelligence Institute (DATAI), University of Navarra, Pamplona, Spain 
+
+4 Centro de Investigaci´ on Biom´ edica en Red de C´ ancer (CIBERONC), Madrid, Spain 
+
+5 L3S Research Center, Leibniz University Hannover, Hannover, Germany 
+
+6 Peter L. Reichertz Institute for Medical Informatics of the TU Braunschweig and the MHH, Braunschweig/Hannover, Germany 
+
+7 Lower Saxony Center for Artificial Intelligence and Causal Methods in Medicine (CAIMed), Hannover, Germany * Corresponding authors: Mikel Hernaez ( mhernaez@unav.es ) and Jan Voges (voges@tnt.uni-hannover.de )
+
+# Abstract 
+
+Experiments involving the perturbation of individual cells are central to understanding cellular mechanisms and can accelerate drug discovery. Causal representation learning allows us to uncover the latent factors that regulate biological systems and predict the impact of novel perturbations. Unfortunately, existing methods fail to address intervention spillover in a closed-world setting where intervention targets are known apriori , such as in Perturb-seq experiments, due to their reliance on dense encoders. Furthermore, incorporating curated biological pathways into the model imposes a November 3, 2026 1/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+confirmatory bias, forcing it to explain the data through preexisting pathways and reducing the set of hypotheses the model can explore, while discarding novel signals that lie outside the annotated pathways. In this work, we introduce RAPTORGraph, a 
+
+β-variational autoencoder with a GraphPathway encoder that explicitly models complex gene-to-gene interactions within learned pathways. Moreover, our model’s preconditioning isolates the influence of perturbed genes, yielding clean, single-node latent interventions required for identifiable causal discovery and eliminating spillover. Finally, we train the model on data preprocessed with optimal-transport alignment, which guarantees a well-defined mapping between control and perturbed samples and further stabilizes the learned latent representations. We demonstrate that RAPTORGraph improves state-of-the-art performance on downstream analyses of unseen perturbations, such as non-additive interactions, while performing competitively on objective metrics, such as mean squared error and maximum mean discrepancy. The source code is available at https://github.com/sXperfect/RAPTORGraph .
+
+# Author summary 
+
+Understanding how genes work together can help explain changes in cell behavior and guide the search for treatments. Yet testing every possible combination of genetic changes is impractical. We developed a computer model to predict how individual cells respond to changes that have not been tested experimentally. We address two problems: existing models can obscure how a change leads to a predicted outcome and overlook differences between individual cells. In our model, each genetic change enters through a single starting point, and its effects can spread through a network learned from the data. This allows us to examine how a predicted response develops. We also match cells from separate groups with and without genetic changes, helping our model retain the diversity of cellular responses. In tests on two datasets, we improved predictions of responses to genetic perturbations. On the Norman et al. dataset, we also improved predictions of responses to combined genetic changes whose effects could not be explained by adding the effects of the individual changes. We also used the model to suggest genetic changes that could explain an observed cellular response. Our approach could help researchers choose informative experiments and investigate how genes jointly shape cell behavior. November 3, 2026 2/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+# Introduction 1
+
+Understanding how cells respond to genetic perturbations, such as those induced by CRISPR screens [1], is 2
+
+fundamental to advancing our understanding of basic biology and therapeutic discovery [2–4]. However, the 3
+
+combinatorial explosion across ∼20,000 protein-coding genes makes exhaustive perturbation experiments 4
+
+infeasible [4], motivating computational models that predict cellular responses to unseen perturbations or 5
+
+combinations thereof. 6
+
+Existing approaches to predict the transcriptional outcome following a perturbation face a fundamental 7
+
+challenge: generative quality comes at the cost of causal interpretability. Models such as GEARS [5] and 8
+
+scGPT [6] have demonstrated the ability to predict transcriptional responses to genetic perturbations, 9
+
+including previously unseen perturbations, although their predictive performance varies across datasets and 10 
+
+evaluation metrics; however, they act as “black boxes” providing little mechanistic insight into how 11 
+
+perturbations affect cellular systems. This lack of interpretability prevents researchers from understanding 12 
+
+why certain combinations of perturbations produce synergistic effects, failing to provide testable biological 13 
+
+hypotheses. 14 
+
+As such, computational biology demands models that provide mechanistic insights into cellular 15 
+
+function [7], making causal representation learning (CRL) [8] a promising approach for mapping genes to 16 
+
+biological processes. In particular, recent CRL approaches such as DiscrepancyVAE (dVAE) [9] or SENA [10] 17 
+
+aim at recovering the underlying causal generative factors and their interactions, enabling counterfactual 18 
+
+reasoning. However, these CRL approaches suffer from fundamental architectural limitations that prevent 19 
+
+them from fulfilling their theoretical causal identifiability guarantees: the use of a dense interventional 20 
+
+encoder inherently means that every gene, including those intervened upon, can influence all latent variables. 21 
+
+We term this phenomenon intervention spillover , as it renders the task of identifying a unique latent target 22 
+
+for an intervention ill-posed. Consequently, any mechanism designed to apply the intervention is forced to 23 
+
+converge to a suboptimal solution, because it cannot perform the clean, single-node manipulation required 24 
+
+for valid causal inference [11, 12]. 25 
+
+Further, the destructive nature of single-cell RNA sequencing (scRNA-seq) makes it impossible to observe 26 
+
+the same cell before and after a genetic intervention, complicating the prediction of cell-specific responses. 27 
+
+Existing methods address this issue by randomly pairing control and perturbed cells. Since the model must 28 
+
+minimize error across all possible arbitrary pairings, it is incentivized to learn the population-mean response. 29 
+
+We refer to this phenomenon as mean collapse , as this regression to the mean erodes cellular diversity. 30 
+
+We present Response Analysis of Perturbed Transcript Omes using Inte Rpretable Graph 31 
+
+3/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+(RAPTORGraph), a novel framework that addresses causal identifiability challenges in perturbation 32 
+
+prediction through structured encoder design. Our first key innovation is the GraphPathway layer, a novel 33 
+
+architecture that uses preconditioning to enforce sparse mappings from genes to learned latent factors. This 34 
+
+design enables the model to perform the clean, single-node manipulations required for valid causal inference, 35 
+
+directly maintaining interpretability. This innovation is complemented by a novel optimal transport (OT) 36 
+
+preprocessing step, which mitigates the distinct problem of mean collapse. We benchmark the generative 37 
+
+quality of RAPTORGraph on the Norman [4] Perturb-seq dataset and the Replogle [13] CRISPRi dataset. 38 
+
+For the Norman data, we further evaluate the accuracy of genetic interaction in perturbation combinations, 39 
+
+and the biological interpretability of the inferred latent factors. Specifically, when applied to scRNA-seq data 40 
+
+from a K562 cell line, RAPTORGraph uncovered distinct, biologically accurate programs, such as the 41 
+
+differentiation-induced cell cycle arrest driven by EGR1 and stress-induced growth arrest mediated by JUN. 42 
+
+We demonstrate strong performance alongside interpretability, which addresses key gaps not filled by current 43 
+
+approaches. 44 
+
+# Background 45 
+
+## In silico high-throughput screening models 46 
+
+Accurate in silico prediction of perturbation effects remains critical to guide experimental perturbation 47 
+
+assays, as it would allow us to predict, for instance, how cells respond to environmental stress [14]. However, 48 
+
+a key limitation in learning perturbation responses lies in the destructive nature of single-cell transcriptomic 49 
+
+assays, which prevents measuring the same cell before and after a perturbation. While paired measurements 50 
+
+are infeasible, we do have access to independent single-cell observations from control and perturbed cells. 51 
+
+Recent works have demonstrated the potential of representation learning in leveraging these perturbation 52 
+
+data to predict transcriptional outcomes of novel combinations of perturbations. For example, Kamimoto et 53 
+
+al. [15] relied on inferring (linear) transcriptional relationships between genes in the form of a gene regulatory 54 
+
+network to infer the effect of unseen perturbations. Shortly after, the Compositional Perturbation 55 
+
+Autoencoder (CPA) [16] predicted combinations of perturbations by vector arithmetic in the latent space 56 
+
+generated by a Variational Autoencoder (VAE). In parallel, GEARS [5] leveraged Graph Neural Networks 57 
+
+(GNNs) to incorporate prior knowledge of gene–gene relationships into the model architecture, thereby 58 
+
+predicting unseen genetic interventions and their combinations. More recently, CellOT [17] proposed to 59 
+
+directly learn optimal transport maps between control and perturbed cell states, thus accounting for 60 
+
+heterogeneous subpopulation structures in the data. Additional efforts, such as scGen [18] and scGPT [6], 61 
+
+4/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+have explored deep generative approaches for this task. 62 
+
+Even though all the outlined approaches tackle the common problem of predicting the transcriptional 63 
+
+consequences of perturbations, their non-causal “black box” nature hampers their capability for uncovering 64 
+
+the causal mechanisms driving observed transcriptional changes. This poses a significant limitation in, for 65 
+
+example, cellular engineering, where understanding the why behind perturbation effects is as critical as 66 
+
+predicting the what . To address this challenge, recently, dVAE [9] learns causal latent factors without an 67 
+
+explicit semantic meaning, resulting in causally valid but biologically uninterpretable latent representations. 68 
+
+SENA [10], on the other hand, explicitly models (a set of) biological processes as latent causal variables, 69 
+
+promising both predictive accuracy and mechanistic interpretability. 70 
+
+## Structural causal models for latent discovery 71 
+
+We model the underlying data-generating process using a structural causal model (SCM) [19]. We assume 72 
+
+that observed high-dimensional samples x ∈ Rn (e.g., gene expression) are generated by a set of unobserved, 73 
+
+low-dimensional latent causal variables u ∈ Rd, where d ≪ n. The SCM defines the relationships between 74 
+
+these variables via a set of structural assignments: 75 
+
+ui = fi(Pa G (u i), zi), for i = 1 , . . . , d (1) where fi is the structural function, Pa G (u i) are its direct causal parents in a graph G, and zi is an 76 
+
+independent exogenous noise term. The complete set of these equations induces a directed acyclic graph 77 
+
+(DAG) G, which implies that the joint probability distribution over u factorizes as: 78 
+
+p ( u) = 
+
+> d
+
+Y
+
+> i=1
+
+p (u i | Pa G (u i)) (2) However, these latent causal variables are not directly accessible. Instead, we only observe the 79 
+
+high-dimensional data x, which are generated via a true, unknown mixing function g∗: 80 
+
+x = g∗(u) (3) 
+
+## Identifiability from targeted interventions 81 
+
+The central challenge of CRL is identifiability : learning an encoder function fθ that can uniquely recover the 82 
+
+true latents u from only observations x. However, using observational data alone, this goal is theoretically 83 
+
+5/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+Fig 1. Illustration of an atomic (single-node) intervention in the latent space. An intervention in the observed gene expression space x causes a shift in a single latent pathway activity u i. This alters the conditional distribution pI (u i | Pa G (u i)) while leaving unrelated latent variables unaffected, a key requirement for identifiability. intractable [19]. In this sense, Khemakhem et al. [20] showed that different parameter configurations of a 84 
+
+VAE can generate equivalent marginal distributions p ( x), leaving the learned latent representations 85 
+
+non-unique. In the causal setting, this problem is compounded, as multiple distinct causal structures can 86 
+
+generate identical observational distributions. This means that learning interpretable causal mechanisms 87 
+
+from observational data alone is ill-posed. 88 
+
+To overcome this fundamental limitation, modern CRL relies on access to interventional data. The key 89 
+
+insight is that interventions create unique statistical signatures that break the symmetries present in 90 
+
+observational data (Fig. 1). As formally established in recent work [8], achieving identifiability depends on a 91 
+
+set of key requirements. 92 
+
+Requirement 1 (Acyclic Causal Structure). We model the causal relationships among latent 93 
+
+pathways using a directed acyclic graph (DAG), a standard structural assumption in causal discovery [19]. 94 
+
+This assumption provides a well-defined causal ordering and excludes directed feedback cycles within the 95 
+
+modeled structure. 96 
+
+Requirement 2 (Atomic, Single-Node Interventions). Several causal representation learning 97 
+
+methods establish identifiability guarantees under atomic interventions, in which each intervention directly 98 
+
+modifies the causal mechanism of a single latent variable [9, 21]. In particular, Zhang et al. [9] consider 99 
+
+single-target soft interventions and assume that every latent variable is targeted at least once. Under 100 
+
+additional assumptions, this setting permits recovery of causal ancestry and the latent causal graph up to the 101 
+
+6/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+relevant equivalence class. 102 
+
+Requirement 3 (Faithfulness). Causal discovery commonly assumes faithfulness, meaning that 103 
+
+conditional independencies in the observed distribution reflect graphical separation rather than coincidental 104 
+
+cancellations of causal effects. Zhang et al. [9] introduce two additional conditions for identifying latent 105 
+
+causal structures. First, linear interventional faithfulness requires that relevant intervention-induced 106 
+
+distributional changes remain detectable under specified linear combinations of latent variables, enabling 107 
+
+identification of ancestral relationships. Second, adjacency faithfulness excludes conditional independencies 108 
+
+that could obscure direct causal connections under linear transformations, enabling recovery of the causal 109 
+
+graph under the remaining identifiability assumptions. 110 
+
+Under these conditions, it is possible to provably recover the true latent causal graph up to a well-defined 111 
+
+equivalence class. Following the work of Zhang et al. [9], their main theorem provides a formal guarantee for 112 
+
+identifiability (Theorem 1): 113 
+
+Theorem 1 (Full DAG Identifiability) . Assume an SCM with a latent DAG G and an invertible mixing 114 
+
+function. If the set of interventions is atomic (single-node, targeting each latent variable at least once), and 115 
+
+the assumptions of faithfulness hold, then the latent DAG G and the intervention assignments are identifiable 116 
+
+up to permutation, scaling, and translation (the CD-equivalence class). 117 
+
+This reliance on an atomic set of interventions , where each latent variable is targeted at least once, is 118 
+
+a cornerstone of modern CRL. It forms the basis for models applied to Perturb-seq data, as seen in recent 119 
+
+methods [9, 10]. 120 
+
+Importantly, we distinguish modeling requirements from theoretical identifiability assumptions and from 121 
+
+empirical validation. The directed acyclic structure (Requirement 1) and the atomic, single-target 122 
+
+intervention mapping (Requirement 2) are modeling requirements adopted in our architecture. Theoretical 123 
+
+identifiability guarantees instead require intervention coverage, restrictions on the observation map, and the 124 
+
+appropriate faithfulness conditions described above. Finally, whether the learned representations and 125 
+
+perturbation effects are biologically meaningful is an empirical question. This distinction matters because 126 
+
+Zhang et al. [9] prove identifiability under their specified generative assumptions; those guarantees do not 127 
+
+automatically transfer to RAPTORGraph merely because it enforces a sparse intervention mapping and an 128 
+
+acyclic graph. In particular, enforcing a single-node intervention in the learned representation does not prove 129 
+
+that a biological perturbation directly changes only one latent causal mechanism: a genetic perturbation may 130 
+
+have direct effects on multiple biological pathways, and assigning it to exactly one latent entry point is an 131 
+
+architectural constraint rather than an experimentally verified property. 132 
+
+7/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+## The intervention spillover problem 133 
+
+While identifiability theory provides a strong theoretical foundation, a key practical challenge arises from the 134 
+
+architectural choices in most CRL models. We term this the intervention spillover problem : the phenomenon 135 
+
+where a targeted, single-variable intervention in the high-dimensional observation space ( x) is transformed 136 
+
+into a dense, multi-node signal in the lower-dimensional latent space ( u). 137 
+
+This issue stems from a direct conflict with the atomic intervention requirement discussed above. An 138 
+
+Ideal Causal Encoder , f ∗, must satisfy this requirement by ensuring that a targeted intervention on a single 139 
+
+gene isolates its distributional effect to the parameters of a corresponding single latent variable. 140 
+
+Consequently, the expected change in the latent space would be perfectly sparse, manifesting as a clean, 141 
+
+single-node perturbation rather than a dense signal. 142 
+
+Intervention spillover problem in current models . However, current interventional encoder 143 
+
+networks fθ are typically dense architectures like MLPs. These encoders possess a dense Jacobian matrix, 144 
+
+meaning each component of the latent vector is a function of all input components. Consequently, a sparse 145 
+
+change in the input x propagates through the network, and the model is thus forced to choose the ‘best’ 146 
+
+single target from a dense signal that suggests multiple viable targets. 147 
+
+This architectural mismatch has several critical implications for the reliability of learned intervention 148 
+
+targets. First, models that use a softmax function for target identification are forced into a “winner-take-all” 149 
+
+decision on a dense signal, creating a risk of misattributing the primary causal effect. Furthermore, while the 150 
+
+perturbed gene is known a priori , its corresponding target in the latent space is not, making the task of 151 
+
+reliably discovering it from an entangled signal intractable. This reframes the primary modeling objective: 152 
+
+the model should be designed not to explore for a latent target, but to accurately learn the magnitude of the 153 
+
+intervention’s effect on the causal representation. 154 
+
+Spillover problem in genetic perturbation prediction . This phenomenon is particularly concerning 155 
+
+in genetic perturbation experiments, as interventions are applied to individual genes in the high-dimensional 156 
+
+expression space, yet their effects propagate through the cell’s regulatory network and manifest as 157 
+
+coordinated changes across multiple (latent) biological processes. It is thus crucial to distinguish this 158 
+
+intervention spillover, an artifact of dense encoders, from true biological correlation. High correlations 159 
+
+between genes do not violate the single-node intervention requirement. Rather, dense encoders fail by 160 
+
+transforming a sparse perturbation into a dense entry point in the latent space. By enforcing a sparse 161 
+
+mapping for the intervention target, our proposed architecture satisfies identifiability while still modeling 162 
+
+complex gene–gene correlations downstream via the dense components of the encoder and the learned causal 163 
+
+graph. 164 
+
+8/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+## The dilemma of prior knowledge in causal discovery 165 
+
+Existing causal discovery models can be positioned on a spectrum from purely exploratory approaches like 166 
+
+dVAE, which learns all components from data, to more confirmatory models like SENA, which leverages 167 
+
+predefined biological pathways to enhance interpretability. While this confirmatory strategy aims to ground 168 
+
+the model in known biology, it introduces a significant limitation stemming from poor knowledge transfer. 169 
+
+Biological pathways are known to exhibit strong cell-type and cell-line specificity [22–25], meaning that 170 
+
+mechanisms characterized in one cellular context often do not generalize to another. 171 
+
+# Results 172 
+
+To first establish the foundational accuracy of RAPTORGraph, we benchmarked its generative performance 173 
+
+against four state-of-the-art models: SENA, scGPT, dVAE, and GEARS. We assessed two key aspects of 174 
+
+prediction fidelity primarily using the single-cell perturbation dataset from Norman et al. [4]. We prioritized 175 
+
+this dataset for the comprehensive comparison because the implementations of several baseline models have 176 
+
+auxiliary files and preprocessing steps that are tightly coupled to it, making adaptation to other datasets 177 
+
+non-trivial. However, to further demonstrate generalizability, we provide an additional evaluation on the 178 
+
+Replogle2020 dataset, restricted to a comparison between RAPTORGraph and scGPT. 179 
+
+To validate our hyperparameter selection, we conducted a comprehensive ablation study on the β-VAE 180 
+
+regularization parameter ( β) and the DAGMA loss weights ( μ, λ 1). Our analysis reveals a critical trade-off 181 
+
+between distribution matching and the preservation of biological heterogeneity. While higher regularization 182 
+
+(β ≥ 0.8) achieves competitive Maximum Mean Discrepancy (MMD) scores, it induces severe posterior 183 
+
+collapse, with the variance of predicted control cell states dropping by an order of magnitude compared to 184 
+
+the optimal setting (10 −4 vs 10 −3). Conversely, lower regularization ( β = 0 .1) preserves higher variance but 185 
+
+results in unstable training and significantly higher MMD. We identified β ≈ 0.4 as the optimal operating 186 
+
+point, minimizing MMD while maintaining a latent KL divergence ( ≈ 10 −3) consistent with established 187 
+
+baselines (dVAE and SENA), thereby ensuring the model captures meaningful cellular diversity rather than 188 
+
+regressing to the population mean. 189 
+
+Reconstruction capabilities. First, we measured the Mean Squared Error (MSE) between the ground 190 
+
+truth and predicted profiles of control cells to evaluate how well each model reconstructs the basal, 191 
+
+unperturbed cellular state. Second, we calculated the MMD between the distributions of ground truth and 192 
+
+predicted profiles for double-gene perturbations to assess the model’s ability to capture the global 193 
+
+transcriptional shift following a complex intervention. 194 
+
+9/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+The results in Table 1 highlight a crucial trade-off between reconstruction fidelity (MSE) and 195 
+
+distributional accuracy (MMD). RAPTORGraph achieves a strong overall balance, demonstrating highly 196 
+
+competitive performance across both reconstruction and generative capabilities. 197 
+
+Table 1. Results using the Norman-CPA dataset , averaged over 3 runs. Bold: best results; Italics: second best. Values are mean ± standard deviation. *We excluded the GEARS model because it behaves in a fundamentally different way that is incompatible with our evaluation framework, making a fair and direct comparison impossible. Metric SENA scGPT dVAE GEARS RAPTORGraph (ours) MMD 0.522 ± 0.003 0.176 ± 0.001 0.076 ± 0.000 –* 0.112 ± 0.001 
+
+MSE 0.043 ± 0.000 0.066 ± 0.000 0.062 ± 0.000 –* 0.045 ± 0.000 
+
+The evaluation on the independent Replogle2020 dataset, restricted to a direct comparison with scGPT, 198 
+
+further demonstrates robust reconstruction fidelity and distributional accuracy on unseen biological data 199 
+
+(Table 2). 200 
+
+Table 2. Results using the Replogle2020 dataset , averaged over 3 runs. Bold: best results. Values are mean ± standard deviation. Metric scGPT RAPTORGraph (ours) MMD 0.138 ± 0.000 0.137 ± 0.000 
+
+MSE 0.069 ± 0.000 0.054 ± 0.000 Prediction of non-additive genetic perturbations. This complex and biologically significant 201 
+
+benchmark assesses a model’s ability to predict emergent effects that are not simple linear combinations of 202 
+
+single-gene perturbations (Table 3). Specifically, we compared the models based on their ability to predict 203 
+
+five distinct interaction types, using Precision@10 to quantify how effectively each model could identify true 204 
+
+interactions within its top 10 predictions, a direct measure of its utility for experimental discovery. 205 
+
+Table 3. Comparison of non-additive genetic interaction prediction. Precision@10 scores for five models across distinct genetic interaction subtypes on the Norman et al. dataset. Higher is better. Values are mean ± standard deviation over 3 runs. Metric dVAE SENA GEARS scGPT RAPTORGraph (ours) Synergy 0.000 ± 0.000 0.233 ± 0.153 0.333 ± 0.115 0.100 ± 0.000 0.367 ± 0.058 
+
+Suppression 0.000 ± 0.000 0.167 ± 0.115 0.333 ± 0.115 0.400 ± 0.000 0.267 ± 0.153 Neomorphism 0.333 ± 0.153 0.333 ± 0.115 0.133 ± 0.058 0.100 ± 0.000 0.433 ± 0.058 
+
+Redundancy 0.933 ± 0.115 0.467 ± 0.058 0.567 ± 0.115 0.100 ± 0.000 0.800 ± 0.100 
+
+Epistasis 0.567 ± 0.153 0.800 ± 0.100 0.533 ± 0.115 0.400 ± 0.000 0.433 ± 0.115 We further investigated the contribution of OT to this performance. Our ablation studies reveal that OT 206 
+
+preprocessing is a key driver of the model’s ability to predict complex non-additive interactions, particularly 207 
+
+redundancy and epistasis, significantly outperforming a random pairing baseline. Importantly, this benefit 208 
+
+10/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+comes with negligible computational overhead ( ≈ 2.2% of total training time). 209 
+
+Reverse perturbation analysis. While predicting genetic interactions demonstrates a model’s forward 210 
+
+predictive power, a more profound test is its ability to reverse-engineer the genetic cause of an observed 211 
+
+phenotype. To this end, we challenged a model to identify the specific genetic perturbation responsible for a 212 
+
+given cellular gene expression profile. The analysis was performed on a controlled combinatorial space of 20 213 
+
+transcription factors from the Norman et al. [4] dataset. For each model, we generated a database of 214 
+
+predicted expression profiles for all possible double-gene perturbations within this subset. We then used the 215 
+
+ground truth mean expression profiles from experimentally observed double perturbations as queries, ranking 216 
+
+the database entries by similarity to identify the most likely causal perturbation. 217 
+
+We first evaluated the models on the highly stringent task of identifying the exact causal gene 218 
+
+combination, quantified by the Correct (Exact Match) Hit Rate @ K (S1 Fig). As shown there, all models 219 
+
+achieve modest hit rates, underscoring the profound difficulty of this reverse-engineering challenge. However, 220 
+
+a more practical measure of a model’s utility is its ability to identify biologically influential genes. We 221 
+
+assessed this using the Relevant (Gene Overlap) Hit Rate @ K, which credits a model for retrieving 222 
+
+perturbations containing at least one of the correct genes (Figure 2 and Table 4). RAPTORGraph 223 
+
+demonstrates competitive performance, consistently ranking among the top models. This highlights that 224 
+
+while pinpointing exact higher-order interactions is an ongoing challenge, RAPTORGraph is highly effective 225 
+
+at identifying the key genetic players driving a cellular response, making it a valuable tool for hypothesis 226 
+
+generation and experimental design. 227 
+
+Table 4. Hit Rate @ K (relevant) for the reverse perturbation task. The metric measures the fraction of queries where at least one correct gene was identified in the top K predictions. Higher values are better. Values are mean ± standard deviation over 3 runs. 
+
+k dVAE SENA GEARS scGPT RAPTORGraph (ours) 1 0.333 ± 0.115 0.244 ± 0.019 0.344 ± 0.051 0.233 ± 0.000 0.294 ± 0.059 3 0.556 ± 0.051 0.444 ± 0.069 0.578 ± 0.051 0.533 ± 0.000 0.608 ± 0.122 
+
+5 0.733 ± 0.088 0.600 ± 0.058 0.722 ± 0.077 0.700 ± 0.000 0.784 ± 0.090 RAPTORGraph learns biologically meaningful causal latent factors. To confirm that 228 
+
+RAPTORGraph learns biologically meaningful structures rather than arbitrary representations, we examined 229 
+
+the functional identity of the latent factors using gene set enrichment analysis (GSEA). For each learned 230 
+
+latent factor, we identified the single-gene interventions that induce the greatest change in that factor and 231 
+
+tested the resulting gene signatures against the “Hallmark” gene sets from the Human Molecular Signatures 232 
+
+Database (MSigDB) [26]. It is important to distinguish these GSEA-derived pathways, which are 233 
+
+well-described biological processes from curated databases, from the learned causal meta-pathways, which are 234 
+
+11/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+Fig 2. Relevant (Gene Overlap) Hit Rate @ K for the reverse perturbation task. The metric measures the fraction of queries where at least one correct gene was identified in the top K predictions. Higher is better. Values are mean ± standard deviation over 3 runs. latent factors associated with single interventions; our goal is to assess whether the learned meta-pathways 235 
+
+encompass relevant and related biological processes. Figure 3 visualizes the Normalized Enrichment Scores 236 
+
+(NES) for the top enriched pathways across the learned factors. 237 
+
+The GSEA analysis reveals that RAPTORGraph captures distinct and biologically accurate programs, 238 
+
+verified against the known functions of their corresponding gene perturbations: 239 
+
+1. Differentiation-induced arrest: The latent factor linked to EGR1 displays massive negative 240 
+
+enrichment for “E2F Targets” and “G2-M Checkpoint”. EGR1 is a known tumor suppressor in K562 241 
+
+leukemia cells that drives differentiation along the megakaryocytic lineage, a process that necessitates a 242 
+
+complete exit from the cell cycle [27]; RAPTORGraph correctly identifies this potent anti-proliferative 243 
+
+program. 244 
+
+2. Stress-induced growth arrest: The factor linked to the AP-1 subunit JUN shows strong negative 245 
+
+enrichment for “E2F Targets” and “G2-M Checkpoint”. While often associated with inflammation, c-Jun 246 
+
+is a central stress-response mediator; in K562 cells its activation drives a termination of cell division 247 
+
+required for stress adaptation or differentiation [28, 29]. 248 
+
+12/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+3. p53-like tumor suppression: The TP73 -associated factor is negatively enriched for “G2-M 249 
+
+Checkpoint”. TP73 is a functional homolog of TP53 that triggers downstream checkpoint signaling to 250 
+
+arrest the cell cycle and prevent genomic instability [30]. 251 
+
+These findings confirm that the nodes in our learned DAG represent specific biological mechanisms and that 252 
+
+the edges learned by the DAGMA module can be interpreted as causal regulatory links between verified 253 
+
+biological processes. 254 
+
+Fig 3. Normalized Enrichment Scores (NES) of the top enriched Hallmark pathways across the learned latent factors of RAPTORGraph. 
+
+# Discussion 255 
+
+RAPTORGraph was designed to resolve two failure modes that limit existing perturbation-prediction models: 256 
+
+intervention spillover, where dense encoders create entangled latent signals that confound causal discovery, 257 
+
+and mean collapse, where the absence of one-to-one cell pairings erodes cellular diversity. Our results indicate 258 
+
+that a preconditioned GraphPathway encoder can enforce the sparse, single-node interventions that causal 259 
+
+13/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+identifiability theory requires, while a DAGMA module subsequently learns the legitimate biological causal 260 
+
+relationships among the resulting sparse pathway activities. Because the model does not rely on predefined 261 
+
+pathway annotations, it avoids the confirmatory bias of methods such as SENA, which must explain the data 262 
+
+through preexisting pathways and cannot readily accommodate novel signals outside those annotations. 263 
+
+A recurring theme in our findings is the trade-off between reconstruction fidelity and distributional 264 
+
+accuracy. RAPTORGraph achieves a competitive balance, and the optimal-transport preprocessing step 265 
+
+proves important for predicting complex, non-additive interactions, particularly redundancy and epistasis, at 266 
+
+negligible computational cost. The reverse-perturbation analysis further shows that the model can identify 267 
+
+the key genetic drivers of an observed phenotype, supporting its use for hypothesis generation. 268 
+
+Several limitations remain. Our comprehensive baseline comparison was performed primarily on the 269 
+
+Norman-CPA dataset because several baselines are tightly coupled to its preprocessing; generalizability 270 
+
+evidence on the Replogle2020 dataset is currently limited to a comparison with scGPT. The exact-match hit 271 
+
+rates in the reverse-perturbation task remain modest for all models, indicating that pinpointing precise 272 
+
+higher-order combinations is an open challenge. Future work will focus on deploying RAPTORGraph for the 273 
+
+hypothesis-driven discovery of novel drug targets and exploring its utility in uncovering cell-type-specific 274 
+
+pathway mechanisms. 275 
+
+# Conclusion 276 
+
+Developing interpretable in silico models is crucial for therapeutic discovery, yet current approaches face two 277 
+
+key challenges: intervention spillover, where dense encoders create entangled latent signals that confound 278 
+
+causal discovery, and mean collapse, where the absence of one-to-one cell pairings erodes cellular diversity. 279 
+
+We introduce RAPTORGraph, a framework that directly resolves these issues. To counteract intervention 280 
+
+spillover, it combines a preconditioned GraphPathway layer, enforcing the sparse mappings required for clean 281 
+
+single-node interventions, with a DAGMA layer for robust DAG discovery. This architectural design 282 
+
+eliminates the artifactual entanglement of input genes with latent pathways, while the subsequent DAG 283 
+
+module explicitly learns the legitimate biological causal relationships and correlations between the resulting 284 
+
+sparse pathway activities. To prevent mean collapse, RAPTORGraph globally pairs control and perturbed 285 
+
+populations through OT. RAPTORGraph not only achieves a strong balance between reconstruction fidelity 286 
+
+and distributional accuracy relative to state-of-the-art methods, but also shows the ability to predict 287 
+
+complex, non-additive genetic interactions, and can reverse-engineer genetic drivers to generate testable 288 
+
+hypotheses. RAPTORGraph bridges predictive power and mechanistic insight, enabling not only prediction 289 
+
+14/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+of a perturbation’s effect but also understanding of why. Future work will focus on deploying 290 
+
+RAPTORGraph for the hypothesis-driven discovery of novel drug targets and exploring its utility in 291 
+
+uncovering cell-type-specific pathway mechanisms. 292 
+
+# Materials and methods 293 
+
+## GraphPathway encoder for deconfounding through preconditioning 294 
+
+To address the Intervention Spillover Problem and enforce the theoretical requirement for single-causal-factor 295 
+
+interventions, we introduce a novel encoder architecture, the GraphPathway Encoder, which features a 296 
+
+deconfounding approach through preconditioning. This approach requires a specific ordering of the input 297 
+
+data. Let k be the number of known perturbed genes in the experiment. Without loss of generality, we 298 
+
+assume the input gene vector x ∈ Rn is sorted such that the first k genes are those perturbed, followed by 299 
+
+the remaining n − k unperturbed genes. 300 
+
+Pre-conditioning module (Figure 4-A) . Given this sorted input, we define our model with d learned 301 
+
+causal latents (meta-pathways), where we require that the number of learned meta-pathways is at least the 302 
+
+number of perturbed genes ( d ≥ k). We then structure the encoder’s primary weight matrix W as a block 303 
+
+matrix: 304 
+
+W =
+
+ Λ11 W12 
+
+0(d−k)×k W22 
+
+ ∈ Rd×n, Λ11 =
+
+
+
+w11 0 . . . 00 w22 . . . 0... ... . . . ...0 0 . . . wkk 
+
+
+
+(4) where the top-left submatrix Λ 11 ∈ Rk×k is a learnable, strictly diagonal matrix. 305 
+
+This diagonal structure enforces a direct, one-to-one mapping, ensuring each of the k perturbed genes 306 
+
+directly influences only one of the first k learned meta-pathways. The bottom-left zero block, 0(d−k)×k, is 307 
+
+critical for preventing intervention spillover by explicitly blocking the influence of perturbed genes on the 308 
+
+remaining learned meta-pathways. The other submatrices, W12 and W22 , are learnable and dense, allowing 309 
+
+the model flexibility to discover complex relationships between unperturbed genes and all learned 310 
+
+meta-pathways. Crucially, this preconditioned structure allows the intervention mask m to be predefined 311 
+
+and fixed rather than learned, directly satisfying the theoretical requirements for identifiability. 312 
+
+Latent grouping via an interaction block (Figure 4-B) . To model the complex non-linear dynamics 313 
+
+of biological systems, our architecture extends this preconditioning approach by learning multiple distinct 314 
+
+subgraph representations for each (exogenous) latent factor. An intermediate Interaction Block then 315 
+
+15/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+processes these subgraph activations, allowing the model to capture higher-order dependencies by learning 316 
+
+unique interaction patterns among the subgraphs within each learned latent factor. 317 
+
+Exogeneous latent factor inference via VAE (Figure 4-C) . Next, an aggregation layer combines 318 
+
+these processed features to compute the parameters ( μz and σz) for the (exogenous) latent distributions. 319 
+
+Thus, the final stochastic representations of the latent factors are then obtained using the reparameterization 320 
+
+trick z = μz + σz ⊙ ϵ; ϵ ∼ N (0, I). Subsequently, a latent modulator predicts a conditional shift for the 321 
+
+targeted latent variables, strictly modifying only the specific latent variable associated with the perturbation 322 
+
+while preserving the independence of the others. 323 
+
+Causal latent factor (causal meta-pathway) inference via DAGMA (Figure 4-D) . To capture 324 
+
+the downstream biological consequences, a DAGMA layer propagates these atomic interventions through a 325 
+
+learned directed acyclic graph, transforming the independent noise terms into causally dependent pathway 326 
+
+activities. Finally, a non-linear dense decoder maps these propagated causal states back to the 327 
+
+high-dimensional gene expression space to predict the final post-perturbation phenotype. 328 
+
+## Deep causal graph learning with DAGMA 329 
+
+The GraphPathway Encoder with preconditioning fundamentally alters the causal discovery task. By fixing 330 
+
+the mapping from known interventions to specific latent variables, it eliminates the need for 331 
+
+permutation-based discovery methods that assume a dense, entangled encoder. However, this fixed ordering 332 
+
+makes simple acyclicity constraints, such as enforcing an upper-triangular adjacency matrix, unsuitable. 333 
+
+These methods impose a strict and arbitrary causal hierarchy, as the influence of one latent variable on 334 
+
+another is entirely restricted by their ordering (e.g., latent i can only influence latent j if i < j ), which would 335 
+
+conflict with the true biological relationships we aim to discover. For this, we adapt the DAGMA 336 
+
+framework [31] for use in a deep learning context. 337 
+
+DAGMA reformulates the combinatorial search for a DAG into a continuous optimization problem, 338 
+
+following the continuous acyclicity-constrained paradigm of NOTEARS [32]. This is achieved by minimizing 339 
+
+a score function that measures data fit, subject to a differentiable constraint that is satisfied only if the 340 
+
+graph is acyclic. The DAGMA acyclicity constraint, hs(A), is based on a log-determinant function: 341 
+
+hs(A) = − log det( sI − A ◦ A) + d log s = 0 (5) where A ∈ Rd×d is the weighted adjacency matrix of the latent graph, s > 0 is a scaling scalar, and the 342 
+
+condition holds if and only if A represents a DAG. The optimization then solves a sequence of unconstrained 343 
+
+16/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+Fig 4. The GraphPathway Encoder architecture of RAPTORGraph. A : Gene expression of control cells ( zobs ) is fed as input to the preconditioned linear layer, which enforces a sparse, one-to-one mapping for known perturbed genes to explicitly prevent intervention spillover. B: Complex dependencies are captured by learning multiple parallel graph representations, which are then aggregated to model non-linear interactions. 
+
+C: A standard VAE reparameterization head generates the stochastic latent variables ( z). D: A Latent Modulator takes the perturbation label as input and applies atomic perturbations (∆) to the independent latents ( z), shifting the distribution from the observed latent state ( zobs ) to the interventional latent state (zint ). Both zobs and zint are then transformed by the DAGMA layer through the learned DAG via linear mixing to yield the final causal states ( u), which are reconstructed into the predicted control (ˆ xobs ) and perturbed (ˆ xint ) gene expression profiles by a dense decoder. 17/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+problems that jointly minimize a data-fit score and the acyclicity penalty. 344 
+
+DAGMA implementation. We implement a modified DAGMA approach designed to learn the 345 
+
+invariant, baseline causal structure of the biological system. To ensure stability and manage the trade-off 346 
+
+between reconstruction fidelity and acyclicity, we introduce two critical regularizations. First, we employ a 347 
+
+path-following schedule where the score weight μ is gradually decreased (see Eq. (7)), allowing the model to 348 
+
+prioritize feature learning early in training before strictly enforcing the graph constraint. Second, we isolate 349 
+
+gradient flow by computing LDAGMA on detached latent representations. This ensures the acyclicity 350 
+
+constraint optimizes the graph structure without distorting the encoder’s feature extraction. 351 
+
+## Training objective 352 
+
+The model is trained end-to-end by minimizing a composite objective function, Ltotal , that integrates four 353 
+
+distinct components, each tailored to a specific aspect of the learning problem. The overall objective is a 354 
+
+weighted sum of these individual losses: 355 
+
+Ltotal = αrec LMSE + βKL LKL + γMMD LMMD + δDAGMA LDAGMA (6) where αrec , β KL , γ MMD , and δDAGMA are scalar hyperparameters that balance the contribution of each term. 356 
+
+Reconstruction Loss ( LMSE ). For observational data, the model is trained to faithfully reconstruct the 357 
+
+input gene expression profiles. This is measured by the MSE between the decoder’s output and the original 358 
+
+unperturbed input, ensuring the model learns a high-fidelity representation of the basal cellular state. 359 
+
+KL Divergence ( LKL ). As a standard component of a VAE, a Kullback-Leibler divergence term is 360 
+
+included to regularize the latent space. It encourages the learned posterior distribution over the latent 361 
+
+variables, q(z|x), to be close to a prior distribution, p(z), which is typically a standard normal distribution. 362 
+
+This promotes a smooth and well-structured latent space. 363 
+
+Interventional Prediction Loss ( LMMD ). For interventional data, the model’s ability to predict 364 
+
+out-of-distribution outcomes is evaluated using the MMD [33]. This loss measures the distributional distance 365 
+
+between the model-predicted cell states following a perturbation and the ground-truth distribution of 366 
+
+experimentally observed cells for that same perturbation. 367 
+
+Causal Graph Loss ( LDAGMA ). The DAGMA loss is computed on the latent representations of 368 
+
+observational data to learn the invariant causal graph structure between the learned meta-pathways. This 369 
+
+objective integrates three key components: a data-fit score, an L1 penalty to encourage sparsity, and the 370 
+
+18/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+differentiable acyclicity constraint. The loss is defined as: 371 
+
+LDAGMA = μ(S(A; X) + λ1∥A∥1) + h(A) (7) where S(A; X) is a score, ∥A∥1 is the L1 norm of the adjacency matrix, and h(A) is the acyclicity penalty. 372 
+
+The hyperparameters μ and λ1 control the weighting of the score and sparsity terms, respectively. 373 
+
+## Optimal transport for deterministic interventional learning 374 
+
+A fundamental challenge in learning from single-cell perturbation data is the absence of a direct one-to-one 375 
+
+mapping between control and perturbed cell populations, as it is impossible to observe the same cell before 376 
+
+and after the intervention. This makes learning the treatment effect a fundamental counterfactual problem, 377 
+
+where the central challenge is to identify a general transformation that maps the control distribution to the 378 
+
+perturbed distribution in the absence of paired examples. To address this counterfactual gap, many models 379 
+
+create training pairs by randomly matching control and interventional samples. While computationally 380 
+
+efficient, this random pairing is a primary cause of what we term mean collapse : a process where the model 381 
+
+learns the average response, collapsing the distribution towards its mean and eroding cellular diversity 382 
+
+(Fig. 5). 383 
+
+(a) (b) 
+
+Fig 5. Illustrative example of mean collapse problem. (a) Random pairing collapses the source distribution towards the target mean. (b) The OT preserves the underlying population structure. To address these issues, we 384 
+
+employ a Wasserstein-based OT [34, 35] framework to globally 385 
+
+pair control cells with perturbed cells under unique conditions 386 
+
+(Fig. 5b). Although several recent methods address unpaired 387 
+
+single-cell perturbation data [17, 36], we adopt OT as an 388 
+
+offline pairing step for simplicity while avoiding mean collapse. 389 
+
+## Evaluation setup and metrics 390 
+
+To ensure a consistent and fair benchmark across all 391 
+
+models, we employ a suite of metrics targeting different aspects 392 
+
+of model capability. We use the MSE to evaluate reconstruction 393 
+
+of basal (control) cell states, the MMD to evaluate the 394 
+
+accuracy of out-of-distribution predictions for perturbed states, 395 
+
+Precision@10 to evaluate non-additive genetic interactions, and 396 
+
+Hit Rate @ K to evaluate reverse-engineering of genetic causes. The calculation of all metrics was 397 
+
+19/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+standardized across the benchmarked tools. 398 
+
+Training details. RAPTORGraph is implemented in PyTorch Lightning and trained with the AdamW 399 
+
+optimizer at a learning rate of 10 −4 and weight decay of 1 .3 × 10 −4. We use a batch size of 256 and train for 400 
+
+100 epochs on a single GPU. The GraphPathway encoder uses a hidden dimension of 904, eight pathway 401 
+
+graphs, and three interaction blocks with SiLU activations and residual connections; the decoder is a 402 
+
+two-layer MLP that maps the latent space back to the gene-expression space. The number of latent factors is 403 
+
+set to 1 .04 × the number of perturbed genes. The composite objective (Eq. (6)) combines the reconstruction 404 
+
+term (weight αrec = 1) with the MMD term weighted by γMMD = 0 .197, the KL term weighted by 405 
+
+βKL = 0 .447, and the graph term weighted by δDAGMA = 1; the DAGMA loss itself uses score weight μ = 0 .27 406 
+
+and sparsity weight λ1 = 0 .052. All reported results are averaged over three random seeds (41, 42, 43). 407 
+
+Mean Squared Error (MSE). The MSE measures each model’s ability to faithfully reconstruct the gene 408 
+
+expression profile of control (unperturbed) cells; a lower value indicates better performance. To avoid trivial 409 
+
+memorization, the set of control cells is randomly split into two non-overlapping halves: an input set and a 410 
+
+ground-truth set. The model reconstructs cells from the input set, and the MSE is computed between the 411 
+
+reconstructions and the corresponding ground-truth cells, averaged over batches. For a batch of i cells with n 412 
+
+genes, the MSE is 413 
+
+LMSE = 1
+
+i · n
+
+> i
+
+X
+
+> i=1
+> n
+
+X
+
+> j=1
+
+ xij − ˆxij 
+
+2, (8) where xij is the expression level of gene j in true control cell i, and ˆ xij is the corresponding reconstructed 414 
+
+value. 415 
+
+Maximum Mean Discrepancy (MMD). The MMD [33] measures the distance between two probability 416 
+
+distributions based on the distance between their mean embeddings in a reproducing kernel Hilbert space. It 417 
+
+quantifies the dissimilarity between the distribution of model-predicted gene expression profiles and the 418 
+
+distribution of true, experimentally observed profiles for a given perturbation. We use a Gaussian (radial 419 
+
+basis function) kernel 420 
+
+k(x, y) = exp 
+
+
+
+− ∥x − y∥2
+
+2σ2MMD 
+
+
+
+, (9) where σMMD is the bandwidth hyperparameter. The squared MMD between the true distribution pdata and 421 
+
+the model’s distribution pmodel is, in population form, 422 
+
+MMD 2(pdata , p model ) = Ex,x′∼pdata 
+
+k(x, x′) − 2 Ex∼pdata , ˆx∼pmodel 
+
+k(x, ˆx) + Eˆx,ˆx′∼pmodel 
+
+k(ˆ x, ˆx′). (10) 20/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+In practice we use a multi-kernel (multi-window) estimate, i.e. a weighted combination of Gaussian kernels at 423 
+
+several bandwidths, and the unbiased empirical estimator on batches; we refer to this estimator as MMD 424 
+
+throughout. The MMD is calculated per-condition and then averaged to provide an overall measure of 425 
+
+distribution similarity. 426 
+
+Precision@10 for non-additive genetic interactions. To evaluate the models’ ability to predict 427 
+
+non-additive effects, we use the Precision@10 metric inspired by the GEARS study [5], with a naive additive 428 
+
+baseline. For each double-gene perturbation, we compute an effect vector ∆ as the mean perturbed profile 429 
+
+minus the mean control profile, for both ground-truth data and model predictions. The naive additive 430 
+
+baseline assumes the double-perturbation effect is the sum of the individual single-perturbation effects, 431 
+
+∆( A + B)naive = ∆ A + ∆ B . Comparing the true or predicted combined effect ∆( A + B) against this baseline 432 
+
+yields five interaction scores: 433 
+
+• Synergy and Suppression : Synergy Ratio = ∥∆( A+B)∥2
+
+> ∥∆( A+B)naive ∥2
+
+(magnitude ratio); 434 
+
+• Neomorphism : Neomorphism Score = 1 − cos (∆( A + B), ∆( A + B)naive ) (change in direction); 435 
+
+• Redundancy : Redundancy Score = min  cos (∆( A + B), ∆A) , cos (∆( A + B), ∆B ) (functional 436 
+
+overlap); 437 
+
+• Epistasis : Epistasis Score = cos (∆( A + B), ∆A) − cos (∆( A + B), ∆B ) (dominance). 438 
+
+For each interaction type, perturbations are ranked by their predicted score and the top 10 are selected. 439 
+
+These are compared against a ground-truth set of interactors, defined as those whose true score falls in the 440 
+
+top 25% (or, for suppression, the bottom 25%) of that category. Precision@10 is the fraction of the top-10 441 
+
+predictions that are true interactors; higher is better. 442 
+
+Hit Rate @ K for reverse perturbation. To assess each model’s ability to reverse-engineer the genetic 443 
+
+cause of an observed phenotype, we query the model with a ground-truth mean expression profile ¯ xptrue of a 444 
+
+double perturbation and rank the database of predicted profiles by Euclidean distance to the query. We 445 
+
+report two variants of Hit Rate @ K. Correct (Exact Match) Hit Rate @ K is the fraction of queries for 446 
+
+which the exact true perturbation is within the top K predictions. Relevant (Gene Overlap) Hit Rate @ K is 447 
+
+the fraction of queries for which at least one of the true perturbation’s genes is present in the top K 448 
+
+predictions, i.e. genes(ˆ p) ∩ genes( pq )̸ = ∅ for some prediction ˆ p in the top K. 449 
+
+We used the Perturb-seq single-cell RNA-seq dataset curated by Norman et al. [4] as processed in the 450 
+
+CPA study [16] and refer to it as the Norman-CPA dataset. It profiles 105 gene perturbations in K562 cells, 451 
+
+21/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+including both single and double perturbations. In total, 284 conditions across ∼108,000 cells were measured, 452 
+
+of which 131 represent unique gene–gene combinations and the remainder single perturbations or controls, 453 
+
+respectively. We utilize the entire set of single-perturbations during training and evaluate the subsequent 454 
+
+methods on the double-perturbations. 455 
+
+Additionally, we used the CRISPRi single-cell RNA-seq dataset curated by Replogle et al. [13] as 456 
+
+processed in the PerturBase study [37] and refer to it as the Replogle2020 dataset. This dataset profiles 82 457 
+
+gene perturbations in K562 cells, including both single (44) and double (37) perturbations and control. The 458 
+
+82 conditions were measured across ∼22,740 cells. 459 
+
+# Acknowledgments 460 
+
+The authors acknowledge the financial support by the Ministry of Science and Culture of Lower Saxony 461 
+
+through the zukunft.niedersachsen program of the Volkswagen Foundation via the CAIMed (Lower Saxony 462 
+
+Center for Artificial Intelligence and Causal Methods in Medicine) project under project number ZN4257, 463 
+
+and by the German Federal Ministry of Education and Research (BMBF) in the framework of the P4D 464 
+
+(Personalisierte, pr¨ adiktive, pr¨ azise und pr¨ aventive Medizin zur Verbesserung der Fr¨ uherkennung, Diagnostik, 465 
+
+Therapie und Pr¨ avention depressiver Erkrankungen) project under project number 01EK2204F. MH: Ramon 466 
+
+y Cajal fellowship (RYC2021-033127-I) and DL2CURE project (PID2023-151980OB-I00) funded by 467 
+
+MCIN/AEI/10.13039/501100011033 and “NextGenerationEU”/PRTR; Palatchi Foundation; AECC 468 
+
+Proyectos generales 2025 (PRYGN259200HERN). Views expressed herein are solely those of the author(s) 469 
+
+and do not necessarily reflect the views of the German Federal Government, the State of Lower Saxony, nor 470 
+
+the granting authorities. 471 
+
+# Data Availability 
+
+The source code of RAPTORGraph is available at https://github.com/sXperfect/RAPTORGraph . The Norman-CPA Perturb-seq dataset is available from the original Norman et al. study as processed in the CPA study [4, 16]; the Replogle2020 CRISPRi dataset is available from Replogle et al. as processed in the PerturBase study [13, 37]. 22/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+# References 
+
+1. Dixit A, Parnas O, Li B, Chen J, Fulco CP, Jerby-Arnon L, et al. Perturb-Seq: dissecting molecular circuits with scalable single-cell RNA profiling of pooled genetic screens. cell. 2016;167(7):1853-66. 2. Plenge RM, Scolnick EM, Altshuler D. Validating therapeutic targets through human genetics. Nature reviews Drug discovery. 2013;12(8):581-94. 3. Adamson B, Norman TM, Jost M, Cho MY, Nu˜ nez JK, Chen Y, et al. A multiplexed single-cell CRISPR screening platform enables systematic dissection of the unfolded protein response. Cell. 2016;167(7):1867-82. 4. Norman TM, Horlbeck MA, Replogle JM, Ge AY, Xu A, Jost M, et al. Exploring genetic interaction manifolds constructed from rich single-cell phenotypes. Science. 2019;365(6455):786-93. 5. Roohani Y, Huang K, Leskovec J. Predicting transcriptional outcomes of novel multigene perturbations with GEARS. Nature Biotechnology. 2024;42(6):927-35. 6. Cui H, Wang C, Maan H, Pang K, Luo F, Duan N, et al. scGPT: toward building a foundation model for single-cell multi-omics using generative AI. Nature methods. 2024;21(8):1470-80. 7. Chen V, Yang M, Cui W, Kim JS, Talwalkar A, Ma J. Applying interpretable machine learning in computational biology—pitfalls, recommendations and opportunities for new developments. Nature Methods. 2024 Aug;21(8):1454-61. Available from: 
+
+https://www.nature.com/articles/s41592-024-02359-7 . doi:10.1038/s41592-024-02359-7. 8. Sch¨ olkopf B, Locatello F, Bauer S, Ke NR, Kalchbrenner N, Goyal A, et al. Toward causal representation learning. Proceedings of the IEEE. 2021;109(5):612-34. 9. Zhang J, Greenewald K, Squires C, Srivastava A, Shanmugam K, Uhler C. Identifiability guarantees for causal disentanglement from soft interventions. Advances in Neural Information Processing Systems. 2023;36:50254-92. 10. de la Fuente J, Lehmann R, Ruiz-Arenas C, Voges J, Marin-Go˜ ni I, Martinez-de Morentin X, et al. Interpretable Causal Representation Learning for Biological Data in the Pathway Space. arXiv preprint arXiv:250612439. 2025. 11. Brehmer J, De Haan P, Lippe P, Cohen TS. Weakly supervised causal representation learning. Advances in Neural Information Processing Systems. 2022;35:38319-31. 23/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+12. Lippe P, Magliacane S, L¨ owe S, Asano YM, Cohen T, Gavves S. Citris: Causal identifiability from temporal intervened sequences. In: International Conference on Machine Learning. PMLR; 2022. p. 13557-603. 13. Replogle JM, Norman TM, Xu A, Hussmann JA, Chen J, Cogan JZ, et al. Combinatorial single-cell CRISPR screens by direct guide RNA capture and targeted sequencing. Nature Biotechnology. 2020 Aug;38(8):954-61. Available from: https://www.nature.com/articles/s41587-020-0470-y .doi:10.1038/s41587-020-0470-y. 14. Frangieh CJ, Melms JC, Thakore PI, Geiger-Schuller KR, Ho P, Luoma AM, et al. Multimodal pooled Perturb-CITE-seq screens in patient models define mechanisms of cancer immune evasion. Nature genetics. 2021;53(3):332-41. 15. Kamimoto K, Stringa B, Hoffmann CM, Jindal K, Solnica-Krezel L, Morris SA. Dissecting cell identity via network inference and in silico gene perturbation. Nature. 2023;614(7949):742-51. 16. Lotfollahi M, Klimovskaia Susmelj A, De Donno C, Hetzel L, Ji Y, Ibarra IL, et al. Predicting cellular responses to complex perturbations in high-throughput screens. Molecular Systems Biology. 2023 Jun;19(6):e11517. Available from: https://www.embopress.org/doi/10.15252/msb.202211517 .doi:10.15252/msb.202211517. 17. Bunne C, Stark SG, Gut G, Del Castillo JS, Levesque M, Lehmann KV, et al. Learning single-cell perturbation responses using neural optimal transport. Nature methods. 2023;20(11):1759-68. 18. Lotfollahi M, Wolf FA, Theis FJ. scGen predicts single-cell perturbation responses. Nature methods. 2019;16(8):715-21. 19. Pearl J. Causality. Cambridge university press; 2009. 20. Khemakhem I, Kingma D, Monti R, Hyvarinen A. Variational autoencoders and nonlinear ica: A unifying framework. In: International conference on artificial intelligence and statistics. PMLR; 2020. p. 2207-17. 21. von K¨ ugelgen J, Besserve M, Wendong L, Gresele L, Keki´ c A, Bareinboim E, et al. Nonparametric identifiability of causal representations from unknown interventions. Advances in Neural Information Processing Systems. 2023;36:48603-38. 22. Schneider G, Schmidt-Supprian M, Rad R, Saur D. Tissue-specific tumorigenesis: context matters. Nature Reviews Cancer. 2017;17(4):239-53. 24/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+23. Gamazon ER, Segr` e AV, Van De Bunt M, Wen X, Xi HS, Hormozdiari F, et al. Using an atlas of gene regulation across 44 human tissues to inform complex disease-and trait-associated variation. Nature genetics. 2018;50(7):956-67. 24. Walter NG. Biological pathway specificity in the cell—does molecular diversity matter? Bioessays. 2019;41(8):1800244. 25. Hekselman I, Yeger-Lotem E. Mechanisms of tissue and cell-type specificity in heritable traits and diseases. Nature Reviews Genetics. 2020;21(3):137-50. 26. Liberzon A, Birger C, Thorvaldsd´ ottir H, Ghandi M, Mesirov J, Tamayo P. The Molecular Signatures Database Hallmark Gene Set Collection. Cell Systems. 2015 Dec;1(6):417-25. Available from: 
+
+https://linkinghub.elsevier.com/retrieve/pii/S2405471215002185 .doi:10.1016/j.cels.2015.12.004. 27. Ma W, Liu F, Yuan L, Zhao C, Chen C. Emodin and AZT synergistically inhibit the proliferation and induce the apoptosis of leukemia K562 cells through the EGR1 and the Wnt/ β-catenin pathway. Oncology Reports. 2019 Nov. Available from: 
+
+http://www.spandidos-publications.com/10.3892/or.2019.7408 . doi:10.3892/or.2019.7408. 28. Shaulian E, Karin M. AP-1 as a regulator of cell life and death. Nature Cell Biology. 2002 May;4(5):E131-6. Available from: https://www.nature.com/articles/ncb0502-e131 .doi:10.1038/ncb0502-e131. 29. Shaulian E, Schreiber M, Piu F, Beeche M, Wagner EF, Karin M. The Mammalian UV Response. Cell. 2000 Dec;103(6):897-908. Available from: 
+
+https://linkinghub.elsevier.com/retrieve/pii/S0092867400001938 .doi:10.1016/S0092-8674(00)00193-8. 30. Kaghad M, Bonnet H, Yang A, Creancier L, Biscan JC, Valent A, et al. Monoallelically Expressed Gene Related to p53 at 1p36, a Region Frequently Deleted in Neuroblastoma and Other Human Cancers. Cell. 1997 Aug;90(4):809-19. Available from: 
+
+https://linkinghub.elsevier.com/retrieve/pii/S0092867400805401 .doi:10.1016/S0092-8674(00)80540-1. 31. Bello K, Aragam B, Ravikumar P. Dagma: Learning dags via m-matrices and a log-determinant acyclicity characterization. Advances in Neural Information Processing Systems. 2022;35:8226-39. 25/26 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 4, 2026. ;https://doi.org/10.64898/2026.11.03.763980 doi: bioRxiv preprint
+
+32. Zheng X, Aragam B, Ravikumar PK, Xing EP. Dags with no tears: Continuous optimization for structure learning. Advances in neural information processing systems. 2018;31. 33. Gretton A, Borgwardt KM, Rasch MJ, Sch¨ olkopf B, Smola A. A kernel two-sample test. The journal of machine learning research. 2012;13(1):723-73. 34. Cuturi M. Sinkhorn distances: Lightspeed computation of optimal transport. Advances in neural information processing systems. 2013;26. 35. Flamary R, Courty N, Gramfort A, Alaya MZ, Boisbunon A, Chambon S, et al. Pot: Python optimal transport. Journal of Machine Learning Research. 2021;22(78):1-8. 36. Dong M, Wang B, Wei J, de O Fonseca AH, Perry CJ, Frey A, et al. Causal identification of single-cell experimental perturbation effects with CINEMA-OT. Nature methods. 2023;20(11):1769-79. 37. Wei Z, Si D, Duan B, Gao Y, Yu Q, Zhang Z, et al. PerturBase: a comprehensive database for single-cell perturbation data analysis and visualization. Nucleic Acids Research. 2024 Oct;53(D1):D1099-111. eprint: https://academic.oup.com/nar/article-pdf/53/D1/D1099/59638394/gkae858.pdf. Available from: 
+
+https://doi.org/10.1093/nar/gkae858 . doi:10.1093/nar/gkae858. 
+
+# Supporting information 
+
+• S1 Fig. Correct (Exact Match) Hit Rate @ K for the reverse perturbation task. The metric measures the fraction of queries where the exact causal gene combination was identified in the top K predictions. Higher is better. Values are mean ± standard deviation over 3 runs. 
+
+• S1 Table. Full hyperparameter sweep and ablation results for the β-VAE regularization parameter and DAGMA loss weights. 26/26

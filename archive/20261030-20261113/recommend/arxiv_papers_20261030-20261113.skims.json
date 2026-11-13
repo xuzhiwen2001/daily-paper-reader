@@ -1,0 +1,1233 @@
+{
+  "mode": "skims",
+  "generated_at": "2026-11-13T03:39:58.790362+00:00",
+  "stats": {
+    "mode": "skims",
+    "forced_all_quick": true,
+    "min_score": 8.0,
+    "deep_divecandidates": 29,
+    "deep_cap": null,
+    "deep_selected": 0,
+    "quick_candidates": 29,
+    "quick_skim_target": null,
+    "quick_selected": 29
+  },
+  "deep_dive": [],
+  "quick_skim": [
+    {
+      "id": "2611.02311v1",
+      "source": "arxiv",
+      "title": "CytoWave: Perturbation-Centric Pretraining for Single-Cell Response Prediction",
+      "abstract": "Predicting gene expression under perturbations from single-cell data is a fundamental task for modeling cellular responses, with applications in discovering gene function and designing therapeutics. However, existing methods often struggle to generalize across datasets due to differences in experimental protocols, biological contexts, and species. We present \\textbf{CytoWave}, a perturbation-centric pretraining framework for single-cell genetic perturbation response prediction. We leverage large-scale cross-species perturbation datasets unified via orthology and train CytoWave in a two-stage manner. In the first stage, we learn reference control cell states via masked gene expression recovery on unperturbed cells. In the second stage, we pretrain the model to predict perturbed gene expression given control states and perturbation signals, together with a contrastive objective that aligns latent representations of perturbation responses with perturbation signals. We perform strict dataset-held-out evaluation across multiple condition combinations and case studies of pathway activity changes, demonstrating consistent and effective performance of CytoWave in predicting single-cell genetic perturbation responses.",
+      "authors": [
+        "Yuwei Miao",
+        "Jingquan Yan",
+        "Hehuan Ma",
+        "Thao M. Dang",
+        "Lin Xu",
+        "Siyuan Zhang",
+        "Junzhou Huang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-11-02T00:00:57+00:00",
+      "link": "https://arxiv.org/pdf/2611.02311v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "perturbation-centric pretraining framework for single-cell genetic perturbation response prediction",
+      "llm_evidence_cn": "面向单细胞遗传扰动响应预测的扰动中心预训练框架",
+      "llm_evidence": "面向单细胞遗传扰动响应预测的扰动中心预训练框架",
+      "canonical_evidence": "面向单细胞遗传扰动响应预测的扰动中心预训练框架",
+      "llm_tldr_en": "CytoWave is a perturbation-centric pretraining framework that unifies large-scale cross-species perturbation data via orthology and trains in two stages to improve single-cell genetic perturbation response prediction and cross-dataset generalization.",
+      "llm_tldr_cn": "从单细胞数据预测扰动下的基因表达是建模细胞响应的核心任务，但现有方法因实验方案、生物背景与物种差异难以跨数据集泛化。作者提出CytoWave扰动中心预训练框架，利用同源映射统一大规模跨物种扰动数据，并采用两阶段训练：先在未扰动细胞上通过掩码基因表达恢复学习对照细胞状态，再进行扰动相关预训练。实验表明该框架提升了对单细胞遗传扰动响应的预测与跨场景泛化能力。该工作为虚拟细胞式的扰动响应建模提供了可迁移的预训练范式。",
+      "llm_tldr": "从单细胞数据预测扰动下的基因表达是建模细胞响应的核心任务，但现有方法因实验方案、生物背景与物种差异难以跨数据集泛化。作者提出CytoWave扰动中心预训练框架，利用同源映射统一大规模跨物种扰动数据，并采用两阶段训练：先在未扰动细胞上通过掩码基因表达恢复学习对照细胞状态，再进行扰动相关预训练。实验表明该框架提升了对单细胞遗传扰动响应的预测与跨场景泛化能力。该工作为虚拟细胞式的扰动响应建模提供了可迁移的预训练范式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.11217v1",
+      "source": "arxiv",
+      "title": "scBIG++: Learning Across Genes and Cells to Predict Single-Cell Perturbation Responses",
+      "abstract": "Predicting single-cell transcriptional responses to genetic and chemical interventions supports gene-function discovery and regulatory analysis. Existing studies often focus only on highly variable genes, restricting the expression changes available for downstream analysis. Cells exposed to the same intervention can also show heterogeneous expression responses, with coordinated gene programs active to different degrees. We propose scBIG++, a full-gene perturbation prediction framework that models this heterogeneity by connecting expression-adaptive gene modules with population-conditioned generation. To preserve shared gene structure while accommodating cellular variation, Gene-Relation Clustering organizes genes into common windows, within which Dynamic SoftSub learns expression-dependent submodule memberships. This shared organization enables Set-GCAE to exchange information about corresponding gene groups across control cells, placing individual representations in their source-population context. The cell representations initialize a latent flow, while their pooled summary and the perturbation representation condition response generation. Generated states are decoded into expression profiles covering all assayed protein-coding genes retained after preprocessing, supporting comprehensive analysis of perturbation-induced expression changes. Experiments across six genetic and chemical settings spanning 6,539--19,451 genes demonstrate competitive perturbation-effect recovery and full-gene expression reconstruction under unseen targets and combinations, cross-cell-line transfer, and held-out compounds. Our implementation is available at https://github.com/ttruan2426-dot/scBIG.",
+      "authors": [
+        "Jiafa Ruan",
+        "Zican Qiao",
+        "Zongxin Yang",
+        "Ruijie Quan",
+        "Yi Yang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "q-bio.GN"
+      ],
+      "published": "2026-11-08T08:08:31+00:00",
+      "link": "https://arxiv.org/pdf/2611.11217v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "full-gene single-cell perturbation response prediction framework",
+      "llm_evidence_cn": "全基因单细胞扰动响应预测框架",
+      "llm_evidence": "全基因单细胞扰动响应预测框架",
+      "canonical_evidence": "全基因单细胞扰动响应预测框架",
+      "llm_tldr_en": "scBIG++ predicts single-cell transcriptional responses to genetic and chemical perturbations using gene-relation clustering and population-conditioned generation over all genes.",
+      "llm_tldr_cn": "预测单细胞对遗传与化学干预的转录响应有助于基因功能发现与调控分析，但现有方法多只关注高变基因，且忽略了同一干预下细胞响应的异质性。作者提出 scBIG++ 全基因扰动预测框架，通过基因关系聚类组织基因窗口，并结合群体条件生成建模响应异质性。该框架在保留共享基因结构的同时容纳细胞变异，拓展了可用于下游分析的表达变化范围。",
+      "llm_tldr": "预测单细胞对遗传与化学干预的转录响应有助于基因功能发现与调控分析，但现有方法多只关注高变基因，且忽略了同一干预下细胞响应的异质性。作者提出 scBIG++ 全基因扰动预测框架，通过基因关系聚类组织基因窗口，并结合群体条件生成建模响应异质性。该框架在保留共享基因结构的同时容纳细胞变异，拓展了可用于下游分析的表达变化范围。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.13649v1",
+      "source": "arxiv",
+      "title": "Predicting Single-Cell Spatial Gene Expression from H&E using Pathology Foundation Models",
+      "abstract": "Predicting gene expression directly from hematoxylin and eosin (H&E) images offers a scalable and cost-effective approach to deriving spatial molecular insights from routine histology. Pathology foundation models, typically pretrained using tile-level objectives, may not adequately capture the fine-grained cellular features required for single-cell molecular prediction. In this work, we systematically evaluate and establish domain-informed and task-specific strategies for adapting pathology foundation models to single-cell spatial gene expression prediction. Using paired H&E and Xenium 5K data, our approach improves mean gene-wise Pearson correlation by 2.67x over the standard zero-shot baseline and achieves state-of-the-art performance on this task. We demonstrate strong gene-detection performance across the full gene panel (AUROC = 0.800) and importantly identify that predictive performance varies substantially across biological contexts, with our model achieving its highest Pearson correlation for spatially variable genes (r = 0.643). Our findings demonstrate that, despite the challenges of sparse single-cell measurements, H&E-derived representations can recover biologically meaningful spatial expression patterns, highlighting both the opportunities and limitations of morphology-based molecular inference at cellular resolution.",
+      "authors": [
+        "Ashley P. Tsang",
+        "Evan Liu",
+        "Conrad Foo",
+        "Bob Chen",
+        "Hassaan Maan",
+        "Donny Chan",
+        "Elisa Penna",
+        "Veronica Ibarra Lopez",
+        "Hector Corrada Bravo",
+        "Aicha BenTaieb",
+        "Lisa M. McGinnis",
+        "Runmin Wei",
+        "Kenneth T. Gao"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-11-10T06:44:33+00:00",
+      "link": "https://arxiv.org/pdf/2611.13649v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "adapts pathology foundation models to predict single-cell spatial gene expression from H&E",
+      "llm_evidence_cn": "改造病理基础模型从H&E预测单细胞空间基因表达",
+      "llm_evidence": "改造病理基础模型从H&E预测单细胞空间基因表达",
+      "canonical_evidence": "改造病理基础模型从H&E预测单细胞空间基因表达",
+      "llm_tldr_en": "Predicting gene expression from H&E enables cheap spatial molecular profiling, but pathology foundation models trained on tiles miss fine cellular detail; task-specific adaptation strategies improve mean gene-wise Pearson correlation 2.67x over zero-shot and reach state of the art.",
+      "llm_tldr_cn": "从H&E图像直接预测基因表达可低成本获得空间分子信息，但常规病理基础模型基于图块级目标预训练，难以刻画单细胞级精细特征。作者系统评估并设计了面向任务的适配策略，将病理基础模型迁移到单细胞空间基因表达预测任务。在配对的H&E与Xenium 5K数据上，该方法相较零样本基线将基因级平均皮尔逊相关提升2.67倍，并达到当前最优性能。该工作为基于常规组织切片的空间转录组推断提供了可复用的模型适配范式。",
+      "llm_tldr": "从H&E图像直接预测基因表达可低成本获得空间分子信息，但常规病理基础模型基于图块级目标预训练，难以刻画单细胞级精细特征。作者系统评估并设计了面向任务的适配策略，将病理基础模型迁移到单细胞空间基因表达预测任务。在配对的H&E与Xenium 5K数据上，该方法相较零样本基线将基因级平均皮尔逊相关提升2.67倍，并达到当前最优性能。该工作为基于常规组织切片的空间转录组推断提供了可复用的模型适配范式。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-30-763081-v1",
+      "source": "biorxiv",
+      "title": "Single-cell perturbation prediction near experimental reproducibility with GENESIS",
+      "abstract": "Single-cell perturbation atlases now measure cellular responses across millions of cells, but the number of possible combinations of biological contexts, perturbations, doses and other experimental variables make exhaustive measurements infeasible. Here, we present GENESIS (Generative ENErgy-based Single-cell Intervention Simulator), a generative framework that predicts single-cell response distributions directly from the covariates defining an experimental condition. GENESIS uses a lightweight neural network trained with the energy score, a strictly proper scoring rule for distributions. We introduce an experiment-calibrated evaluation framework in which prediction error is interpreted relative to the reproducibility of repeated measurements of the same condition. Across the Tahoe-100M small-molecule atlas and a large PBMC cytokine atlas, GENESIS significantly outperforms existing generative models and statistical baselines and approaches experimental reproducibility on independently repeated conditions. Importantly, GENESIS remains accurate when trained on only a fraction of the available experimental conditions or cells, and generated profiles recover experimentally observed context-dependent transcriptional programs. At comparable training-cell budgets, GENESIS achieves more accurate predictions when measurements span more experimental conditions rather than profiling fewer conditions more deeply. Together, these findings suggest a complementary strategy for perturbation studies: broader, lower-depth measurements can expand experimental coverage, while GENESIS augments sparsely sampled populations and predicts responses in unmeasured conditions.",
+      "authors": [
+        "Conci, R.",
+        "D'Ascenzo, D.",
+        "Cultrera di Montesano, S.",
+        "Raghavan, S.",
+        "Winter, P. S.",
+        "Van Allen, E. M.",
+        "Crawford, L.",
+        "Lotter, W."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-01T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.30.763081v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "generative framework predicting single-cell perturbation response distributions with experiment-calibrated evaluation",
+      "llm_evidence_cn": "预测单细胞扰动响应分布的生成式框架，并采用实验校准评测",
+      "llm_evidence": "预测单细胞扰动响应分布的生成式框架，并采用实验校准评测",
+      "canonical_evidence": "预测单细胞扰动响应分布的生成式框架，并采用实验校准评测",
+      "llm_tldr_en": "GENESIS is a generative energy-score framework that predicts single-cell perturbation response distributions directly from experimental covariates, paired with an experiment-calibrated evaluation that relates error to measurement reproducibility.",
+      "llm_tldr_cn": "单细胞扰动图谱难以穷尽生物学背景、扰动、剂量等变量的所有组合，因此需要从有限数据外推细胞响应。作者提出GENESIS生成式框架，用轻量神经网络以能量评分为训练目标，直接由定义实验条件的协变量预测单细胞响应分布，并设计以重复测量可重复性为基准的实验校准评测。结果显示其预测误差接近实验自身的波动水平。该工作为单细胞扰动响应预测提供了可校准、可解释的建模范式。",
+      "llm_tldr": "单细胞扰动图谱难以穷尽生物学背景、扰动、剂量等变量的所有组合，因此需要从有限数据外推细胞响应。作者提出GENESIS生成式框架，用轻量神经网络以能量评分为训练目标，直接由定义实验条件的协变量预测单细胞响应分布，并设计以重复测量可重复性为基准的实验校准评测。结果显示其预测误差接近实验自身的波动水平。该工作为单细胞扰动响应预测提供了可校准、可解释的建模范式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-04-764292-v1",
+      "source": "biorxiv",
+      "title": "scDisentangle: sequential disentanglement for single-cell perturbation response prediction",
+      "abstract": "Predicting the transcriptional response of single cells to perturbation is a central goal of single-cell modeling, with broad application to analysis and experimental design. Existing methods often fail to beat simple baselines and offer little insight into how biological variation is organized. We present scDisentangle, a model that decomposes single-cell expression into observed attributes and a sequence of residual components, generating counterfactuals that preserve source cell identity. scDisentangle outperformed current models and naive baselines on cytokine stimulation, liver infection, and unseen combinatorial genetic perturbations, on which accuracy was largely independent of how closely a response resembled the average perturbation effect. In an immune checkpoint inhibitor-associated myocarditis cohort, cell-resolved counterfactuals predicted donor-specific intracardiac CD8+ T cell states from peripheral blood. In a castration-regeneration prostate atlas, predictions recapitulated luminal dynamics and progenitor-marker kinetics upon androgen add-back. scDisentangle's coarse-to-fine latent structure aligned with hematopoietic lineage organization, with early levels capturing a less differentiated core progressively refined into cell-type-specific programs.",
+      "authors": [
+        "El Mejjad, S.",
+        "Enezari, S.",
+        "Bedraoui, A.",
+        "El Hajji, F. Z.",
+        "El Fatimy, R.",
+        "Hofree, M.",
+        "Daouda, T."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-06T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.04.764292v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "single-cell perturbation response prediction with counterfactual generation",
+      "llm_evidence_cn": "单细胞扰动响应预测与反事实生成",
+      "llm_evidence": "单细胞扰动响应预测与反事实生成",
+      "canonical_evidence": "单细胞扰动响应预测与反事实生成",
+      "llm_tldr_en": "scDisentangle decomposes single-cell expression into observed attributes and residual components to generate counterfactuals, beating baselines on perturbation response prediction.",
+      "llm_tldr_cn": "预测单细胞对扰动的转录响应是单细胞建模的核心目标，但现有方法常难以超越简单基线，也难以解释生物变异的组织方式。作者提出 scDisentangle，将单细胞表达分解为可观测属性与一系列残差成分，从而生成保留源细胞身份的反事实表达。在细胞因子刺激、肝脏感染与未见组合遗传扰动任务上，该模型优于现有方法与朴素基线，为扰动响应预测提供了可解释的分解式建模思路。",
+      "llm_tldr": "预测单细胞对扰动的转录响应是单细胞建模的核心目标，但现有方法常难以超越简单基线，也难以解释生物变异的组织方式。作者提出 scDisentangle，将单细胞表达分解为可观测属性与一系列残差成分，从而生成保留源细胞身份的反事实表达。在细胞因子刺激、肝脏感染与未见组合遗传扰动任务上，该模型优于现有方法与朴素基线，为扰动响应预测提供了可解释的分解式建模思路。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-07-765043-v1",
+      "source": "biorxiv",
+      "title": "BioMeme: biological response memory for virtual cells",
+      "abstract": "Virtual cells predict responses to unmeasured perturbations, but neural models absorb measurements into weights, require retraining and cannot cite supporting experiments. Here we introduce biological response memory, replacing a learned state-to-response layer with a memory of measured experiments. BioMeme predicts next-dose responses in a new cell type from measured lower-dose states, recalling similarly responding compounds in that cell and the same compound in a reference cell line. Each prediction is an exact weighted sum of named measurements, and memory updates with one linear solve. In all nine preregistered comparisons across three screens, memory predicted response direction better than the learners it replaced. In U2OS, BioMeme outperformed input-matched ridge, adapted chemCPA and a neural layer in memory's place, and matched a full-panel network reading reference responses directly (error within 3.4%). Transfer was compound-specific, lowering error by 21.2% against at most 1.8% for wrong compounds, and replicated in reserved MCF7 data. With 20 references, fitting took seconds on one CPU thread, at least 420 times faster than neural tuning and fitting. Adding its prediction to one measured well cut that well's error by 27-31%. Biological response memory establishes a design principle for virtual cells any laboratory can update, inspect and run.",
+      "authors": [
+        "Bi, J.",
+        "Zhu, C.",
+        "Liu, H.",
+        "Wang, Y.",
+        "Liu, T.",
+        "Bao, X.",
+        "Hu, R.",
+        "Thiyagalingam, J.",
+        "Gunn, S. R."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-09T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.07.765043v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "memory-based virtual cell model predicting responses to unmeasured perturbations",
+      "llm_evidence_cn": "基于记忆的虚拟细胞模型预测未测量扰动响应",
+      "llm_evidence": "基于记忆的虚拟细胞模型预测未测量扰动响应",
+      "canonical_evidence": "基于记忆的虚拟细胞模型预测未测量扰动响应",
+      "llm_tldr_en": "BioMeme replaces the learned state-to-response layer of virtual cells with a memory of measured experiments, predicting dose responses as weighted sums of named measurements.",
+      "llm_tldr_cn": "虚拟细胞需要预测未测量扰动的响应，但神经模型把测量结果吸收进权重，需反复重训且无法引用支持实验。作者提出生物响应记忆BioMeme，用已测实验的记忆替代学习式的状态到响应映射，通过召回相似响应化合物与参考细胞系的测量做加权预测。在三个筛选的九项预注册比较中，其响应方向预测优于所替代的学习器，并提供可追溯、可单步更新的预测。",
+      "llm_tldr": "虚拟细胞需要预测未测量扰动的响应，但神经模型把测量结果吸收进权重，需反复重训且无法引用支持实验。作者提出生物响应记忆BioMeme，用已测实验的记忆替代学习式的状态到响应映射，通过召回相似响应化合物与参考细胞系的测量做加权预测。在三个筛选的九项预注册比较中，其响应方向预测优于所替代的学习器，并提供可追溯、可单步更新的预测。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "virtual cell model",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2610.41692v1",
+      "source": "arxiv",
+      "title": "From WSIs to Bulk, Spatial and Single-Cell Transcriptomics via Multi-Scale Graph Neural Networks",
+      "abstract": "Understanding the spatial distribution of gene expression is key to studying complex diseases like cancer. While Spatial Transcriptomics (ST) and Single-Cell Transcriptomics (scT) provide high-resolution insights, they remain expensive and scarce. In contrast, standard histopathology Whole-Slide Images (WSIs) paired with bulk RNA sequencing are widely available. This work introduces a Multi-Scale Graph Neural Network (GNN) capable of simultaneously predicting bulk, spatial, and single-cell transcriptomics directly from WSIs. By extracting morphological features using a Pathology Foundation Model (PFM) (UNI2-h) and constructing spatial graphs at both patch and cell levels, the model learns the hierarchical relationships within the tissue. The network is trained on a combined dataset of The Cancer Genome Atlas Program (TCGA), Visium, and Xenium samples across lung, kidney, and breast tissues. A hybrid training strategy is employed, leveraging direct supervision alongside weakly supervised consistency losses to ensure predictions align across biological scales. Results show the model accurately predicts gene expression at the slide level and moderately at the patch level (strongest on Xenium), and achieves moderate correlation at the challenging single-cell level. Furthermore, downstream tasks explore the clinical relevance of these predictions, demonstrating their utility in survival analysis, spatial hazard mapping, and tumor classification via molecular signatures.",
+      "authors": [
+        "Miguel Andrade",
+        "José Almeida",
+        "Carlos Santiago",
+        "Catarina Barata"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-10-30T12:59:05+00:00",
+      "link": "https://arxiv.org/pdf/2610.41692v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts spatial transcriptomics from whole-slide histology images with multi-scale GNN",
+      "llm_evidence_cn": "用多尺度图神经网络从全切片病理图像预测空间转录组",
+      "llm_evidence": "用多尺度图神经网络从全切片病理图像预测空间转录组",
+      "canonical_evidence": "用多尺度图神经网络从全切片病理图像预测空间转录组",
+      "llm_tldr_en": "A multi-scale graph neural network built on pathology foundation model features predicts bulk, spatial and single-cell transcriptomics directly from whole-slide histology images, recovering hierarchical tissue relationships.",
+      "llm_tldr_cn": "空间转录组与单细胞转录组成本高、样本稀缺，而常规病理全切片图像与bulk RNA测序却大量可得。本文提出多尺度图神经网络，利用病理基础模型提取形态特征，并在patch与细胞两个层级构建空间图，从全切片图像同时预测bulk、空间与单细胞转录组。实验表明该模型能学习组织内层次化关系并恢复多分辨率表达谱。该工作为低成本获取空间与单细胞层面基因表达提供了可行途径。",
+      "llm_tldr": "空间转录组与单细胞转录组成本高、样本稀缺，而常规病理全切片图像与bulk RNA测序却大量可得。本文提出多尺度图神经网络，利用病理基础模型提取形态特征，并在patch与细胞两个层级构建空间图，从全切片图像同时预测bulk、空间与单细胞转录组。实验表明该模型能学习组织内层次化关系并恢复多分辨率表达谱。该工作为低成本获取空间与单细胞层面基因表达提供了可行途径。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.05849v1",
+      "source": "arxiv",
+      "title": "A low-rank decoder bottleneck bounds reliability in foundation-model perturbation prediction",
+      "abstract": "Foundation-model predictors of perturbation response are evaluated primarily by aggregate accuracy. Using their predictions to prioritize experiments requires assessing each prediction's reliability. We audit the state-transition (ST) decoder used in STATE across three encoders (SE-600M, scGPT, and Tahoe-x1) and four cell lines under CRISPRi. The decoder's first attention layer has a low-rank output. Projecting this output onto 4-32 fixed directions estimated from training activations preserves mean per-perturbation Pearson delta correlation (PDC). This low-rank attention bottleneck bounds the decoder's reliability by distance to training responses: PDC declines as the cosine distance from a perturbation's observed response to its nearest training response increases. We propose predicted-NN-distance, the cosine distance from a predicted response to its nearest training response, as a per-prediction confidence score. The score has a mean absolute Spearman correlation of 0.81 with PDC, close to the 0.88 obtained with the observed response. Thresholds calibrated on this score transfer across encoders and cell lines, and the score remains predictive of PDC for drug perturbations.",
+      "authors": [
+        "Zheyu Zhang",
+        "Yuanhao Huang",
+        "Fan Feng",
+        "Jie Liu"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "q-bio.QM",
+        "stat.ML"
+      ],
+      "published": "2026-11-04T02:39:03+00:00",
+      "link": "https://arxiv.org/pdf/2611.05849v1",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "audits foundation-model perturbation response prediction reliability",
+      "llm_evidence_cn": "审计基础模型扰动响应预测的可靠性",
+      "llm_evidence": "审计基础模型扰动响应预测的可靠性",
+      "canonical_evidence": "审计基础模型扰动响应预测的可靠性",
+      "llm_tldr_en": "Audits the STATE state-transition decoder across three encoders and four CRISPRi cell lines, showing a low-rank attention bottleneck bounds per-perturbation prediction reliability by distance to training responses.",
+      "llm_tldr_cn": "基础模型扰动响应预测通常只看总体准确率，难以判断单条预测是否可靠，从而妨碍实验优先级排序。作者系统审计STATE的状态转移解码器，覆盖三种编码器与四条CRISPRi细胞系，发现首个注意力层输出为低秩。将其投影到少量固定方向仍保持平均每扰动Pearson delta相关，且可靠性随与训练响应的余弦距离增大而下降。该结果为扰动预测的可信度评估与实验选择提供依据。",
+      "llm_tldr": "基础模型扰动响应预测通常只看总体准确率，难以判断单条预测是否可靠，从而妨碍实验优先级排序。作者系统审计STATE的状态转移解码器，覆盖三种编码器与四条CRISPRi细胞系，发现首个注意力层输出为低秩。将其投影到少量固定方向仍保持平均每扰动Pearson delta相关，且可靠性随与训练响应的余弦距离增大而下降。该结果为扰动预测的可信度评估与实验选择提供依据。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.10658v1",
+      "source": "arxiv",
+      "title": "The Delta Gap: Cellular World Models for Perturbation Response Prediction Are Far Harder Than Global Correlation Implies",
+      "abstract": "Cellular world models aim to predict how cells respond to genetic perturbations, analogous to world models in reinforcement learning. Perturbation response models are evaluated almost exclusively by global Pearson correlation between predicted and observed transcriptomes. We show this metric is dominated by thousands of non-responsive genes and severely inflates apparent performance. On the Replogle K562 screen (509 unseen perturbations, 5000 genes), GEARS achieves global Pearson 0.977, but its delta Pearson is only 0.076. A trivial baseline predicting mean training delta achieves 0.267, which is 3.5x better than GEARS. Our primary contribution is methodological: we identify and quantify this delta gap as a systematic evaluation artifact, and propose delta-space evaluation as the primary benchmark. We provide two post-hoc corrections (RWR on co-expression graphs and kNN matching) and show that 2.8x of the remaining gap lies in perturbation representation geometry, not decoder capacity. We further show the gap is partially addressable end-to-end: delta-aligned training (lambda = 3.0) raises delta Pearson to 0.179 on Replogle (2.35x over GEARS) and surpasses the trivial baseline on direction accuracy (0.680 vs 0.567) and gene recovery (1.52 vs 1.19); combined with kNN it reaches 0.217. An amplitude-calibration variant (eta = 0.3) further raises gene recovery to 2.16 while reaching 0.218. Critically, these representations transfer zero-shot across cell lines: from Replogle K562 to unseen Norman A549, the delta-aligned model reaches 0.328 on 741 shared genes, 4.7x a trivial baseline and 2.1x standard GEARS. This is the first systematic quantification of the delta gap, and the first diagnostic framework localizing the residual gap to perturbation representation geometry via an oracle upper bound.",
+      "authors": [
+        "Junhui Gao"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-11-07T11:14:09+00:00",
+      "link": "https://arxiv.org/pdf/2611.10658v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "evaluation of cellular world models for perturbation response prediction",
+      "llm_evidence_cn": "细胞世界模型用于扰动响应预测的评测分析",
+      "llm_evidence": "细胞世界模型用于扰动响应预测的评测分析",
+      "canonical_evidence": "细胞世界模型用于扰动响应预测的评测分析",
+      "llm_tldr_en": "The Delta Gap shows global Pearson correlation inflates perturbation response model performance and proposes delta-based evaluation revealing GEARS is beaten by a mean-delta baseline.",
+      "llm_tldr_cn": "细胞世界模型旨在预测细胞对遗传扰动的响应，但现有评测几乎只用预测与观测转录组间的全局皮尔逊相关。作者指出该指标被大量无响应基因主导，严重高估性能：在 Replogle K562 筛选中 GEARS 全局相关达 0.977，而 delta 相关仅 0.076，甚至不如预测平均训练 delta 的平凡基线。该工作提出以 delta 为核心的评测方法，揭示扰动响应预测远比表面困难。",
+      "llm_tldr": "细胞世界模型旨在预测细胞对遗传扰动的响应，但现有评测几乎只用预测与观测转录组间的全局皮尔逊相关。作者指出该指标被大量无响应基因主导，严重高估性能：在 Replogle K562 筛选中 GEARS 全局相关达 0.977，而 delta 相关仅 0.076，甚至不如预测平均训练 delta 的平凡基线。该工作提出以 delta 为核心的评测方法，揭示扰动响应预测远比表面困难。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.14129v1",
+      "source": "arxiv",
+      "title": "Continuous 3D Spatial Transcriptomics Reconstruction via Histology-Informed Implicit Neural Representations",
+      "abstract": "Three-dimensional spatial transcriptomics (3D ST) enables the analysis of gene-expression patterns across tissue depths. However, 3D ST measurements are acquired from discrete 2D tissue sections, which are often sparsely sampled due to high acquisition costs. To address this limitation, we propose a histology-informed multi-task implicit neural representation (HIM-INR) for continuous 3D gene-expression reconstruction from sparse ST observations. HIM-INR jointly reconstructs gene-expression profiles and histological representations using an INR with a shared backbone, leveraging densely sampled histological images as auxiliary spatial supervision. Once trained, HIM-INR predicts gene expression at arbitrary 3D coordinates without requiring histological images. Experiments on two 3D ST datasets demonstrate improved reconstruction over existing methods, particularly as the number of missing ST sections increases.",
+      "authors": [
+        "Kaito Shiku",
+        "Ryoma Bise",
+        "Ahtisham Fazeel Abbasi",
+        "Yuichiro Iwashita",
+        "Shumpei Takezaki",
+        "Andreas Dengel",
+        "Muhammad Nabeel Asim"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.LG"
+      ],
+      "published": "2026-11-10T14:16:40+00:00",
+      "link": "https://arxiv.org/pdf/2611.14129v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "histology-informed implicit neural representation predicting gene expression from densely sampled histological images",
+      "llm_evidence_cn": "组织学信息驱动的隐式神经表示，利用组织学图像预测基因表达",
+      "llm_evidence": "组织学信息驱动的隐式神经表示，利用组织学图像预测基因表达",
+      "canonical_evidence": "组织学信息驱动的隐式神经表示，利用组织学图像预测基因表达",
+      "llm_tldr_en": "HIM-INR is a histology-informed multi-task implicit neural representation that jointly reconstructs gene expression and histology from sparse 3D spatial transcriptomics sections and predicts expression at arbitrary 3D coordinates.",
+      "llm_tldr_cn": "三维空间转录组依赖稀疏采样的二维切片，获取成本高导致深度方向覆盖不足。作者提出HIM-INR，一种组织学信息驱动的多任务隐式神经表示，采用共享主干联合重建基因表达谱与组织学表征，并以密集采样的组织学图像作为辅助空间监督。训练完成后模型可在任意三维坐标处连续预测基因表达。该工作实现了由组织学形态引导的三维基因表达重建，显著降低了对密集空间转录组测量的依赖。",
+      "llm_tldr": "三维空间转录组依赖稀疏采样的二维切片，获取成本高导致深度方向覆盖不足。作者提出HIM-INR，一种组织学信息驱动的多任务隐式神经表示，采用共享主干联合重建基因表达谱与组织学表征，并以密集采样的组织学图像作为辅助空间监督。训练完成后模型可在任意三维坐标处连续预测基因表达。该工作实现了由组织学形态引导的三维基因表达重建，显著降低了对密集空间转录组测量的依赖。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-23-761347-v1",
+      "source": "biorxiv",
+      "title": "Digital twins forecast individual immune trajectories",
+      "abstract": "The human immune system differs markedly between individuals and changes in response to infection, vaccination and treatment. AI virtual cells are being built to simulate cellular responses to perturbation. Yet these models, like most immune-response predictors, describe each person by a single pre-challenge measurement and forecast change from patterns pooled across people. Digital twins, updated with every new observation of an individual, could forecast how that person's immune state changes. Here we present ImmuneTwins, which builds these twins from single-cell profiles by personalizing a shared virtual-cell model with each individual's observations. In two external populations, ImmuneTwins reduced immune-age error by 32% and 42% relative to the best existing method. During repeated influenza vaccination, its twins predicted the direction of immune-cell change 35% more accurately than the best published method, and their error fell by 27% as observations accumulated. The twins revealed that immune cells and plasma proteins recover about half their deviation from a persistent personal reference within 90 days, whereas response size varies between challenges. They further localized B-cell remodelling in exceptional longevity and anticipated patient-specific immune trajectories during myeloma treatment. These results establish virtual-cell digital twins for forecasting individual immune change and identifying each person's characteristic immune features.",
+      "authors": [
+        "Hu, C.",
+        "Yu, C.",
+        "Chen, C. Y.-C."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-10-30T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.23.761347v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "personalizes a shared virtual-cell model into individual digital twins",
+      "llm_evidence_cn": "将共享虚拟细胞模型个性化构建为个体数字孪生",
+      "llm_evidence": "将共享虚拟细胞模型个性化构建为个体数字孪生",
+      "canonical_evidence": "将共享虚拟细胞模型个性化构建为个体数字孪生",
+      "llm_tldr_en": "Introduces ImmuneTwins, which personalizes a shared AI virtual-cell model with each individual's single-cell profiles to forecast that person's immune state trajectories over time.",
+      "llm_tldr_cn": "现有AI虚拟细胞与免疫响应预测模型通常只用每个人挑战前的单次测量，并依赖跨人群汇总模式来外推变化。作者提出ImmuneTwins，以共享虚拟细胞模型为骨架，用个体每次新增的单细胞观测持续个性化，构建可更新的个体数字孪生。在两个外部队列中，该方法将免疫年龄误差相对最优基线降低32%与42%。该工作表明个体化虚拟细胞模型可用于预测个体免疫轨迹。",
+      "llm_tldr": "现有AI虚拟细胞与免疫响应预测模型通常只用每个人挑战前的单次测量，并依赖跨人群汇总模式来外推变化。作者提出ImmuneTwins，以共享虚拟细胞模型为骨架，用个体每次新增的单细胞观测持续个性化，构建可更新的个体数字孪生。在两个外部队列中，该方法将免疫年龄误差相对最优基线降低32%与42%。该工作表明个体化虚拟细胞模型可用于预测个体免疫轨迹。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "virtual cell model",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-27-762107-v1",
+      "source": "biorxiv",
+      "title": "Cross-modal transfer enables zero-shot prediction of drug responses across cell types",
+      "abstract": "Genetic perturbation responses capture the functional consequences of gene-level interventions, providing functional information for drug-response prediction beyond baseline gene expression. Within the same cellular context, genetic and chemical perturbations engage shared regulatory networks, providing a biological basis for transferring response information between perturbation modalities. Here we introduce GRAFT, a framework that combines genetic-to-chemical transfer with cross-context prediction to infer drug-induced transcriptional responses without drug measurements in the target context. Across benchmarked LINCS and external contexts, GRAFT improved response correlation, directional agreement and magnitude reconstruction over competing methods, particularly for drugs with context-dependent responses. GRAFT-Adapt further refines predictions of unmeasured responses using a small number of drug measurements from the target context. GRAFT-Atlas spans 13 cellular contexts and 7,856 drug catalog entries, comprising 102,128 predictions for drug-context combinations. The atlas captured recognizable pharmacological neighborhoods, shared functional programs, context-dependent transcriptional changes and structural-functional associations supported by molecular docking. Across ten iPSC lines from distinct donors, GRAFT identified candidate inter-donor differences, with functional support for selected candidates from measured genetic perturbation responses. Together, GRAFT enables perturbation-informed prediction and comparison of drug responses across cellular contexts.",
+      "authors": [
+        "Luo, C.",
+        "Hu, M.",
+        "Wu, Y.",
+        "Guo, D.",
+        "Wang, S.",
+        "Lyu, Q. R.",
+        "Liu, X."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-01T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.27.762107v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "zero-shot drug response prediction via genetic-to-chemical perturbation transfer",
+      "llm_evidence_cn": "通过遗传扰动到化学扰动的迁移实现零样本药物响应预测",
+      "llm_evidence": "通过遗传扰动到化学扰动的迁移实现零样本药物响应预测",
+      "canonical_evidence": "通过遗传扰动到化学扰动的迁移实现零样本药物响应预测",
+      "llm_tldr_en": "GRAFT transfers genetic perturbation responses to chemical perturbations and combines cross-context prediction to infer drug-induced transcriptional responses without drug measurements in the target context.",
+      "llm_tldr_cn": "药物响应预测通常依赖目标细胞类型中的药物扰动数据，但此类测量往往缺失。作者提出GRAFT框架，利用同一细胞环境中遗传扰动与化学扰动共享调控网络的特点，将遗传扰动响应迁移到化学扰动，并结合跨情境预测实现零样本药物响应推断。在LINCS及外部数据上，GRAFT在响应相关性、方向一致性与幅度重建上优于对照方法。该工作为缺乏药物测量情境下的转录响应预测提供了新思路。",
+      "llm_tldr": "药物响应预测通常依赖目标细胞类型中的药物扰动数据，但此类测量往往缺失。作者提出GRAFT框架，利用同一细胞环境中遗传扰动与化学扰动共享调控网络的特点，将遗传扰动响应迁移到化学扰动，并结合跨情境预测实现零样本药物响应推断。在LINCS及外部数据上，GRAFT在响应相关性、方向一致性与幅度重建上优于对照方法。该工作为缺乏药物测量情境下的转录响应预测提供了新思路。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-28-762655-v2",
+      "source": "biorxiv",
+      "title": "EMBER: Contextualized gene representations enable compositional prediction across cellular perturbations",
+      "abstract": "Predicting the effects of individual and combined perturbations is central to identifying context-specific vulnerabilities and designing targeted interventions. Yet learning gene representations that integrate functional relationships with cellular state and transfer across perturbation tasks remains challenging. Here, we present EMBER, a gene-centric foundation model that learns context-dependent functional representations of genes. EMBER combines interaction-guided contrastive learning with masked expression reconstruction during pretraining on a single-cell corpus curated for diversity and balanced sampling across cell types and experimental batches. EMBER decouples gene representation learning from task-specific prediction through a composable embedding framework: the pretrained encoder remains frozen, while lightweight probes combine contextualized gene embeddings to predict individual and combined perturbation effects. The same pretrained representations support single-gene perturbation-response prediction, digenic interaction prediction, and multi-target drug-response prediction. EMBER improves cross-context perturbation-response prediction and genetic-interaction ranking relative to evaluated baselines. EMBER also prioritized SCFD1, a mediator of autophagosome-lysosome fusion, as a candidate dependency during mTOR inhibition. Together, these results establish contextualized gene embeddings as reusable building blocks for modeling genetic and pharmacological perturbations, supporting the prioritization of genetic interactions and context-specific interventions for experimental testing.",
+      "authors": [
+        "Ho, N.",
+        "Xing, E. P.",
+        "Ma, J."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-01T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.28.762655v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "compositional prediction of single and combined perturbation effects",
+      "llm_evidence_cn": "对单一与组合扰动效应的组合式预测",
+      "llm_evidence": "对单一与组合扰动效应的组合式预测",
+      "canonical_evidence": "对单一与组合扰动效应的组合式预测",
+      "llm_tldr_en": "EMBER is a gene-centric foundation model pretrained with interaction-guided contrastive learning and masked expression reconstruction, decoupling representation from task to enable compositional prediction of single and combined perturbations.",
+      "llm_tldr_cn": "预测单个与组合遗传扰动的效应是识别情境特异脆弱性的关键，但现有方法难以学到可跨扰动任务迁移的基因表示。作者提出 EMBER，一个基因中心基础模型，通过交互引导对比学习与掩码表达重建在多样化单细胞语料上预训练，并将表示学习与下游任务解耦。该设计使模型能够组合式地预测未见扰动及其组合的转录响应。这为虚拟细胞建模与靶向干预设计提供了可迁移的基础表示。",
+      "llm_tldr": "预测单个与组合遗传扰动的效应是识别情境特异脆弱性的关键，但现有方法难以学到可跨扰动任务迁移的基因表示。作者提出 EMBER，一个基因中心基础模型，通过交互引导对比学习与掩码表达重建在多样化单细胞语料上预训练，并将表示学习与下游任务解耦。该设计使模型能够组合式地预测未见扰动及其组合的转录响应。这为虚拟细胞建模与靶向干预设计提供了可迁移的基础表示。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-31-763027-v1",
+      "source": "biorxiv",
+      "title": "RELAY: Relational In-Context Learning for Cellular Perturbation Prediction",
+      "abstract": "Cellular responses to perturbations vary across multiple experimental variables, such as perturbation identity, cell type, donor, and dose, defining a multidimensional condition space in which each measured population occupies one coordinate. Existing methods predict unmeasured conditions using explicit representations of these variable values, generalizing unseen values therefore depends on the availability and quality of such representations. We present RELAY, a relational in-context model that predicts unmeasured coordinates from measured responses at related coordinates. For each target, RELAY uses measured control--perturbed pairs from conditions that share one or more experimental variables with the target, such as the same perturbation in another cell type. The model receives only which variables are shared, not their values, and uses these demonstrations to predict the target response. We evaluate RELAY on chemical, genetic, and cytokine perturbation datasets under two settings: unseen combinations, where test values are individually observed during training but not in their target combinations, and unseen variable values, where test values are introduced only through context at inference. RELAY outperforms existing in-context methods on unseen variable values and supervised perturbation-prediction methods on unseen combinations. All resources will be open sourced, including code and data.",
+      "authors": [
+        "Sun, Y.",
+        "Feng, J.",
+        "Wang, Y.",
+        "Xie, W.",
+        "Zhang, Y.",
+        "Zhang, X."
+      ],
+      "primary_category": "cell biology",
+      "categories": [
+        "cell biology"
+      ],
+      "published": "2026-11-03T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.31.763027v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts cellular perturbation responses via relational in-context learning",
+      "llm_evidence_cn": "用关系式上下文学习预测细胞扰动响应",
+      "llm_evidence": "用关系式上下文学习预测细胞扰动响应",
+      "canonical_evidence": "用关系式上下文学习预测细胞扰动响应",
+      "llm_tldr_en": "Presents RELAY, a relational in-context model that predicts cellular responses at unmeasured perturbation, cell type and dose coordinates by transferring measured control-perturbed pairs from related conditions.",
+      "llm_tldr_cn": "细胞对扰动的响应随扰动类型、细胞类型、供体与剂量等多维条件变化，现有方法依赖显式的变量表征，难以泛化到未见的取值。作者提出关系式上下文学习模型RELAY，对每个目标条件检索共享部分实验变量的已测对照-扰动配对，并据此预测未测坐标下的响应。结果表明该框架在缺少完整变量表征时仍能泛化到新的扰动与条件组合。该工作为单细胞扰动响应预测提供了不依赖显式条件嵌入的新范式。",
+      "llm_tldr": "细胞对扰动的响应随扰动类型、细胞类型、供体与剂量等多维条件变化，现有方法依赖显式的变量表征，难以泛化到未见的取值。作者提出关系式上下文学习模型RELAY，对每个目标条件检索共享部分实验变量的已测对照-扰动配对，并据此预测未测坐标下的响应。结果表明该框架在缺少完整变量表征时仍能泛化到新的扰动与条件组合。该工作为单细胞扰动响应预测提供了不依赖显式条件嵌入的新范式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-02-763678-v1",
+      "source": "biorxiv",
+      "title": "Spectral Adaptive Repositioning for Flow-Based Single-Cell Perturbation Modeling",
+      "abstract": "Predicting transcriptome-wide cellular responses to genetic and biomolecular perturbations is central to functional genomics and therapeutic target discovery. Existing methods assign gene positional encodings derived from arbitrary orderings or static co-expression masks built from unperturbed cells, and cannot capture the functional rewiring induced by perturbations. We present SPEAR, a generative framework built on two complementary positional mechanisms. Spectral positional encoding grounds each gene's position in the geometry of the co-expression network via continuous coordinates derived from the graph Laplacian. Adaptive repositioning then derives each gene's position from its perturbation-conditioned hidden state at every layer, allowing the attention genes exert on one another to reorganize without explicit supervision. Evaluated on genetic, pharmacological, and cytokine perturbation benchmarks, SPEAR demonstrates excellent recovery of differential gene-expression, distributional structure, and perturbation-specific identifiability. SPEAR also captures latent positional relationships that closely map to known transcription factor-target interactions. https://github.com/shouryaverma/SPEAR}{https://github.com/shouryaverma/SPEAR",
+      "authors": [
+        "Verma, S.",
+        "Wang, M.",
+        "Kadadi, S. D.",
+        "Lanman, N. A.",
+        "Mohammadi, S.",
+        "Grama, A."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-04T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.02.763678v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "flow-based generative model predicting transcriptome-wide responses to genetic perturbations",
+      "llm_evidence_cn": "基于流的生成模型预测遗传扰动下的全转录组响应",
+      "llm_evidence": "基于流的生成模型预测遗传扰动下的全转录组响应",
+      "canonical_evidence": "基于流的生成模型预测遗传扰动下的全转录组响应",
+      "llm_tldr_en": "SPEAR is a flow-based generative framework using spectral positional encoding and adaptive repositioning to predict transcriptome-wide cellular responses to genetic and biomolecular perturbations.",
+      "llm_tldr_cn": "预测转录组层面对遗传扰动的响应是功能基因组学的核心任务，但现有方法依赖固定基因顺序或静态共表达掩码，无法刻画扰动引起的功能重连。作者提出SPEAR生成框架，用图拉普拉斯导出的谱位置编码刻画基因在共表达网络中的几何位置，并在每层依据扰动条件隐状态自适应重定位。实验显示其能更准确预测扰动后的全转录组响应，为虚拟细胞式建模提供新机制。",
+      "llm_tldr": "预测转录组层面对遗传扰动的响应是功能基因组学的核心任务，但现有方法依赖固定基因顺序或静态共表达掩码，无法刻画扰动引起的功能重连。作者提出SPEAR生成框架，用图拉普拉斯导出的谱位置编码刻画基因在共表达网络中的几何位置，并在每层依据扰动条件隐状态自适应重定位。实验显示其能更准确预测扰动后的全转录组响应，为虚拟细胞式建模提供新机制。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-03-763980-v1",
+      "source": "biorxiv",
+      "title": "RAPTORGraph: graph-based pathway modeling for causal discovery in single-cell perturbations",
+      "abstract": "Experiments involving the perturbation of individual cells are central to understanding cellular mechanisms and can accelerate drug discovery. Causal representation learning allows us to uncover the latent factors that regulate biological systems and predict the impact of novel perturbations. Unfortunately, existing methods fail to address intervention spillover in a closed-world setting where intervention targets are known a priori, such as in Perturb-seq experiments, due to their reliance on dense encoders. Furthermore, incorporating curated biological pathways into the model imposes a confirmatory bias, forcing it to explain the data through preexisting pathways and reducing the set of hypotheses the model can explore, while discarding novel signals that lie outside the annotated pathways. In this work, we introduce RAPTORGraph, a {beta}-variational autoencoder with a GraphPathway encoder that explicitly models complex gene-to-gene interactions within learned pathways. Moreover, our model's preconditioning isolates the influence of perturbed genes, yielding clean, single-node latent interventions required for identifiable causal discovery and eliminating spillover. Finally, we train the model on data preprocessed with optimal-transport alignment, which guarantees a well-defined mapping between control and perturbed samples and further stabilizes the learned latent representations. We demonstrate that RAPTORGraph improves state-of-the-art performance on downstream analyses of unseen perturbations, such as non-additive interactions, while performing competitively on objective metrics, such as mean squared error and maximum mean discrepancy. The source code is available at https://github.com/sXperfect/RAPTORGraph.",
+      "authors": [
+        "Adhisantoso, Y. G.",
+        "Schröder, S. K.",
+        "Gress, M.",
+        "Hernaez, M.",
+        "Voges, J."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-04T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.03.763980v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "causal discovery and novel perturbation prediction in single-cell perturbations",
+      "llm_evidence_cn": "单细胞扰动中的因果发现与新扰动预测",
+      "llm_evidence": "单细胞扰动中的因果发现与新扰动预测",
+      "canonical_evidence": "单细胞扰动中的因果发现与新扰动预测",
+      "llm_tldr_en": "Proposes RAPTORGraph, a graph-based pathway modeling approach for causal representation learning in Perturb-seq, addressing intervention spillover from dense encoders while avoiding confirmatory bias.",
+      "llm_tldr_cn": "单细胞扰动实验对理解机制和药物发现至关重要，但现有因果表示学习依赖稠密编码器，难以处理Perturb-seq中干预目标已知的干预溢出问题。同时引入既有通路会带来确认偏误，压缩可探索的假设空间。作者提出RAPTORGraph，用图结构建模通路以进行因果发现并预测新扰动的影响。该工作为单细胞扰动响应预测提供更可解释的建模路径。",
+      "llm_tldr": "单细胞扰动实验对理解机制和药物发现至关重要，但现有因果表示学习依赖稠密编码器，难以处理Perturb-seq中干预目标已知的干预溢出问题。同时引入既有通路会带来确认偏误，压缩可探索的假设空间。作者提出RAPTORGraph，用图结构建模通路以进行因果发现并预测新扰动的影响。该工作为单细胞扰动响应预测提供更可解释的建模路径。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-05-764505-v1",
+      "source": "biorxiv",
+      "title": "Predicting Transcriptional Responses to Unseen Compounds through Context Modeling and Multi-View Transfer",
+      "abstract": "Predicting drug-induced transcriptional responses could support in silico screening of new compounds, yet existing models barely use the compound: on a drug-blind L1000 benchmark, removing the drug input from seven published models changes accuracy by at most 0.012 Pearson correlation. They capture shared cellular and experimental variation while overlooking the compound-specific signals that distinguish drug effects. We present UnDetect, a framework that separates contextual variation from compound effects to predict responses to transcriptionally unprofiled compounds. UnDetect integrates chemical structure, annotated targets, mechanisms of action and Cell Painting morphology into a normalized multi-view kernel that accommodates incomplete compound information, and transfers residual responses within and across profiled cell lines, so that pharmacological and phenotypic relationships inform predictions beyond chemical similarity. On a drug-blind benchmark, where the paired control reveals the assay plate, UnDetect is the only model to beat a network that ignores the compound, in every fold; on a within-plate score that is zero for any compound-blind prediction, it reaches 0.117 against 0.092 for the strongest published model. On DeepCE's benchmark it reaches 0.602 Pearson correlation against the reported 0.491. Transfer across cell lines improves 28 of 28 LINCS L1000 and, at the two higher doses, 47 and 49 of 50 Tahoe-100M cell-line evaluations. These results show that separating context from compound effects and integrating complementary compound information improves transcriptional prediction and extends the utility of perturbation atlases for virtual screening.",
+      "authors": [
+        "Lei, Y.",
+        "Liang, H.",
+        "Peng, K.",
+        "Wen, J."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-06T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.05.764505v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicting drug-induced transcriptional responses to unseen compounds via multi-view transfer",
+      "llm_evidence_cn": "通过多视图迁移预测未见化合物的药物诱导转录响应",
+      "llm_evidence": "通过多视图迁移预测未见化合物的药物诱导转录响应",
+      "canonical_evidence": "通过多视图迁移预测未见化合物的药物诱导转录响应",
+      "llm_tldr_en": "UnDetect separates contextual variation from compound effects using a multi-view kernel of structure, targets, MoA and Cell Painting to predict transcriptional responses to unseen compounds.",
+      "llm_tldr_cn": "预测药物诱导的转录响应可支持新化合物的计算机筛选，但现有模型几乎不使用化合物信息，在药物盲测基准上去掉药物输入后精度几乎不变。作者提出UnDetect框架，将上下文变异与化合物效应分离，融合化学结构、靶点、作用机制与Cell Painting形态构成归一化多视图核。实验表明其能更好地预测未做转录谱化合物的响应，凸显化合物特异信号的重要性。",
+      "llm_tldr": "预测药物诱导的转录响应可支持新化合物的计算机筛选，但现有模型几乎不使用化合物信息，在药物盲测基准上去掉药物输入后精度几乎不变。作者提出UnDetect框架，将上下文变异与化合物效应分离，融合化学结构、靶点、作用机制与Cell Painting形态构成归一化多视图核。实验表明其能更好地预测未做转录谱化合物的响应，凸显化合物特异信号的重要性。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-07-765083-v1",
+      "source": "biorxiv",
+      "title": "Disentangled generative modeling of single-cell perturbation responses across dynamic cellular states",
+      "abstract": "Single-cell perturbation studies are increasingly conducted across complex, multi-condition biolog-ical systems, offering a powerful lens into how interventions reshape cell states and molecular pro-grams. However, standard computational models compress single-cell profiles into unified repre-sentations where treatment effects are obscured by cell division, lineage progression, donor varia-tion, and cellular stress. Here, we present Disentangled Variational Inference for Perturbation Re-sponse (PertVI), a deep generative model that separates baseline mitotic phase, cellular state, and batch effects from treatment-induced shifts while isolating aberrant off-manifold responses in or-thogonal anomaly space. This structured design tackles two intertwined tasks: (1) quantifying treatment-induced changes in cell-state composition, and (2) inferring state-gated transcriptional changes in response to treatment. Across simulated benchmarks, PertVI accurately disentangles coupled biological axes and recovers weak treatment signatures. In conditional chemical and genet-ic screens of primary human CD8+ and CD4+ T cells, PertVI separates memory-precursor adju-vants from toxic phenocopies, resolves co-clustered regulators into directional kinetic trajectories and biphasic rebounders obscured by standard workflows, and reveals that treatment-induced phe-notypic shifting is decoupled from broad transcriptional perturbation responses and instead gov-erned by state-specific impulses. Altogether, PertVI brings unique mechanistic granularity to sin-gle-cell perturbation response modeling, serving as a proof of principle for biology-informed, struc-ture-guided variance disentanglement in dynamic cellular systems.",
+      "authors": [
+        "Wang, Y.",
+        "Zhao, Y.",
+        "Li, S.",
+        "Yang, D."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-10T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.07.765083v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "disentangled deep generative model of single-cell perturbation responses",
+      "llm_evidence_cn": "解耦式深度生成模型建模单细胞扰动响应",
+      "llm_evidence": "解耦式深度生成模型建模单细胞扰动响应",
+      "canonical_evidence": "解耦式深度生成模型建模单细胞扰动响应",
+      "llm_tldr_en": "Presents PertVI, a disentangled variational generative model that separates cell cycle, cellular state and batch effects from treatment-induced shifts to better predict single-cell perturbation responses.",
+      "llm_tldr_cn": "单细胞扰动研究常在多条件复杂体系中开展，但常规模型把细胞谱压缩为统一表征，使处理效应被细胞分裂、谱系进程、供体差异与应激等因素掩盖。作者提出解耦变分推断模型PertVI，将基线有丝分裂期、细胞状态与批次效应同处理诱导的位移分离，并在正交异常空间中隔离离群响应。结果说明该结构化分解能更清晰地刻画扰动引起的表达变化。该工作提升了跨动态细胞状态下单细胞扰动响应预测的可解释性与准确性。",
+      "llm_tldr": "单细胞扰动研究常在多条件复杂体系中开展，但常规模型把细胞谱压缩为统一表征，使处理效应被细胞分裂、谱系进程、供体差异与应激等因素掩盖。作者提出解耦变分推断模型PertVI，将基线有丝分裂期、细胞状态与批次效应同处理诱导的位移分离，并在正交异常空间中隔离离群响应。结果说明该结构化分解能更清晰地刻画扰动引起的表达变化。该工作提升了跨动态细胞状态下单细胞扰动响应预测的可解释性与准确性。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2610.41399v1",
+      "source": "arxiv",
+      "title": "scAnyOmics: Foundation-Model Distillation for Any-to-Any Completion of Multi-omics Virtual Cells",
+      "abstract": "Recent advances in single-cell technologies have enabled the profiling of multiple molecular modalities, including transcriptomics, proteomics, and chromatin accessibility, providing a more comprehensive understanding of cellular states. However, integrating heterogeneous modalities and predicting missing molecular information remain challenging, particularly when paired measurements are limited. Here, we introduce scAnyOmics, a generative framework that distills knowledge from a frozen single-cell foundation model into a multimodal student model. scAnyOmics integrates scRNA-seq, protein-marker measurements, and scATAC-seq into a shared representation, enabling cross-modal prediction and reconstruction of missing modalities. We assembled 690,880 cells from six publicly available studies, covering both paired and partially paired multi-omics measurements, to systematically evaluate its predictive performance. We further evaluated scAnyOmics on held-out donor data, where it outperformed baseline methods across multiple evaluation metrics. Beyond cross-modal reconstruction, we explored its applications in cell-type annotation, perturbation-response prediction, and biological age estimation. Overall, scAnyOmics provides a unified framework for integrating incomplete single-cell multi-omics data and transferring pretrained biological knowledge, supporting the development of virtual cell models across diverse cellular contexts and experimental platforms.",
+      "authors": [
+        "Zhaoqi Song",
+        "Ye Du",
+        "Yusuke Iwasawa",
+        "Yutaka Matsuo",
+        "Qian Niu"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-10-30T08:12:01+00:00",
+      "link": "https://arxiv.org/pdf/2610.41399v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "multi-omics virtual cell with any-to-any cross-modal completion",
+      "llm_evidence_cn": "多组学虚拟细胞的任意到任意跨模态补全",
+      "llm_evidence": "多组学虚拟细胞的任意到任意跨模态补全",
+      "canonical_evidence": "多组学虚拟细胞的任意到任意跨模态补全",
+      "llm_tldr_en": "scAnyOmics distills a frozen single-cell foundation model into a multimodal student model, integrating scRNA-seq, protein and scATAC-seq into a shared representation for any-to-any modality completion.",
+      "llm_tldr_cn": "单细胞多组学可同时测量转录组、蛋白与染色质可及性，但配对测量有限，整合异质模态并补全缺失分子信息仍具挑战。作者提出scAnyOmics生成式框架，将冻结的单细胞基础模型知识蒸馏到多模态学生模型，把scRNA-seq、蛋白标记与scATAC-seq映射到共享表征，实现跨模态预测与缺失模态重建。该框架支持任意到任意的组学补全，为构建多组学虚拟细胞提供了可行方案。",
+      "llm_tldr": "单细胞多组学可同时测量转录组、蛋白与染色质可及性，但配对测量有限，整合异质模态并补全缺失分子信息仍具挑战。作者提出scAnyOmics生成式框架，将冻结的单细胞基础模型知识蒸馏到多模态学生模型，把scRNA-seq、蛋白标记与scATAC-seq映射到共享表征，实现跨模态预测与缺失模态重建。该框架支持任意到任意的组学补全，为构建多组学虚拟细胞提供了可行方案。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "virtual cell model",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.02681v1",
+      "source": "arxiv",
+      "title": "HistoTx: Early fusion of H&E images and spatial transcriptomics at varying spatial transcriptomics resolution with self-supervised learning",
+      "abstract": "Spatial transcriptomics maps gene expression across tissue sections and, when integrated with whole slide images, jointly captures both morphological architecture and molecular activity to provide a rich, multimodal view of tissue biology. ML approaches combining spatial transcriptomics and WSIs typically learn a mapping from morphological features to molecular profiles via contrastive alignment or supervised fine-tuning of pathology foundation models. In both cases, transcriptomics serves as a training signal rather than a true input modality, leaving inference fundamentally image-driven. We propose an early-fusion vision transformer architecture in which transcript tokens are constructed at arbitrary spatial resolution, merged with image patch tokens, and jointly processed through a shared transformer stack for deep cross-modal interaction. Starting from a pretrained vision-only pathology foundation model, we train HistoTx by continuing self-supervised pretraining on paired image and spatial transcriptomics data and demonstrate that: 1) at inference with image only, performance remains on par with the baseline on most tasks while improving on tasks that inherently benefit from molecular knowledge, such as gene expression prediction; 2) when both modalities are available at inference, jointly providing image and transcript inputs outperforms either modality alone.",
+      "authors": [
+        "Alice Driessen",
+        "Emil Malmsten",
+        "Steffen Wolf",
+        "Bernd Illing",
+        "Isinsu Katircioglu",
+        "Adriano Martinelli",
+        "Rolf Stahel",
+        "Solange Peters",
+        "Enriqueta Felip",
+        "Sanjay Popat",
+        "Krisztian Homicsko",
+        "Raphael Gottardo",
+        "Marianna Rapsomaniki",
+        "Fei Tang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "cs.AI",
+        "q-bio.GN",
+        "q-bio.QM"
+      ],
+      "published": "2026-11-02T07:36:09+00:00",
+      "link": "https://arxiv.org/pdf/2611.02681v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "multimodal fusion of H&E images with spatial transcriptomics",
+      "llm_evidence_cn": "将H&E图像与空间转录组进行多模态早期融合",
+      "llm_evidence": "将H&E图像与空间转录组进行多模态早期融合",
+      "canonical_evidence": "将H&E图像与空间转录组进行多模态早期融合",
+      "llm_tldr_en": "Proposes HistoTx, an early-fusion vision transformer that treats spatial transcriptomics as a true input modality alongside H&E images rather than only a training signal, improving multimodal tissue modeling.",
+      "llm_tldr_cn": "现有结合空间转录组与全切片图像的方法多通过对比对齐或微调病理基础模型学习形态到分子的映射，转录组仅作训练信号，推理仍由图像主导。作者提出HistoTx，采用早期融合视觉Transformer，把转录组构建为与图像并列的真实输入模态，并支持不同空间转录组分辨率。该设计使形态与分子信息在表征阶段即交互，改善了多模态组织建模。该工作为组织学图像与基因表达联合学习提供了新的融合范式。",
+      "llm_tldr": "现有结合空间转录组与全切片图像的方法多通过对比对齐或微调病理基础模型学习形态到分子的映射，转录组仅作训练信号，推理仍由图像主导。作者提出HistoTx，采用早期融合视觉Transformer，把转录组构建为与图像并列的真实输入模态，并支持不同空间转录组分辨率。该设计使形态与分子信息在表征阶段即交互，改善了多模态组织建模。该工作为组织学图像与基因表达联合学习提供了新的融合范式。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.13748v1",
+      "source": "arxiv",
+      "title": "When Covariance Is Not Enough: Kernel-Based Regularization for Single-Cell Counterfactuals",
+      "abstract": "Counterfactual editing of single cells, predicting how an observed cell would look had one factor been different, enables in-silico screening where experiments are infeasible, but is useful only if the edit is faithful to the individual and not merely to the condition. Concept bottleneck generative models make the effects of interventions interpretable by decomposing a cell's representation into known and unknown factors. Previous work uses a linear cross-covariance penalty to disentangle known and unknown dimensions. We demonstrate that this first-order criterion does not fully separate information when non-linear interactions are present. We first demonstrate the inadequacy of linear cross-factor penalization with simulation experiments with controlled edits and known non-linear covariate effects. We then demonstrate that adding a nonlinear kernel criterion, the normalized Hilbert-Schmidt Independence Criterion, is able to recover the true intervention effects on simulation data. Finally, we apply the non-linear concept bottleneck model to a complex single-cell RNA-seq dataset and find that it improves the ability to generate counterfactual expression profiles of cells under different tissue environments.",
+      "authors": [
+        "Korbinian Traeuble",
+        "Edward de Brouwer",
+        "Archit Verma",
+        "Doron Haviv",
+        "Kipper Fletez-Brant"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "q-bio.GN"
+      ],
+      "published": "2026-11-10T08:49:33+00:00",
+      "link": "https://arxiv.org/pdf/2611.13748v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "counterfactual single-cell editing predicts cell state under intervention",
+      "llm_evidence_cn": "单细胞反事实编辑预测干预后的细胞状态",
+      "llm_evidence": "单细胞反事实编辑预测干预后的细胞状态",
+      "canonical_evidence": "单细胞反事实编辑预测干预后的细胞状态",
+      "llm_tldr_en": "Counterfactual single-cell editing is limited by linear cross-covariance penalties that fail under nonlinear interactions; the authors propose kernel-based regularization to better disentangle known and unknown factors, improving faithful individual-level counterfactuals.",
+      "llm_tldr_cn": "单细胞反事实编辑可模拟干预后细胞状态，但现有概念瓶颈模型依赖线性交叉协方差惩罚，在非线性交互下难以彻底解耦已知与未知因子。作者提出核基正则化替代一阶惩罚，以更严格地分离因素表示。仿真实验显示线性方法失效而核正则化显著改善解耦与个体级编辑忠实性。该结果为扰动响应的硅内筛选提供了更可信的建模手段。",
+      "llm_tldr": "单细胞反事实编辑可模拟干预后细胞状态，但现有概念瓶颈模型依赖线性交叉协方差惩罚，在非线性交互下难以彻底解耦已知与未知因子。作者提出核基正则化替代一阶惩罚，以更严格地分离因素表示。仿真实验显示线性方法失效而核正则化显著改善解耦与个体级编辑忠实性。该结果为扰动响应的硅内筛选提供了更可信的建模手段。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-02-762549-v1",
+      "source": "biorxiv",
+      "title": "ExPert infers causal perturbations from cell states across biological and clinical contexts",
+      "abstract": "Pooled single-cell CRISPR screens have driven substantial effort toward models predicting the response to a perturbation. We posed the inverse question: which perturbation produced an observed cell state? Here we developed ExPert (Extracting Perturbations), which learns one prototype per perturbation in a latent space shared by 12 cellular contexts, trained on 8,964 perturbations and 19.5 million cells, and ranks 19,895 candidate genes per query, over half absent from training. ExPert more than doubled held-out-context recall over the best existing method with 1,000-fold less compute, and transferred without retraining to drugs, protein degradation and combinations. In alcohol-associated liver disease it implicated mRNA export, unchanged in expression, and we experimentally confirmed nuclear poly(A) retention and isoform switching. In primary mitochondrial disease it recovered the affected complex from blood, localized the signal to monocytes, and flagged a misdiagnosed control. Perturbation atlases can thus be queried in reverse, from state to likely driver.",
+      "authors": [
+        "Schwartz, L.",
+        "Schlamowitz, J. L.",
+        "Kuznets-Speck, B.",
+        "Johnson, C. W.",
+        "Das, D.",
+        "Grody, E. I.",
+        "Bai, T.",
+        "Sun, H.",
+        "Senthilkumar, I.",
+        "Primavera, G.",
+        "Jung, J.",
+        "Kuusik, B.",
+        "Grant, R. A.",
+        "Rojas, E.",
+        "Abdrabou, A. M.",
+        "Peiffer, B.",
+        "Sun, Z.",
+        "Diehl, A. M.",
+        "Marr, C.",
+        "Chandel, N. S.",
+        "Mithal, D. S.",
+        "Weinberg, S. E.",
+        "Adli, M.",
+        "Kalsotra, A.",
+        "Prashnani, E.",
+        "Goyal, Y."
+      ],
+      "primary_category": "systems biology",
+      "categories": [
+        "systems biology"
+      ],
+      "published": "2026-11-03T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.02.762549v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "infers causal perturbations from observed cell states across contexts",
+      "llm_evidence_cn": "从观测细胞状态反推因果扰动",
+      "llm_evidence": "从观测细胞状态反推因果扰动",
+      "canonical_evidence": "从观测细胞状态反推因果扰动",
+      "llm_tldr_en": "ExPert inverts perturbation-response modelling by learning one prototype per perturbation in a shared latent space, ranking candidate genes from cell states across contexts with far less compute and transfer to drugs and combinations.",
+      "llm_tldr_cn": "汇集的单细胞CRISPR筛选推动了大量预测扰动响应的模型，但反向问题——观测到的细胞状态由哪种扰动产生——尚未被系统解决。作者提出ExPert，在12种细胞上下文共享的隐空间中为每个扰动学习一个原型，基于8964个扰动和1950万细胞训练，每次查询可对19895个候选基因排序，其中过半未出现在训练中。该方法在留出上下文召回率上超过最优基线两倍以上且算力低千倍，并可无重训迁移到药物、蛋白降解和组合扰动。这为扰动建模提供了低成本的反向推断范式。",
+      "llm_tldr": "汇集的单细胞CRISPR筛选推动了大量预测扰动响应的模型，但反向问题——观测到的细胞状态由哪种扰动产生——尚未被系统解决。作者提出ExPert，在12种细胞上下文共享的隐空间中为每个扰动学习一个原型，基于8964个扰动和1950万细胞训练，每次查询可对19895个候选基因排序，其中过半未出现在训练中。该方法在留出上下文召回率上超过最优基线两倍以上且算力低千倍，并可无重训迁移到药物、蛋白降解和组合扰动。这为扰动建模提供了低成本的反向推断范式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-02-763749-v1",
+      "source": "biorxiv",
+      "title": "Resolving how genetic perturbations act through gene regulatory paths",
+      "abstract": "Perturb-seq measures transcriptional responses to thousands of genetic perturbations, but each gene's response mixes the contributions of many regulatory paths, so how a perturbation acts cannot be resolved from expression alone, however large the model. Here we present REGA-perturb, which supplies this missing information rather than adding model complexity: reference epigenomes define a scaffold of possible transcription factor (TF)-regulatory element-gene paths, and perturbation responses, pooled through shared latent programs, determine how each path is used, requiring only RNA measurements. Across three CRISPR interference screens totaling 2.4 million cells, REGA-perturb inferred TF-target relationships that agreed with ChIP-seq binding with a gain over random more than four times that of the best existing method, separated candidate direct from indirect targets, and predicted targets of TFs withheld from training. It also inferred perturbation-induced changes in TF activity not reflected in TF transcript levels, and resolved perturbation-specific regulatory rewiring in which opposing regulatory changes cancel at the expression level.",
+      "authors": [
+        "Ren, L.",
+        "Duren, Z."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-03T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.02.763749v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "resolves how genetic perturbations act via regulatory paths from Perturb-seq",
+      "llm_evidence_cn": "从Perturb-seq解析遗传扰动经调控路径的作用机制",
+      "llm_evidence": "从Perturb-seq解析遗传扰动经调控路径的作用机制",
+      "canonical_evidence": "从Perturb-seq解析遗传扰动经调控路径的作用机制",
+      "llm_tldr_en": "Perturb-seq responses mix many regulatory paths; REGA-perturb uses epigenome-defined TF-element-gene scaffolds plus shared latent programs to infer path usage from RNA alone, matching ChIP-seq across 2.4 million cells.",
+      "llm_tldr_cn": "Perturb-seq 能测量大量遗传扰动的转录响应，但表达变化混合了多条调控路径，难以解析扰动的作用机制。作者提出 REGA-perturb，用参考表观基因组构建转录因子-调控元件-基因路径骨架，并通过共享潜在程序推断各路径的使用情况，仅需RNA数据。在三个共240万细胞的CRISPRi筛选中，其推断的TF-靶基因关系与ChIP-seq一致且更优。该工作为扰动响应提供了可解释的机制分解。",
+      "llm_tldr": "Perturb-seq 能测量大量遗传扰动的转录响应，但表达变化混合了多条调控路径，难以解析扰动的作用机制。作者提出 REGA-perturb，用参考表观基因组构建转录因子-调控元件-基因路径骨架，并通过共享潜在程序推断各路径的使用情况，仅需RNA数据。在三个共240万细胞的CRISPRi筛选中，其推断的TF-靶基因关系与ChIP-seq一致且更优。该工作为扰动响应提供了可解释的机制分解。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation modeling",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-02-763811-v1",
+      "source": "biorxiv",
+      "title": "Generalizable virtual staining from histopathology to spatial proteomics across biological scales",
+      "abstract": "Large histology archives capture morphological correlates of molecular tissue states but lack direct spatial protein measurements. In this study, we show that routine hematoxylin and eosin (H&E) histology can provide a queryable, morphology-based representation of spatial protein expression that remains informative from pixels to patients. To achieve this, we developed QUEST, a model framework that represents protein markers as semantic queries for flexible multiplex immunofluorescence (MIF) prediction. Trained on a heterogeneous atlas of paired H&E and MIF images comprising over 10,000 tissue regions, QUEST captured morphological patterns associated with protein markers and reconstructed their expression intensities across diverse tissue types and cohorts. Its utility extended beyond image reconstruction and preserved biologically meaningful information across multiple scales: virtual staining preserved protein marker expression at the cellular and tissue scales, supported cell phenotyping, cellular neighborhood analysis, and characterization of spatial tissue organization, retained clinically relevant signals for patient stratification, and enabled H&E-based queries to retrieve MIF references with similar molecular profiles. These findings position virtual staining not simply as image generation but as a flexible interface between routine histology and spatial proteomics, expanding the analytical value of existing H&E archives.",
+      "authors": [
+        "Liu, Y.",
+        "Falik, O.",
+        "Zhong, Z.",
+        "Yu, L.",
+        "Luo, R.",
+        "Jin, C.",
+        "Chen, H.",
+        "Mayer, A. T.",
+        "Trevino, A. E.",
+        "Chou, P.",
+        "Dai, Y.",
+        "Wu, Z."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-04T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.02.763811v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "multimodal model predicting spatial protein from H&E histology",
+      "llm_evidence_cn": "从H&E组织学预测空间蛋白的多模态模型",
+      "llm_evidence": "从H&E组织学预测空间蛋白的多模态模型",
+      "canonical_evidence": "从H&E组织学预测空间蛋白的多模态模型",
+      "llm_tldr_en": "Presents QUEST, which treats protein markers as semantic queries to predict multiplex immunofluorescence from routine H&E histology, trained on over 10,000 paired tissue regions across biological scales.",
+      "llm_tldr_cn": "组织学档案富含分子状态的形态学线索，却缺乏直接的空间分子测量。作者提出QUEST框架，把蛋白标志物表示为语义查询，从常规H&E图像预测多重免疫荧光表达。模型在逾一万个配对组织区域上训练，可跨尺度重建蛋白表达强度。该工作展示了从形态学到空间分子图谱的可泛化映射，与从组织学推断空间基因表达高度相通。",
+      "llm_tldr": "组织学档案富含分子状态的形态学线索，却缺乏直接的空间分子测量。作者提出QUEST框架，把蛋白标志物表示为语义查询，从常规H&E图像预测多重免疫荧光表达。模型在逾一万个配对组织区域上训练，可跨尺度重建蛋白表达强度。该工作展示了从形态学到空间分子图谱的可泛化映射，与从组织学推断空间基因表达高度相通。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-02-763811-v2",
+      "source": "biorxiv",
+      "title": "Generalizable virtual staining from histopathology to spatial proteomics across biological scales",
+      "abstract": "Large histology archives capture morphological correlates of molecular tissue states but lack direct spatial protein measurements. In this study, we show that routine hematoxylin and eosin (H&E) histology can provide a queryable, morphology-based representation of spatial protein expression that remains informative from pixels to patients. To achieve this, we developed QUEST, a model framework that represents protein markers as semantic queries for flexible multiplex immunofluorescence (MIF) prediction. Trained on a heterogeneous atlas of paired H&E and MIF images comprising over 10,000 tissue regions, QUEST captured morphological patterns associated with protein markers and reconstructed their expression intensities across diverse tissue types and cohorts. Its utility extended beyond image reconstruction and preserved biologically meaningful information across multiple scales: virtual staining preserved protein marker expression at the cellular and tissue scales, supported cell phenotyping, cellular neighborhood analysis, and characterization of spatial tissue organization, retained clinically relevant signals for patient stratification, and enabled H&E-based queries to retrieve MIF references with similar molecular profiles. These findings position virtual staining not simply as image generation but as a flexible interface between routine histology and spatial proteomics, expanding the analytical value of existing H&E archives.",
+      "authors": [
+        "Liu, Y.",
+        "Falik, O.",
+        "Zhong, Z.",
+        "Yu, L.",
+        "Luo, R.",
+        "Jin, C.",
+        "Chen, H.",
+        "Mayer, A. T.",
+        "Trevino, A. E.",
+        "Chou, P.",
+        "Dai, Y.",
+        "Wu, Z."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-06T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.02.763811v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "H&E histology used to predict spatial protein marker expression via semantic queries",
+      "llm_evidence_cn": "用H&E组织学图像预测空间蛋白标志物表达",
+      "llm_evidence": "用H&E组织学图像预测空间蛋白标志物表达",
+      "canonical_evidence": "用H&E组织学图像预测空间蛋白标志物表达",
+      "llm_tldr_en": "Histology archives lack spatial molecular measurements, so QUEST learns protein markers as semantic queries to predict multiplex immunofluorescence from H&E across scales, capturing morphology-marker associations in over 10,000 tissue regions.",
+      "llm_tldr_cn": "大规模组织学档案缺乏直接的空间分子测量，限制了形态学信息的分子解读。作者提出QUEST框架，将蛋白标志物表示为语义查询，从常规H&E图像预测多重免疫荧光表达，并在超过一万个组织区域构成的异质图谱上训练。结果显示模型能捕获与蛋白标志物相关的形态模式并重建其空间表达强度，且从像素到患者层面均具信息量。该工作把虚拟染色拓展到空间蛋白组学，为无需实测即可从形态推断分子状态提供了可查询的通用方案。",
+      "llm_tldr": "大规模组织学档案缺乏直接的空间分子测量，限制了形态学信息的分子解读。作者提出QUEST框架，将蛋白标志物表示为语义查询，从常规H&E图像预测多重免疫荧光表达，并在超过一万个组织区域构成的异质图谱上训练。结果显示模型能捕获与蛋白标志物相关的形态模式并重建其空间表达强度，且从像素到患者层面均具信息量。该工作把虚拟染色拓展到空间蛋白组学，为无需实测即可从形态推断分子状态提供了可查询的通用方案。",
+      "llm_tags": [
+        "query:spatial-gene:composite"
+      ],
+      "matched_query_tag": "query:spatial-gene:composite",
+      "matched_query_text": "Papers central to 请帮我查找与“从组织学图像推断空间基因表达”相关的论文, especially work that connects or combines: histology images for inferring spatial gene expression; spatial gene expression inferred from tissue morphology; image-based transcriptomics linking tissue morphology to gene expression; multimodal learning combining histology images and gene expression; Methods for inferring spatial gene expression from histology images.; Deep learning models that predict spatial transcriptomics from tissue morphology.; Image based prediction of spatially resolved gene expression in tissue sections..",
+      "matched_requirement_id": "req-composite-spatial-gene",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-03-763968-v1",
+      "source": "biorxiv",
+      "title": "Where single-cell foundation models help: a benchmark of annotation, perturbation and regulatory inference against simple baselines",
+      "abstract": "Single-cell foundation models (FMs) are proposed as general tools for cell-type annotation, in silico perturbation and gene-regulatory-network (GRN) inference. To identify where they add value, we benchmarked five FMs (scGPT, Geneformer V1 and V2, Nicheformer, scFoundation), CellOracle, supervised perturbation models including STATE, and task-matched simple baselines on the same data, from K562 Perturb-seq screens and primary cells to healthy-donor and isogenic leukodystrophy brain organoids, a public organoid CRISPR screen and lung cancer biopsies. FMs were most useful when labels had to be transferred across species: from human to mouse lung, Nicheformer reached 0.98 accuracy and Geneformer V2 and scFoundation about 0.90, against 0.68 for the best baseline. Zero-shot in silico perturbations captured the direction of real responses in K562, with up to 75% of perturbations shifted in the expected direction (scFoundation, p < 1e-8), and Geneformer V2 networks recovered patient-level tumour differential expression better than co-expression (fold enrichment 2.9 versus 2.0). Within a species, FM embeddings annotated cells as accurately as principal components. In organoids, predicted knockout effects were largely explained by where the target is expressed, and an expression-matched control test isolated the gene-specific part, 12 to 35% of the effects. Isogenic Canavan and Krabbe organoids and 4H patient organoids, with one library per line and time point, did not yet separate methods from differences between clones and donors, which defines the replication needed for future validation. Fine-tuning changed classification accuracy but not knockout rankings. We release the benchmark, baselines, pipeline checks and the isogenic reference task as the fmaudit package, so that new models can be evaluated on the tasks where FMs already help.",
+      "authors": [
+        "Cupaioli, F. A.",
+        "Merelli, I."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-04T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.03.763968v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "benchmark of in silico perturbation prediction models including supervised perturbation models on Perturb-seq screens",
+      "llm_evidence_cn": "在Perturb-seq数据上基准评测原位扰动预测与监督扰动模型",
+      "llm_evidence": "在Perturb-seq数据上基准评测原位扰动预测与监督扰动模型",
+      "canonical_evidence": "在Perturb-seq数据上基准评测原位扰动预测与监督扰动模型",
+      "llm_tldr_en": "It is unclear where single-cell foundation models add value for annotation, in silico perturbation and regulatory inference. The authors benchmark five FMs, CellOracle, STATE and simple baselines on Perturb-seq screens, organoids and biopsies.",
+      "llm_tldr_cn": "单细胞基础模型被宣传为可通用完成细胞注释、原位扰动预测与基因调控网络推断，但其相对简单基线的真实增益并不清楚。作者在同一批数据上系统评测五种基础模型、CellOracle、STATE等监督扰动模型以及任务匹配的简单基线，数据涵盖K562 Perturb-seq、原代细胞、脑类器官CRISPR筛选与肺癌活检。结果显示基础模型在跨物种标签迁移等场景优势明显，而其他任务增益有限，为扰动响应预测的方法选择提供了清晰边界。",
+      "llm_tldr": "单细胞基础模型被宣传为可通用完成细胞注释、原位扰动预测与基因调控网络推断，但其相对简单基线的真实增益并不清楚。作者在同一批数据上系统评测五种基础模型、CellOracle、STATE等监督扰动模型以及任务匹配的简单基线，数据涵盖K562 Perturb-seq、原代细胞、脑类器官CRISPR筛选与肺癌活检。结果显示基础模型在跨物种标签迁移等场景优势明显，而其他任务增益有限，为扰动响应预测的方法选择提供了清晰边界。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Predicting cellular response to genetic perturbations",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-03-763968-v2",
+      "source": "biorxiv",
+      "title": "Where single-cell foundation models help: a benchmark of annotation, perturbation and regulatory inference against simple baselines",
+      "abstract": "Single-cell foundation models (FMs) are proposed as general tools for cell-type annotation, in silico perturbation and gene-regulatory-network (GRN) inference. To identify where they add value, we benchmarked five FMs (scGPT, Geneformer V1 and V2, Nicheformer, scFoundation), CellOracle, supervised perturbation models including STATE, and task-matched simple baselines on the same data, from K562 Perturb-seq screens and primary cells to healthy-donor and isogenic leukodystrophy brain organoids, a public organoid CRISPR screen and lung cancer biopsies. FMs were most useful when labels had to be transferred across species: from human to mouse lung, Nicheformer reached 0.98 accuracy and Geneformer V2 and scFoundation about 0.90, against 0.68 for the best baseline. Zero-shot in silico perturbations captured the direction of real responses in K562, with up to 75% of perturbations shifted in the expected direction (scFoundation, p < 1e-8), and Geneformer V2 networks recovered patient-level tumour differential expression better than co-expression (fold enrichment 2.9 versus 2.0). Within a species, FM embeddings annotated cells as accurately as principal components. In organoids, predicted knockout effects were largely explained by where the target is expressed, and an expression-matched control test isolated the gene-specific part, 12 to 35% of the effects. Isogenic Canavan and Krabbe organoids and 4H patient organoids, with one library per line and time point, did not yet separate methods from differences between clones and donors, which defines the replication needed for future validation. Fine-tuning changed classification accuracy but not knockout rankings. We release the benchmark, baselines, pipeline checks and the isogenic reference task as the fmaudit package, so that new models can be evaluated on the tasks where FMs already help.",
+      "authors": [
+        "Cupaioli, F. A.",
+        "Merelli, I."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-10T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.03.763968v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "benchmarks single-cell foundation models on in silico perturbation prediction",
+      "llm_evidence_cn": "系统评测单细胞基础模型在计算扰动预测中的表现",
+      "llm_evidence": "系统评测单细胞基础模型在计算扰动预测中的表现",
+      "canonical_evidence": "系统评测单细胞基础模型在计算扰动预测中的表现",
+      "llm_tldr_en": "Benchmarks five single-cell foundation models against CellOracle, STATE and simple baselines across Perturb-seq, organoid and patient data to determine where these models genuinely help perturbation and regulatory inference.",
+      "llm_tldr_cn": "单细胞基础模型被宣传为注释、计算扰动与基因调控网络推断的通用工具，但其相对简单基线的真实增益缺乏统一评测。作者在K562 Perturb-seq、原代细胞、脑类器官CRISPR筛选与肺癌活检等数据上，系统比较五个基础模型、CellOracle、STATE及任务匹配基线。结果显示基础模型主要在跨物种标签迁移场景中占优，例如跨人鼠肺的Nicheformer达0.98准确率，而在其他任务上优势有限。该基准为单细胞基础模型在扰动与调控任务中的适用边界提供了实证依据。",
+      "llm_tldr": "单细胞基础模型被宣传为注释、计算扰动与基因调控网络推断的通用工具，但其相对简单基线的真实增益缺乏统一评测。作者在K562 Perturb-seq、原代细胞、脑类器官CRISPR筛选与肺癌活检等数据上，系统比较五个基础模型、CellOracle、STATE及任务匹配基线。结果显示基础模型主要在跨物种标签迁移场景中占优，例如跨人鼠肺的Nicheformer达0.98准确率，而在其他任务上优势有限。该基准为单细胞基础模型在扰动与调控任务中的适用边界提供了实证依据。",
+      "llm_tags": [
+        "query:virtual-cell:composite"
+      ],
+      "matched_query_tag": "query:virtual-cell:composite",
+      "matched_query_text": "Papers central to 请帮我查找与扰动响应预测/虚拟细胞相关的论文, especially work that connects or combines: perturbation response prediction; virtual cell model; single cell perturbation; perturbation modeling; Predicting cellular response to genetic perturbations; Virtual cell models for drug or genetic perturbation; Deep learning methods for perturbation response prediction; Single cell perturbation response prediction.",
+      "matched_requirement_id": "req-composite-virtual-cell",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-04-764438-v1",
+      "source": "biorxiv",
+      "title": "Virtual dynamics of spatiotemporal single-cell interactions",
+      "abstract": "Building virtual cells and tissues requires reconstructing how interacting cell populations evolve in space and time, yet spatial omics experiments provide only sparse snapshots of this process. Here, we introduce CytoBridge, a computational method that reconstructs continuous virtual cell dynamics from discrete spatial transcriptomic data. Starting from a joint transcriptomic-spatial space, CytoBridge learns stochastic trajectories of cell states, positions, and population sizes through an unbalanced mean-field Schrodinger bridge formulation that explicitly incorporates cell-cell interaction as a dynamical driver. A time-varying interaction graph built from spatial proximity and ligand-receptor priors allows the velocity to be decomposed into an interaction component estimated from observed neighborhoods and ligand-receptor features, and an intrinsic-context component that captures intrinsic regulatory processes and unmeasured contextual influences. Applied to five datasets across three spatial transcriptomics platforms and spanning development, regeneration, and neurodegeneration, CytoBridge accurately generates tissue dynamics at unmeasured time points, follows ligand-receptor signaling through measured and unmeasured stages, and supports hypothesis-generating in silico perturbation. CytoBridge provides a general method for turning heterogeneous spatiotemporal transcriptomic measurements into continuously evolving virtual tissues.",
+      "authors": [
+        "Zhang, Z.",
+        "Wang, Z.",
+        "Tian, Q.",
+        "Hou, H.",
+        "Han, J.",
+        "Shen, J.",
+        "Sun, Y.",
+        "Zhou, X.",
+        "Peng, Q.",
+        "Nie, Q.",
+        "Li, T.",
+        "Zhou, P."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-06T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.04.764438v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "reconstructs continuous virtual cell dynamics from discrete spatial transcriptomic snapshots",
+      "llm_evidence_cn": "从离散空间转录组快照重建连续虚拟细胞动力学",
+      "llm_evidence": "从离散空间转录组快照重建连续虚拟细胞动力学",
+      "canonical_evidence": "从离散空间转录组快照重建连续虚拟细胞动力学",
+      "llm_tldr_en": "Building virtual cells and tissues requires reconstructing how interacting populations evolve, but spatial omics give only sparse snapshots. CytoBridge learns stochastic trajectories of cell state, position and abundance via an unbalanced mean-field Schrodinger bridge.",
+      "llm_tldr_cn": "构建虚拟细胞与虚拟组织需要重建相互作用细胞群体在空间和时间中的演化过程，但空间组学实验只能提供稀疏快照。作者提出CytoBridge，在转录组—空间联合空间中用非平衡平均场薛定谔桥学习细胞状态、位置与群体大小的随机轨迹，并把细胞间相互作用作为动力学驱动力。借助由空间邻近和配体—受体先验构建的时变互作图，速度场可分解出互作分量，从而由稀疏数据重建连续虚拟细胞动态，为虚拟细胞建模提供新框架。",
+      "llm_tldr": "构建虚拟细胞与虚拟组织需要重建相互作用细胞群体在空间和时间中的演化过程，但空间组学实验只能提供稀疏快照。作者提出CytoBridge，在转录组—空间联合空间中用非平衡平均场薛定谔桥学习细胞状态、位置与群体大小的随机轨迹，并把细胞间相互作用作为动力学驱动力。借助由空间邻近和配体—受体先验构建的时变互作图，速度场可分解出互作分量，从而由稀疏数据重建连续虚拟细胞动态，为虚拟细胞建模提供新框架。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "virtual cell model",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-08-765157-v1",
+      "source": "biorxiv",
+      "title": "LingoCell interprets gene perturbations through natural language and tissue niches",
+      "abstract": "Single-cell foundation models are general tools for resolving cell identities and disease states, but struggle to interpret changes in expression magnitude in biological language, to transfer to sparse spatial measurements, and to explain cellular niches. We introduce LingoCell, a foundation model connecting single-cell and spatial transcriptomics. It aligns cell representations with language while keeping gene expression editable, supporting cell annotation, cross-batch integration, description generation, and disease-language readouts of single-gene and combinatorial in silico perturbations. Extended to tissues, it annotates cells without single-cell references, learns identity-conditioned niche embeddings, and performs spatial in silico perturbation by replacing and editing neighbor expression. In lung adenocarcinoma, LingoCell revealed synergistic disease responses to jointly weakening alveolar differentiation programs and strengthening malignant programs. In colorectal cancer, it revealed different programs conveyed by the same fibroblast state to T cells, macrophages, and tumor cells. LingoCell provides a unified framework for prioritizing target combinations and stromal intervention programs.",
+      "authors": [
+        "Yang, Y.",
+        "Xu, W.",
+        "Zhang, Z.",
+        "Cui, Y.",
+        "Yu, X.",
+        "Gu, W.",
+        "Wang, J.",
+        "Nakai, K."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-10T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.08.765157v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "single-cell foundation model performing in silico single-gene and combinatorial perturbations",
+      "llm_evidence_cn": "单细胞基础模型开展单基因与组合的原位扰动模拟",
+      "llm_evidence": "单细胞基础模型开展单基因与组合的原位扰动模拟",
+      "canonical_evidence": "单细胞基础模型开展单基因与组合的原位扰动模拟",
+      "llm_tldr_en": "Single-cell foundation models cannot explain expression changes in biological language or transfer to sparse spatial data. LingoCell aligns cell representations with language while keeping expression editable, enabling annotation, description and in silico perturbation readouts.",
+      "llm_tldr_cn": "单细胞基础模型虽能刻画细胞身份，却难以用生物学语言解释表达变化幅度，也难以迁移到稀疏空间测量并解释细胞生态位。作者提出LingoCell，将细胞表征与自然语言对齐，同时保持基因表达可编辑，支持细胞注释、跨批次整合、描述生成与疾病语言读出。模型还可扩展到组织，在无单细胞参考时注释细胞、学习身份条件化生态位嵌入并进行空间原位扰动模拟，使扰动效应可被语言化解释。",
+      "llm_tldr": "单细胞基础模型虽能刻画细胞身份，却难以用生物学语言解释表达变化幅度，也难以迁移到稀疏空间测量并解释细胞生态位。作者提出LingoCell，将细胞表征与自然语言对齐，同时保持基因表达可编辑，支持细胞注释、跨批次整合、描述生成与疾病语言读出。模型还可扩展到组织，在无单细胞参考时注释细胞、学习身份条件化生态位嵌入并进行空间原位扰动模拟，使扰动效应可被语言化解释。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "single cell perturbation",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ]
+}

@@ -1,0 +1,738 @@
+Title: RELAY: Relational In-Context Learning for Cellular Perturbation Prediction
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.10.31.763027v1.full.pdf
+
+Number of Pages: 19
+
+Markdown Content:
+> 000 001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016 017 018 019 020 021 022 023 024 025 026 027 028 029 030 031 032 033 034 035 036 037 038 039 040 041 042 043 044 045 046 047 048 049 050 051 052 053
+
+# RELAY: Relational In-Context Learning for Cellular Perturbation Prediction 
+
+Yuze Sun 1, Jinghao Feng 1, Yanfeng Wang 1,Weidi Xie 1,2, †, Ya Zhang 1, †, and Xiaoman Zhang 1, †
+
+> 1
+
+School of Artificial Intelligence, Shanghai Jiao Tong University, Shanghai, China 
+
+> 2
+
+OneX Intelligence, Shanghai, China 
+
+> †
+
+Corresponding author Weidi Xie: weidi@sjtu.edu.cn; Ya Zhang: ya zhang@sjtu.edu.cn Xiaoman Zhang: xm99sjtu@sjtu.edu.cn 
+
+ABSTRACT 
+
+Cellular responses to perturbations vary across multiple experimental variables, such as perturbation identity, cell type, donor, and dose, defining a multidimen-sional condition space in which each measured population occupies one coordi-nate. Existing methods predict unmeasured conditions using explicit representa-tions of these variable values, generalizing unseen values therefore depends on the availability and quality of such representations. We present RELAY , a relational in-context model that predicts unmeasured coordinates from measured responses at related coordinates. For each target, RELAY uses measured control–perturbed pairs from conditions that share one or more experimental variables with the tar-get, such as the same perturbation in another cell type. The model receives only which variables are shared, not their values, and uses these demonstrations to pre-dict the target response. We evaluate RELAY on chemical, genetic, and cytokine perturbation datasets under two settings: unseen combinations , where test values are individually observed during training but not in their target combinations, and 
+
+unseen variable values , where test values are introduced only through context at inference. RELAY outperforms existing in-context methods on unseen variable values and supervised perturbation-prediction methods on unseen combinations. All resources will be open sourced 12 , including code and data. 
+
+1 INTRODUCTION 
+
+Accurately predicting cellular responses to perturbations at scale has the potential to reshape target discovery and therapeutic development (Bunne et al., 2024; Rood et al., 2024; Ji et al., 2021; Qi & Chapfuwa, 2026; Dibaeinia et al., 2026). These responses are jointly determined by multiple ex-perimental variables: perturbation identity, such as a compound, cytokine, or genetic intervention; perturbation parameters, such as dose, strength, or duration; and biological context, including cell type, donor, and tissue. These factors define a multidimensional condition space in which each ex-perimentally measured cell population occupies a single coordinate, and the space grows multiplica-tively in the number of variables, so only a small fraction of it can ever be measured. Perturbation prediction is therefore fundamentally a problem of predicting responses at unmeasured coordinates from measurements elsewhere in this space. Existing methods predict at a new coordinate by conditioning on the values of its variables. Perturba-tions may be represented by learned identifier embeddings, molecular structures, gene embeddings, or knowledge-graph features, while biological covariates are commonly encoded using categorical or learned representations (Lotfollahi et al., 2019; 2023; Roohani et al., 2024; Feng et al., 2026; Guo et al., 2026; Jiang et al., 2026). This paradigm works naturally when the relevant values and representations are available during training, but becomes more restrictive for unseen values. 
+
+> 1
+
+https://github.com/Yuze-e20/RELAY 
+
+> 2
+
+https://www.modelscope.cn/datasets/YuzeSun/RELAY 
+
+1
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 054 055 056 057 058 059 060 061 062 063 064 065 066 067 068 069 070 071 072 073 074 075 076 077 078 079 080 081 082 083 084 085 086 087 088 089 090 091 092 093 094 095 096 097 098 099 100 101 102 103 104 105 106 107
+
+Learned identifier embeddings cannot represent values absent from training, while descriptor-based approaches rely on external priors whose coverage and relevance vary across variable types. More-over, many experimental variables, such as donor identity or study-specific biological covariates, lack standardized descriptors (Kedzierska et al., 2025; Ahlmann-Eltze et al., 2025; Wu et al., 2026). Thus, generalization to unseen conditions often depends on how well each variable value can be represented. Measured cell populations provide another way to specify a condition: through demonstrations of how cells actually respond, rather than through a predefined representation of the condition itself. Recent work shows that such in-context prediction is viable in single-cell biology. S TACK (Dong et al., 2026) applies tabular attention over cell sets so that one population specifies a condition ap-plied to another; SC GEN (Lotfollahi et al., 2019) transfers perturbation-induced shifts estimated from measured control and perturbed populations across cell types in a variational latent space; and general-purpose tabular foundation models with no biological pre-training are competitive with spe-cialized architectures on several perturbation benchmarks (Palla et al., 2026; Hollmann et al., 2025; Qu et al., 2025; Zhu et al., 2025). These results suggest that measured responses can serve as infor-mative conditioning signals for perturbation prediction. However, existing approaches largely treat context experiments as generic observations, without explicitly representing how each experiment is related to the target condition. This relation is informative because different context experiments reveal different components of the target coordinate. An experiment sharing the target perturbation shows how that perturbation acts in another biological context, whereas one sharing the target cell type shows how that cellular context responds to another perturbation. 
+
+Figure 1: Partition of the con-dition space into base, con-text, and test conditions. In this paper, we make this relation explicit. For a target coordi-nate, RELAY receives measured control–perturbed pairs from con-ditions that share one or more variable values with the target, to-gether with their shared-variable relations. Variable values are used only to identify matching demonstrations and are never encoded as model inputs. We implement this formulation with a shared pair en-coder for control–perturbed population pairs, relation embeddings that encode which variables each demonstration shares with the tar-get, and target-to-context cross-attention that predicts expression changes in target control cells. The formulation extends naturally to multiple experimental variables by representing each demonstration according to the subset of variables it shares with the target. We partition the condition space into base, context, and test regions (Figure 1), and evaluate two complementary settings. Setting 1: unseen combinations. Training uses both base and context con-ditions, so the values defining a test condition have been observed individually, but their combination has not. Setting 2: unseen vari-able values. Training uses only base conditions, so every value defining a test condition is unseen during training and is introduced only through context demonstrations at inference, with model pa-rameters fixed. The first tests compositional generalization across previously observed values, whereas the second tests adaptation to entirely new variable values through inference-time evidence, with-out learning value-specific representations. Our contributions are as follows. • A relational formulation of perturbation prediction as in-context inference over a multidimen-sional condition space, using measured control–perturbed pairs that share variables with the target rather than explicit value representations. • A unified in-context model that encodes control–perturbed pairs, represents their shared-variable relations to the target, and predicts target responses through cross-attention. • An evaluation framework separating generalization to unseen combinations from generalization to unseen variable values, showing that RELAY improves perturbation-response prediction over supervised and in-context baselines under their respective settings. 2
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint
+
+108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 Pair encoder    
+
+> 𝒄 Target condition
+> Shared perturbation + donor
+> Control Perturbed
+> Shared perturbation
+> Control Perturbed
+> Shared cell-type
+> Control Perturbed
+
+…           
+
+> Pair encoder Pair encoder
+> 𝑟 !"## 𝑟 $"%& 𝑟 $"%& 𝑟 '()(%
+> Concatenate
+> Context memory 𝑀 𝐾, 𝑉
+> Cross Attention
+> Prediction head
+> 𝜌 *
+> Cell projection
+> 𝐸 *
+> 𝑟([𝐾])
+> Q𝑿 !"#$% 𝑿 (!&'$#
+> 𝑇 (𝑇 )𝑇 *
+> 𝑀 (𝑀 )𝑀 *
+> (a) RELAY overview (b) Pair encoder
+
+Figure 2: Overview of RELAY. (a) Target control cells attend to measured control–perturbed demon-strations to predict the target perturbation response, using shared-variable relations rather than ex-plicit variable-value representations. (b) A shared pair encoder summarizes each control and per-turbed population and jointly models the pair with self-attention, with state embeddings distinguish-ing the two population states. 
+
+2 RELATED WORK 
+
+Cellular perturbation prediction. Existing methods for cellular perturbation prediction span sev-eral modeling paradigms. Early approaches model perturbation effects in latent spaces or through compositional representations of perturbations and biological covariates (Lotfollahi et al., 2019; 2023). Other methods incorporate gene-level, molecular, or mechanistic priors to support general-ization across perturbations (Roohani et al., 2024; Feng et al., 2026; Guo et al., 2026; Shi et al., 2026). More recent work models perturbation responses at the population level using optimal trans-port, flow matching, diffusion, or related distributional objectives (Bunne et al., 2023; Adduri et al., 2026; Klein et al., 2025; Yuan et al., 2026; He et al., 2026; Yu et al., 2026; Wang et al., 2026; Chen et al., 2026; Chi et al., 2026; Liu et al., 2026). Despite differences in architecture and training objec-tive, these methods typically predict a target condition by conditioning on explicit representations of its perturbation and biological covariates. 
+
+Context-based perturbation prediction. A complementary line of work uses measured cellular re-sponses themselves as conditioning information. scGen transfers perturbation-induced latent shifts estimated from observed control and perturbed populations across cellular contexts (Lotfollahi et al., 2019). STACK (Dong et al., 2026) uses observed cell populations as in-context examples, while MapPFN (Sextro et al., 2026) and PerturbMap (Cui et al., 2026) leverage interventional observa-tions or cross-context response transfer. General-purpose tabular foundation models likewise show that inference from context examples can be competitive on cellular perturbation benchmarks (Holl-mann et al., 2025; Qu et al., 2025; Palla et al., 2026). These approaches demonstrate that measured responses can provide informative inference-time evidence. RELAY differs in explicitly represent-ing how each demonstration is related to the prediction target: each control–perturbed population pair is encoded together with the subset of experimental variables it shares with the target, while the variable values themselves are never provided to the model. 
+
+3 METHOD 
+
+3.1 PROBLEM FORMULATION 
+
+Problem Setup. We consider cellular perturbation experiments defined over a condition space with 
+
+K variables, such as perturbation identity, dose, cell type, and donor. A condition is represented 3
+
+.CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 
+
+as c = ( c1, . . . , c K ) ∈ C , where ck denotes the value of variable k and C is the space of all such conditions. Only a subset of conditions is experimentally measured. For a measured condition c,let Xctrl  
+
+> c
+
+, X pert  
+
+> c
+
+∈ Rn×G denote its control and perturbed cell populations over G genes, where n
+
+is the number of cells. Our goal is to predict Xpert  
+
+> c
+
+from its matched control population Xctrl  
+
+> c
+
+and measured responses at related conditions. 
+
+Experimental Settings. For each variable k, we partition its values into a base set and a held-out set. Among measured conditions, those composed entirely of base values form ( Cbase ), those composed entirely of held-out values form ( Ctest ), and those containing both base and held-out values form (Cctx ) (Figure 1). We consider two settings: • Setting 1: unseen combinations. Training uses Cbase ∪ C ctx : held-out variable values are indi-vidually observed during training, but their combinations are not. • Setting 2: unseen variable values. Training uses only Cbase : every value composing a test condition is absent from training and is introduced only through context at inference. 
+
+Relational Context. Rather than encoding variable values, we specify the target through measured responses at related conditions. For a target condition c and a measured condition c′, define the set of shared variables as 
+
+S(c, c ′) = {k ∈ { 1, . . . , K } : ck = c′
+
+> k
+
+} . (1) We use conditions satisfying ∅̸ = S(c, c ′) ⊊ {1, . . . , K }, so that each shares at least one variable value with the target while differing in at least one other variable. A demonstration consists of the measured control–perturbed pair at such a condition together with its relation to the target. For target 
+
+c, we select P demonstration conditions and define context of the target as 
+
+D(c) = {︂(︂ Xctrl  
+
+> c′
+> j
+
+, X pert 
+
+> c′
+> j
+
+, S j)︂}︂ 
+
+> Pj=1
+
+, S j = S(c, c ′ 
+
+> j
+
+). (2) The prediction is ˆ︁ 
+
+Xpert  
+
+> c
+
+= fθ(︁ Xctrl  
+
+> c
+
+, D(c))︁ . (3) 3.2 RELAY Figure 2 provides an overview of RELAY . Given a target control population and a set of measured control–perturbed demonstrations, the model first encodes each demonstration with a shared pair en-coder into a compact representation of its observed perturbation-induced transition (Section 3.2.1). It then incorporates the experimental variables shared between each demonstration and the target to form a relation-aware context memory (Section 3.2.2). Target control cells attend to this memory to integrate information across related conditions and predict perturbation-induced expression changes (Section 3.2.3). All components are trained jointly with population-level supervision, without re-quiring cell-to-cell correspondence between control and perturbed populations (Section 3.3). 3.2.1 DEMONSTRATION ENCODING 
+
+Each demonstration contains a control–perturbed cell population pair, which we encode with a pair encoder (Figure 2b). To represent multiple demonstrations efficiently, the pair encoder first com-presses each cell population into a fixed number of tokens and then jointly encodes the two popu-lations to capture the observed perturbation-induced transition. Specifically, each cell is mapped to a d-dimensional representation by a projection layer Eθ : RG → Rd. A Q-Former (Li et al., 2023) with q learned queries then summarizes each cell population into q tokens, to which we append a projected population-mean token. For demonstration j, this yields 
+
+Zsj ∈ R(q+1) ×d, s ∈ { ctrl , pert }. (4) The cell projection and Q-Former are shared between the control and perturbed populations, and the resulting summaries are invariant to cell ordering. To distinguish the control and perturbed populations, we add learnable state embeddings 
+
+sctrl , spert ∈ Rd to their corresponding tokens. The two sets of tokens are then concatenated and 4
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 216 217 218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269
+
+jointly processed by Lp self-attention blocks: 
+
+Tj = SA θ(︁ [Zctrl  
+
+> j
+
++ 1s ⊤ 
+
+> ctrl
+
+; Zpert  
+
+> j
+
++ 1s ⊤
+
+> pert
+
+])︁ . (5) Here, [· ; ·] denotes concatenation along the token dimension, and 1 broadcasts the corresponding state embedding to all tokens. By jointly modeling the control and perturbed populations within each demonstration, the pair encoder output Tj represents its observed perturbation-induced transition. The same pair encoder is shared across all demonstrations. 3.2.2 RELATION EMBEDDING 
+
+The demonstration representation Tj captures the observed control–perturbed transition, but does not specify how the demonstration is related to the target condition. We therefore encode which experimental variables are shared between each demonstration and the target. For demonstration j,let Sj denote the set of shared variables. Each variable k is associated with a learnable embedding 
+
+rk ∈ Rd, and the target–demonstration relation is represented as: 
+
+r(Sj ) = ∑︂ 
+
+> k∈Sj
+
+rk. (6) For example, if a demonstration shares perturbation identity and donor with the target, its relation embedding is rpert + rdonor .We add this relation embedding to all tokens of the corresponding demonstration representation: 
+
+Mj = Tj + 1r(Sj )⊤. (7) The representations of all the P demonstrations are then concatenated along the token dimension to form the context memory, 
+
+M = [ M1; . . . ; MP ] ∈ R2P (q+1) ×d. (8) 3.2.3 CONTEXT -C ONDITIONED PREDICTION 
+
+Given the context memory M , we use the target control cells as queries to attend to relevant infor-mation across demonstrations and predict the target perturbed population. Unlike the demonstration populations, which are compressed into a fixed number of tokens, we retain one query token for each target control cell so that the model directly produces a predicted expression profile for each cell. Specifically, the same projection layer Eθ maps the target control cells into d-dimensional rep-resentations. Since the target condition matches itself on all K variables, we add the corresponding relation embedding r([ K]) , yielding 
+
+H = Eθ (Xctrl  
+
+> c
+
+) + 1r([ K]) ⊤ ∈ Rn×d, (9) where [K] = {1, . . . , K }. This embedding distinguishes the target queries from demonstration tokens and represents the target as the reference condition. The target queries are then updated through Lt cross-attention blocks over the context memory M ,allowing each target cell to integrate information from the encoded demonstration transitions and their relations to the target. A prediction head ρθ : Rd → RG maps the resulting representations to perturbation-induced expression changes. We predict the perturbed expression as a residual from the target control state: ˆ︁ 
+
+Xpert  
+
+> c
+
+= Xctrl  
+
+> c
+
++ ρθ (CA θ (H, M )) ∈ Rn×G. (10) 
+
+CA θ denotes the stack of cross-attention blocks, including cross-attention, feed-forward layers, nor-malization, and residual connections. The target controls provide the baseline cell states, while the context memory informs how these states are expected to change under the target condition. 3.3 TRAINING AND INFERENCE 
+
+We train all components jointly using an energy-kernel maximum mean discrepancy loss LMMD :
+
+min  
+
+> θ
+
+Ec, D(c)[︂ LMMD (︂ˆ︁ Xpert  
+
+> c
+
+, X pert 
+
+> c
+
+)︂]︂ . (11) The population-level objective compares the predicted and observed distributions without requiring cell-to-cell correspondence. Architecture, hyperparameters, and optimization details are provided in Appendix B.2. 5
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint
+
+270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 285 286 287 288 289 290 291 292 293 294 295 296 297 298 299 300 301 302 303 304 305 306 307 308 309 310 311 312 313 314 315 316 317 318 319 320 321 322 323 
+
+Table 1: Comparison of methods for unseen combination prediction (Setting 1).                                                                                                                                                                                                
+
+> Non-learning Supervised methods Ours Data Metric Untreated Mean perturbation STATE CellFlow CPA scDFM PerturbDiff RELAY Tahoe-100M  MSE ↓0.007 ±2e−50.011 ±1e−30.007 ±7e−60.004 ±3e−60.005 ±5e−60.035 ±7e−60.009 ±2e−50.002 ±7e−6
+> MAE ↓0.034 ±3e−50.049 ±2e−30.042 ±1e−50.027 ±1e−50.031 ±9e−60.106 ±2e−50.050 ±5e−50.019 ±2e−5
+> PDCorr ↑−0.003 ±9e−40.259 ±6e−30.481 ±2e−40.453 ±6e−40.294 ±9e−40.186 ±2e−40.559 ±3e−40.789 ±1e−3
+> PDS ↑0.493 ±3e−30.950 ±7e−30.814 ±5e−40.816 ±2e−30.764 ±2e−30.502 ±2e−40.925 ±2e−40.966 ±1e−3
+> REACH ↑0.002 ±2e−40.038 ±3e−30.324 ±2e−40.099 ±1e−30.057 ±4e−40.056 ±1e−30.303 ±7e−40.588 ±2e−3
+> Replogle– Nadig  MSE ↓0.011 ±2e−50.018 ±4e−40.024 ±1e−30.011 ±7e−40.010 ±1e−50.032 ±4e−50.011 ±1e−40.009 ±1e−4
+> MAE ↓0.065 ±4e−50.091 ±7e−40.115 ±2e−30.069 ±1e−30.063 ±5e−60.125 ±7e−50.067 ±2e−40.066 ±3e−4
+> PDCorr ↑−0.001 ±4e−30.210 ±5e−30.230 ±8e−30.193 ±6e−20.063 ±3e−30.107 ±1e−30.158 ±2e−30.336 ±3e−3
+> PDS ↑0.489 ±7e−30.709 ±9e−30.536 ±2e−20.567 ±2e−20.657 ±6e−30.497 ±4e−30.558 ±2e−30.684 ±2e−3
+> REACH ↑0.064 ±5e−30.291 ±9e−30.304 ±3e−20.246 ±5e−20.170 ±3e−30.098 ±4e−30.295 ±6e−30.480 ±2e−3
+> PBMC-2D  MSE ↓0.009 ±5e−50.020 ±6e−30.016 ±2e−30.007 ±8e−40.007 ±9e−50.039 ±8e−50.017 ±2e−40.005 ±2e−4
+> MAE ↓0.035 ±8e−50.061 ±8e−30.063 ±2e−30.036 ±6e−40.032 ±2e−40.100 ±1e−40.067 ±4e−40.033 ±2e−4
+> PDCorr ↑0.006 ±5e−30.182 ±3e−20.241 ±2e−20.275 ±1e−20.317 ±5e−30.040 ±7e−40.281 ±4e−30.441 ±1e−2
+> PDS ↑0.495 ±2e−20.807 ±3e−20.693 ±1e−30.682 ±6e−30.780 ±4e−30.501 ±2e−30.811 ±1e−20.868 ±3e−2
+> REACH ↑0.099 ±2e−20.267 ±1e−20.611 ±8e−30.218 ±8e−30.326 ±4e−30.096 ±4e−30.293 ±2e−20.550 ±1e−2
+> PBMC-3D  MSE ↓0.004 ±2e−50.012 ±3e−30.012 ±7e−40.004 ±2e−40.005 ±9e−60.048 ±4e−50.025 ±8e−50.002 ±3e−5
+> MAE ↓0.031 ±2e−50.054 ±4e−30.061 ±1e−30.028 ±8e−40.035 ±2e−50.126 ±5e−50.090 ±1e−40.024 ±1e−4
+> PDCorr ↑−0.005 ±4e−30.079 ±2e−20.225 ±4e−30.087 ±2e−20.201 ±5e−40.089 ±5e−40.190 ±1e−30.495 ±5e−3
+> PDS ↑0.498 ±1e−20.714 ±3e−20.587 ±2e−20.568 ±8e−30.626 ±4e−30.502 ±1e−30.668 ±5e−30.833 ±5e−3
+> REACH ↑0.017 ±5e−30.053 ±2e−20.545 ±7e−30.035 ±5e−30.054 ±3e−30.075 ±1e−30.096 ±1e−30.420 ±1e−2
+
+4 EXPERIMENTS AND RESULTS 
+
+4.1 EXPERIMENTAL SETUP 
+
+Benchmarks. We evaluate four benchmarks spanning chemical, genetic, and cytokine perturba-tions. Tahoe-100M (Zhang et al., 2025) varies compound and cell line, using 5 μM dose and matched DMSO controls. Replogle–Nadig (Replogle et al., 2022; Nadig et al., 2024) varies CRISPRi target and cell line, with non-targeting guides as controls. From the Parse cytokine dataset (Oesinghaus et al., 2025), PBMC-2D varies cytokine and cell type within Donor9, while PBMC-3D additionally varies donor; both use matched PBS controls. Dataset sizes and condition-level cell counts are summarized in Appendix A.1. 
+
+Evaluation protocol. We follow the partitions and settings defined in Section 3.1. Setting 1 trains on base and context conditions to predict unseen combinations, whereas Setting 2 trains only on base conditions and introduces context at inference without parameter updates. Both settings use the same test conditions and inference context. On Tahoe-100M, base and held-out compounds are additionally separated by Bemis–Murcko scaffold (Bemis & Murcko, 1996). All methods use iden-tical data splits and preprocessing, including library-size normalization to 10 4, log transformation, and a common highly variable gene panel selected using training-visible cells only. Split construc-tion and preprocessing are detailed in Appendices A and B.1, respectively. 
+
+Baselines. We evaluate broadly applicable baselines across chemical, genetic, and cytokine pertur-bation benchmarks. Setting 1 includes five supervised methods: STATE (Adduri et al., 2026) mod-els perturbation responses at the population level. CellFlow (Klein et al., 2025) learns covariate-conditioned transport maps from control to perturbed populations. CPA (Lotfollahi et al., 2023) combines a basal cell state with perturbation and covariate embeddings. We also include two re-cent baselines: scDFM (Yu et al., 2026) generates perturbed cell distributions from control states and perturbation embeddings via conditional flow matching with an MMD objective. PerturbDiff 
+
+(Yuan et al., 2026) models perturbation responses through functional diffusion over cell-population distributions embedded in a Hilbert space. Setting 2 includes three context-based methods: STACK (Dong et al., 2026) uses attention over mea-sured cell populations to predict responses in a target population. TabPFN (Hollmann et al., 2025; Palla et al., 2026) uses a pretrained tabular model to infer target responses from context examples. 
+
+scGen (Lotfollahi et al., 2019) is adapted to transfer perturbation-induced latent shifts from context populations to target controls. Both settings also include two non-learning baselines: Untreated 
+
+6
+
+.CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 324 325 326 327 328 329 330 331 332 333 334 335 336 337 338 339 340 341 342 343 344 345 346 347 348 349 350 351 352 353 354 355 356 357 358 359 360 361 362 363 364 365 366 367 368 369 370 371 372 373 374 375 376 377 a. b.  
+
+> Embedding Ablation Context Composition Ablation
+
+Figure 3: Effects of model components and context composition. (a) Removal of state and relation embeddings. (b) Removal of context groups defined by the variables shared with the target. Bars show means; error bars indicate standard deviations. directly uses target controls as the prediction. Mean perturbation adds the mean perturbed-minus-control shift for the same perturbation in other cellular contexts to target controls. 
+
+Metrics. We evaluate expression accuracy and perturbation-response recovery, averaging each met-ric equally over test conditions. MSE and MAE measure differences between predicted and ob-served mean expression profiles. PDCorr measures Pearson correlation coefficient between pre-dicted and ground-truth relative perturbation effects. PDS measures perturbation specificity by ranking the correct measured response against other perturbations sharing the same non-perturbation variables. REACH is based on differential expression (DE) analysis and measures the fraction of reference DE genes recovered with reliable response directions, prioritizing genes with stronger pre-dicted statistical evidence (Welch, 1947; Benjamini & Hochberg, 1995). Lower MSE and MAE and higher PDCorr, PDS, and REACH indicate better performance. Formal definitions of the training objective and evaluation metrics are provided in Appendix B.3. 4.2 MAIN RESULTS 
+
+Tables 1 and 2 summarize performance in the two evaluation settings. We report means and standard deviations over three seeds. 
+
+Setting 1: unseen combinations. RELAY achieves the highest PDCorr and lowest MSE on all four benchmarks, while also outperforming all supervised baselines in PDS. The largest absolute PDCorr margin over the strongest supervised baseline occurs on PBMC-3D, where RELAY reaches 0.495 compared with 0.225 for STATE, highlighting its effectiveness in a condition space span-ning perturbation, cell type, and donor. Beyond these consistent gains, RELAY also achieves the highest REACH on Tahoe-100M and Replogle–Nadig, supporting its ability to recover differential-expression response directions. These results show that relational context supports generalization to unobserved combinations of previously seen variable values, improving both perturbation-effect recovery and mean expression accuracy. 
+
+Setting 2: unseen variable values. RELAY outperforms the learned context-based baselines STACK, scGen, and TabPFN in PDCorr, PDS, and REACH on all four benchmarks. The largest PDCorr margin occurs on Tahoe-100M, where RELAY reaches 0.467 compared with 0.268 for sc-Gen. Performance is generally lower than in Setting 1 when the target variable values are entirely absent from training, reflecting the greater difficulty of inference from context alone. Simple base-lines nevertheless remain competitive on some metrics: Mean perturbation achieves the highest PDS on the three 2D benchmarks, while Untreated obtains lower MSE and MAE than RELAY on Replogle–Nadig and PBMC-3D despite near-zero PDCorr. This contrast highlights that low absolute expression error does not necessarily imply accurate recovery of perturbation effects. 4.3 ABLATION AND MODEL ANALYSIS 
+
+We conduct the following analyses on PBMC-3D under Setting 1, except where noted otherwise. 7
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint
+
+378 379 380 381 382 383 384 385 386 387 388 389 390 391 392 393 394 395 396 397 398 399 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 418 419 420 421 422 423 424 425 426 427 428 429 430 431 
+
+Table 2: Comparison of methods for prediction with unseen variable values (Setting 2). 
+
+Non-learning In-context methods Ours Dataset Metric Untreated Mean perturbation STACK scGen TabPFN RELAY Tahoe-100M MSE ↓ 0.007 ±2e−5 0.011 ±1e−3 0.177 ±1e−5 0.022 ±3e−6 0.013 ±1e−4 0.004 ±7e−6
+
+MAE ↓ 0.034 ±3e−5 0.049 ±2e−3 0.157 ±1e−5 0.067 ±1e−5 0.050 ±2e−4 0.028 ±6e−5
+
+PDCorr ↑ −0.003 ±9e−4 0.259 ±6e−3 0.087 ±2e−5 0.268 ±2e−4 0.254 ±1e−3 0.467 ±2e−3
+
+PDS ↑ 0.493 ±3e−3 0.950 ±7e−3 0.500 ±8e−5 0.610 ±4e−4 0.594 ±2e−4 0.905 ±1e−3
+
+REACH ↑ 0.002 ±2e−4 0.038 ±3e−3 0.061 ±3e−4 0.052 ±4e−4 0.057 ±1e−3 0.194 ±6e−3
+
+Replogle–Nadig MSE ↓ 0.011 ±2e−5 0.018 ±4e−4 0.410 ±1e−4 0.043 ±6e−4 0.026 ±2e−4 0.012 ±7e−5
+
+MAE ↓ 0.065 ±4e−5 0.091 ±7e−4 0.363 ±2e−4 0.127 ±9e−4 0.100 ±5e−4 0.075 ±1e−4
+
+PDCorr ↑ −0.001 ±4e−3 0.210 ±5e−3 0.092 ±1e−4 0.177 ±1e−3 0.114 ±6e−3 0.245 ±2e−3
+
+PDS ↑ 0.489 ±7e−3 0.709 ±9e−3 0.508 ±4e−4 0.611 ±6e−3 0.532 ±1e−2 0.620 ±3e−3
+
+REACH ↑ 0.064 ±5e−3 0.291 ±9e−3 0.065 ±2e−3 0.059 ±5e−3 0.044 ±3e−3 0.363 ±5e−3
+
+PBMC-2D MSE ↓ 0.009 ±5e−5 0.020 ±6e−3 0.236 ±3e−4 0.021 ±3e−4 0.016 ±3e−4 0.007 ±1e−4
+
+MAE ↓ 0.035 ±8e−5 0.061 ±8e−3 0.181 ±1e−4 0.052 ±2e−4 0.046 ±3e−4 0.034 ±5e−5
+
+PDCorr ↑ 0.006 ±5e−3 0.182 ±3e−2 0.001 ±1e−4 0.215 ±1e−2 0.152 ±5e−3 0.222 ±7e−3
+
+PDS ↑ 0.495 ±2e−2 0.807 ±3e−2 0.500 ±5e−4 0.715 ±1e−2 0.635 ±2e−2 0.731 ±2e−2
+
+REACH ↑ 0.099 ±2e−2 0.267 ±1e−2 0.165 ±0e0 0.174 ±3e−2 0.119 ±1e−2 0.313 ±3e−3
+
+PBMC-3D MSE ↓ 0.004 ±2e−5 0.012 ±3e−3 0.324 ±1e−4 0.078 ±7e−4 0.007 ±7e−5 0.005 ±3e−5
+
+MAE ↓ 0.031 ±2e−5 0.054 ±4e−3 0.240 ±3e−5 0.121 ±5e−4 0.039 ±1e−4 0.039 ±1e−4
+
+PDCorr ↑ −0.005 ±4e−3 0.079 ±2e−2 0.061 ±9e−5 0.096 ±2e−3 0.110 ±1e−3 0.124 ±6e−3
+
+PDS ↑ 0.498 ±1e−2 0.714 ±3e−2 0.500 ±5e−4 0.523 ±3e−3 0.562 ±1e−2 0.738 ±2e−2
+
+REACH ↑ 0.017 ±5e−3 0.053 ±2e−2 0.035 ±5e−3 0.049 ±3e−4 0.030 ±5e−3 0.064 ±1e−3
+
+State and relation embeddings. Combining both embeddings gives the highest mean scores on all three metrics (Figure 3a): PDCorr, PDS, and REACH reach 0.495, 0.833, and 0.420, respectively. Removing relation embedding reduces these values to 0.170, 0.599, and 0.040, while removing state embedding gives 0.303, 0.582, and 0.162. Removing both reduces performance further to 0.096, 0.507, and 0.026. These results suggest that state and relation embeddings capture complementary aspects of the context, with relation embeddings contributing more strongly to PDCorr and REACH. a.                                                                                                                        
+
+> b.
+> c.
+> 
+>  
+>  
+> 
+>                                      
+>   
+>  
+> 
+>                         
+>    
+>  
+> 
+>                             
+>   
+
+Figure 4: Sensitivity to context quantity and relevance. (a) Vary-ing the numbers of demonstrations per single-shared group ( m1)and double-shared group ( m2). (b) Random replacement of con-text pairs. (c) Replacement with the complete context of another target sharing the listed variables. 
+
+Context composition. Context groups contribute differently across metrics (Figure 3b). Re-moving perturbation-matching groups brings PDS close to chance (0.505), whereas re-moving donor-matching groups causes the largest PDCorr drop (to 0.154). Removing double-shared groups is more damaging than removing single-shared groups: retaining only single-shared groups gives PDCorr 0.203, PDS 0.626, and REACH 0.116, whereas retaining only double-shared groups gives 0.486, 0.816, and 0.409. These results show that both the identity and the number of target-matching vari-ables determine context utility, while the retained performance with missing groups suggests applicability when related measurements are sparse. 
+
+Context size. Here, m1 and m2
+
+denote the numbers of demon-strations sampled per context group sharing exactly one and 8
+
+.CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 432 433 434 435 436 437 438 439 440 441 442 443 444 445 446 447 448 449 450 451 452 453 454 455 456 457 458 459 460 461 462 463 464 465 466 467 468 469 470 471 472 473 474 475 476 477 478 479 480 481 482 483 484 485 PBMC-2D                                                                                     
+
+> shared cell-type shared perturbation
+> CPCPCPCPCPCPCPCPCPCP
+> PBMC-3D
+> shared cell-type+donor shared perturbation+donor shared perturbation+cell-type shared donor shared cell-type shared perturbation
+> CPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCPCP
+> 0.00 0.02 0.04 0.06 0.08
+> attention mass
+
+Figure 5: Cross-attention to context in PBMC-2D (top) and PBMC-3D (bottom), averaged over 256 samples. C/P denote control/perturbed tokens; group labels indicate target-shared variables. Colors show attention mass summed over each population’s compressed tokens. two target variables, respec-tively. The results (Figure 4a) show that performance is driven primarily by m2, whereas changing m1 produces only small differ-ences. At fixed m1, increasing m2 from 1 to 5 raises PDCorr, PDS, and REACH by roughly 0.075, 0.053, and 0.107, respectively; increasing m2 from 5 to 9 adds only about 0.012, 0.010, and 0.022. Under comparable context budgets, allocating more examples to double-shared groups is therefore preferable, although the gains become small once m2 ≥ 5.
+
+Random context replacement. To test whether the model relies on the correspondence between the provided context and the target condition, we replace demonstrations at inference while keeping the target controls, context size, and group sizes unchanged (Figure 4b). Random replacement preserves each control–perturbed pair but leaves the original relation embeddings unchanged, disrupting the correspondence between demonstrations and the target. All three metrics decrease monotonically with the replacement fraction: PDCorr falls from 0.495 to 0.071, PDS from 0.833 to 0.504, and REACH from 0.420 to 0.048. These results confirm that the model is sensitive to the correspondence between demonstrations and the target condition. 
+
+Borrowed context replacement. Borrowing the complete context of another target also lowers all three metrics for every tested overlap pattern. Sharing both perturbation and donor best preserves all three metrics among these replacements, reaching PDCorr 0.424, PDS 0.807, and REACH 0.238, but still does not recover matched-context performance (Figure 4c). Together with random replacement, these results show that RELAY retains useful predictive signal under partially noisy or mismatched context, while accurate target-specific demonstration selection remains important. 
+
+Attention to context. We examine which context populations receive more attention from target control cells, with each context group containing 5 demonstrations (Figure 5). In PBMC-2D, atten-tion favors control-origin tokens in demonstrations sharing the target cell type, but perturbed-origin tokens in those sharing the target perturbation. PBMC-3D shows a similar pattern: demonstrations sharing both cell type and donor receive more attention on control-origin tokens, whereas those shar-ing perturbation alone or perturbation and donor receive more attention on perturbed-origin tokens. Thus, the relative attention to the two populations within a pair varies with the variables shared between the demonstration and the target. In PBMC-3D, two-variable matches also receive more attention than single-variable matches despite equal group sizes, consistent with the larger perfor-mance drops observed when two-variable matches are removed. These observations describe how attention is distributed, rather than establish which demonstrations cause better predictions. More-over, control- and perturbed-origin tokens are not independent representations of the two states, as pair self-attention allows them to exchange information. 
+
+5 DISCUSSION AND CONCLUSION 
+
+RELAY predicts cellular perturbation responses from measured control–perturbed demonstrations, using their shared-variable relations to the target rather than explicit representations of variable val-9
+
+.CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 486 487 488 489 490 491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 510 511 512 513 514 515 516 517 518 519 520 521 522 523 524 525 526 527 528 529 530 531 532 533 534 535 536 537 538 539 
+
+ues. This formulation supports prediction of unseen combinations and adaptation to unseen values through inference-time context. Pair self-attention and the energy-distance MMD both operate on cell populations, and the loss compares full cell sets rather than means, discouraging collapse to an averaged response. Broader evaluation is also constrained by the scarcity of high-quality perturba-tion datasets with sufficient cells per condition and dense coverage of multidimensional spaces that include dose and time. Such datasets would enable stronger tests of relational generalization beyond the variables studied here and support extensions from exact-match relations to graded relations over continuous experimental variables. REPRODUCIBILITY STATEMENT 
+
+The paper specifies the model architecture, training objective, data preprocessing, evaluation proto-col, and the two generalization settings. The public source datasets are identified in the Experimental Setup (Zhang et al., 2025; Replogle et al., 2022; Nadig et al., 2024; Oesinghaus et al., 2025). The appendix describes the condition-space partitions, base/context/test subsets, entropy-gap statistics, normalization and HVG selection, principal hyperparameters, ablations, and evaluation metrics. All reported aggregate results use the stated split definitions, and the same preprocessing and metric con-ventions across methods. The final release will provide the source code, fixed data split manifests, model checkpoints, training configurations, and evaluation scripts in a public repository. ETHICS STATEMENT 
+
+This study relies solely on publicly accessible single-cell gene expression datasets, with all data used in compliance with the applicable data use agreements. No directly identifiable personal informa-tion was used in the analyses. The methods presented here are designed to support computational modeling and hypothesis generation in biological research. Although these methods may eventually contribute to drug discovery or therapeutic design, they are not intended for direct clinical applica-tion. We advocate the responsible and transparent use of generative models in biological research. AI U SE STATEMENT 
+
+In this work, we used generative AI tools to assist with software implementation, literature search and summarization, figure preparation, and manuscript editing. They were also used to provide feedback on experimental design, refine hypotheses, and assist with the interpretation and presenta-tion of results. The core research questions, methodological ideas, model design, experiments, and scientific conclusions were developed by the authors. All AI-assisted outputs were reviewed and verified by the authors, who take full responsibility for the final content of this work. 
+
+REFERENCES 
+
+Abhinav K Adduri, Dhruv Gautam, Beatrice Bevilacqua, Mohsen Naghipourfar, Alishba Imran, Rohan Shah, Noam Teyssier, Rishi Verma, Christopher Carpenter, Basak Eraslan, et al. Predicting cellular responses to perturbation across diverse contexts with state. Cell , 2026. Constantin Ahlmann-Eltze, Wolfgang Huber, and Simon Anders. Deep-learning-based gene pertur-bation effect prediction does not yet outperform simple linear baselines. Nature Methods , 22(8): 1657–1661, 2025. Guy W Bemis and Mark A Murcko. The properties of known drugs. 1. molecular frameworks. 
+
+Journal of medicinal chemistry , 39(15):2887–2893, 1996. Yoav Benjamini and Yosef Hochberg. Controlling the false discovery rate: a practical and powerful approach to multiple testing. Journal of the Royal statistical society: series B (Methodological) ,57(1):289–300, 1995. Charlotte Bunne, Stefan G Stark, Gabriele Gut, Jacobo Sarabia Del Castillo, Mitch Levesque, Kjong-Van Lehmann, Lucas Pelkmans, Andreas Krause, and Gunnar R¨ atsch. Learning single-cell perturbation responses using neural optimal transport. Nature methods , 20(11):1759–1768, 2023. 10 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 540 541 542 543 544 545 546 547 548 549 550 551 552 553 554 555 556 557 558 559 560 561 562 563 564 565 566 567 568 569 570 571 572 573 574 575 576 577 578 579 580 581 582 583 584 585 586 587 588 589 590 591 592 593
+
+Charlotte Bunne, Yusuf Roohani, Yanay Rosen, Ankit Gupta, Xikun Zhang, Marcel Roed, Theo Alexandrov, Mohammed AlQuraishi, Patricia Brennan, Daniel B Burkhardt, et al. How to build the virtual cell with artificial intelligence: Priorities and opportunities. Cell , 187(25):7045–7063, 2024. Shuizhou Chen, Lang Yu, Kedu Jin, Songming Zhang, Hao Wu, Wenxuan Huang, Sheng Xu, Quan Qian, Qin Chen, Lei Bai, et al. Scale: Scalable conditional atlas-level endpoint transport for virtual cell perturbation prediction. bioRxiv , pp. 2026–03, 2026. Changxi Chi, Yufei Huang, Jun Xia, Jiangbin Zheng, Yunfan Liu, Zelin Zang, and Stan Z Li. De-partures: Distributional transport for single-cell perturbation prediction with neural schr¨ odinger bridges. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 40, pp. 20544– 20552, 2026. Panpan Cui, Yiqi Liu, and Wenhao Sun. Perturbmap: Cross-context transfer of single-cell perturba-tion responses. arXiv preprint arXiv:2607.28090 , 2026. Payam Dibaeinia, Sudarshan Babu, Mei Knudson, Ali ElSheikh, Yibo Wen, Han Liu, Jason Perera, and Aly A Khan. Virtual cells need context, not just scale. bioRxiv , 2026. Mingze Dong, Abhinav Adduri, Dhruv Gautam, Christopher Carpenter, Rohan Shah, Chiara Ricci-Tam, Yuval Kluger, Dave P Burke, and Yusuf H Roohani. Stack: In-context learning of single-cell biology. bioRxiv , 2026. Jinghao Feng, Ziheng Zhao, Xiaoman Zhang, Mingfei Liu, Jingyi Chen, Xingran Quan, Boyang Fu, Jian Zhang, Yanfeng Wang, Ya Zhang, et al. A knowledge-driven framework for predicting single-cell responses for unprofiled drugs. Nature Machine Intelligence , pp. 1–14, 2026. Yue Guo, Hao Zhang, Haitao Hu, Jialu Wu, Ji Cao, Chang-Yu Hsieh, and Bo Yang. Modelling drug-induced cellular perturbation responses with a biologically informed dual-branch transformer. 
+
+Nature Machine Intelligence , 8(1):96–112, 2026. Siyu He, Yuefei Zhu, Daniel Naveed Tavakol, Haotian Ye, Yeh-Hsing Lao, Zixian Zhu, Cong Xu, Shradha Chauhan, Guy Garty, Raju Tomer, et al. Squidiff: predicting cellular development and responses to perturbations using a diffusion model. Nature methods , 23(1):65–77, 2026. Noah Hollmann, Samuel M¨ uller, Lennart Purucker, Arjun Krishnakumar, Max K¨ orfer, Shi Bin Hoo, Robin Tibor Schirrmeister, and Frank Hutter. Accurate predictions on small data with a tabular foundation model. Nature , 637(8045):319–326, 2025. Yuge Ji, Mohammad Lotfollahi, F Alexander Wolf, and Fabian J Theis. Machine learning for per-turbational single-cell omics. Cell Systems , 12(6):522–537, 2021. Shiyu Jiang, Zhaoyu Fang, Yujie Zhang, Xuting Zhang, J´ er´ emie Kalfon, Weixu Wang, Xi Fu, Aakash Patel, Syed Rizvi, Yuancheng Ryan Lu, et al. The landscape of single-cell foundation models: Design principles, applications, and open challenges. 2026. Kasia Z Kedzierska, Lorin Crawford, Ava P Amini, and Alex X Lu. Zero-shot evaluation reveals limitations of single-cell foundation models. Genome Biology , 26(1):101, 2025. Dominik Klein, Jonas Simon Fleck, Daniil Bobrovskiy, Lea Zimmermann, S¨ oren Becker, Alessan-dro Palma, Leander Dony, Alejandro Tejada-Lapuerta, Guillaume Huguet, Hsiu-Chuan Lin, et al. Cellflow enables generative single-cell phenotype modeling with flow matching. bioRxiv , pp. 2025–04, 2025. Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In International conference on machine learning , pp. 19730–19742. PmLR, 2023. Jiawen Liu, Xuechenxiao Cao, Yutong Li, Bing Liu, Jiaming Liang, Tinghe Zhang, Xiaoqi Sheng, and Hongmin Cai. Demixpert: Decomposed response modeling with gaussian mixtures for ood single-cell perturbation prediction. arXiv preprint arXiv:2608.23114 , 2026. 11 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 594 595 596 597 598 599 600 601 602 603 604 605 606 607 608 609 610 611 612 613 614 615 616 617 618 619 620 621 622 623 624 625 626 627 628 629 630 631 632 633 634 635 636 637 638 639 640 641 642 643 644 645 646 647
+
+Mohammad Lotfollahi, F Alexander Wolf, and Fabian J Theis. scgen predicts single-cell perturba-tion responses. Nature methods , 16(8):715–721, 2019. Mohammad Lotfollahi, Anna Klimovskaia Susmelj, Carlo De Donno, Leon Hetzel, Yuge Ji, Igna-cio L Ibarra, Sanjay R Srivatsan, Mohsen Naghipourfar, Riza M Daza, Beth Martin, et al. Predict-ing cellular responses to complex perturbations in high-throughput screens. Molecular systems biology , 19(6):MSB202211517, 2023. Ajay Nadig, Joseph M Replogle, Angela N Pogson, Steven A McCarroll, Jonathan S Weissman, Elise B Robinson, and Luke J O’Connor. Transcriptome-wide characterization of genetic pertur-bations. BioRxiv , 2024. Lukas Oesinghaus, S¨ oren Becker, Larsen Vornholz, Efthymia Papalexi, Joey Pangallo, Amir Ali Moinfar, Jenni Liu, Alyssa La Fleur, Maiia Shulman, Simone Marrujo, et al. A single-cell cy-tokine dictionary of human peripheral blood. BioRXiv , 2025. Giovanni Palla, Alexander Hillsley, Yang-Joon Kim, and Loic A Royer. Tabular foundation models are competitive cellular perturbation predictors across biological scales. bioRxiv , pp. 2026–06, 2026. Shi-ang Qi and Paidamoyo Chapfuwa. Mechanisms matter: Transportability of cellular perturbation effects. bioRxiv , pp. 2026–05, 2026. Jingang Qu, David Holzm¨ uller, Ga¨ el Varoquaux, and Marine Le Morvan. TabICL: A tabular foun-dation model for in-context learning on large data. In Proceedings of the 42nd International Con-ference on Machine Learning , volume 267 of Proceedings of Machine Learning Research , pp. 50817–50847. PMLR, 2025. URL https://proceedings.mlr.press/v267/qu25d. html .Joseph M Replogle, Reuben A Saunders, Angela N Pogson, Jeffrey A Hussmann, Alexander Lenail, Alina Guna, Lauren Mascibroda, Eric J Wagner, Karen Adelman, Gila Lithwick-Yanai, et al. Mapping information-rich genotype-phenotype landscapes with genome-scale perturb-seq. Cell ,185(14):2559–2575, 2022. Jennifer E Rood, Anna Hupalowska, and Aviv Regev. Toward a foundation model of causal cell and tissue biology with a perturbation cell and tissue atlas. Cell , 187(17):4520–4545, 2024. Yusuf Roohani, Kexin Huang, and Jure Leskovec. Predicting transcriptional outcomes of novel multigene perturbations with gears. Nature biotechnology , 42(6):927–935, 2024. Marvin Sextro, Weronika Kłos, and Gabriel Dernbach. Mappfn: Learning causal perturbation maps in context. arXiv preprint arXiv:2601.21092 , 2026. Peiting Shi, Ningfeng Que, Xianzhe Huang, Xiaofei Wang, and Jianzhong Jeff Xi. Statexdiff: Cell state-contextualized multimodal diffusion for single-cell perturbation prediction. arXiv preprint arXiv:2605.16104 , 2026. Handong Wang, Jiaxin Qi, Haochen Feng, and Baisheng Lai. Poppert: Population-level joint-distribution modeling for single-cell perturbation prediction. arXiv preprint arXiv:2609.01357 ,2026. Bernard L Welch. The generalization of ‘student’s’problem when several different population var-lances are involved. Biometrika , 34(1-2):28–35, 1947. Yan Wu, Esther Wershof, Sebastian Schmon, Marcel Nassar, Bła˙ zej Osi´ nski, Ridvan Eksi, Zichao Yan, Rory Stark, Kun Zhang, and Thore Graepel. Perturbench: Benchmarking machine learning models for cellular perturbation analysis. Advances in Neural Information Processing Systems ,38, 2026. Chenglei Yu, Chuanrui Wang, Bangyan Liao, and Tailin Wu. scdfm: Distributional flow matching model for robust single-cell perturbation prediction. arXiv preprint arXiv:2602.07103 , 2026. 12 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 648 649 650 651 652 653 654 655 656 657 658 659 660 661 662 663 664 665 666 667 668 669 670 671 672 673 674 675 676 677 678 679 680 681 682 683 684 685 686 687 688 689 690 691 692 693 694 695 696 697 698 699 700 701
+
+Xinyu Yuan, Xixian Liu, Ya Shi Zhang, Zuobai Zhang, Hongyu Guo, and Jian Tang. Perturbdiff: Functional diffusion for single-cell perturbation modeling. arXiv preprint arXiv:2602.19685 ,2026. Jesse Zhang, Airol A Ubas, Richard De Borja, Valentine Svensson, Nicole Thomas, Neha Thakar, Ian Lai, Aidan Winters, Umair Khan, Matthew G Jones, et al. Tahoe-100m: A giga-scale single-cell perturbation atlas for context-dependent gene function and cellular modeling. BioRxiv , pp. 2025–02, 2025. Hongxu Zhu, Amir Asiaee, Leila Azinfar, Jun Li, Han Liang, Ehsan Irajizad, Kim-Anh Do, and James P Long. Auc-pr is a more informative metric for assessing the biological relevance of in silico cellular perturbation prediction models. bioRxiv , 2025. 13 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 702 703 704 705 706 707 708 709 710 711 712 713 714 715 716 717 718 719 720 721 722 723 724 725 726 727 728 729 730 731 732 733 734 735 736 737 738 739 740 741 742 743 744 745 746 747 748 749 750 751 752 753 754 755
+
+A SPLIT CONSTRUCTION AND ENTROPY GAPS 
+
+A.1 DATASET SCALE 
+
+We summarize the benchmark subsets used in our experiments. Table 3 reports the number of base and held-out values for each variable. Table 4 reports the number of measured conditions and the median number of treated cells per condition in Cbase , Cctx , and Ctest .Table 3: Numbers of base / held-out variable values. Cell identity denotes cell line for Replogle– Nadig and Tahoe-100M, and cell type for PBMC. PBMC-2D fixes Donor9; Tahoe-100M fixes drug dose at 5 μM.
+
+Dataset Perturbation Cell identity Donor Replogle–Nadig 1,642 / 411 3 / 1 None Tahoe-100M 303 / 76 40 / 10 None PBMC-2D 72 / 18 14 / 4 Fixed (Donor9) PBMC-3D 72 / 18 14 / 4 10 / 2 
+
+Table 4: Measured condition counts and median treated-cell counts per condition. Only nonempty conditions are included, 
+
+Number of conditions Median cells per condition Dataset Cbase Cctx Ctest Cbase Cctx Ctest 
+
+Replogle–Nadig 4,926 2,875 411 88 57 48 Tahoe-100M 12,120 6,070 760 1,416 1,415 1,421.5 PBMC-2D 999 539 72 111 207 244 PBMC-3D 9,939 9,161 144 189 206 347.5 
+
+A.2 SPLIT CONSTRUCTION AND BALANCE 
+
+Binning strategy. We rank variable values by their treated-cell counts and divide them into bins containing nearly equal numbers of values, then sample held-out values within each bin. All four datasets use six perturbation bins; Tahoe-100M and both PBMC datasets additionally use four cell-line or cell-type bins, and PBMC-3D uses two donor bins. Replogle–Nadig holds out approximately 20% of perturbations and one cell line (HepG2). Tahoe-100M targets a 20% holdout on both axes while keeping drug scaffold groups intact, with a penalty for deviations from the target bin alloca-tion. Both PBMC splits hold out three perturbations per bin and one cell type per bin; PBMC-3D also holds out one donor per bin. PBMC-2D searches donor-specific candidates and selects Donor9. Bins stratify sampling by abundance; entropy is computed over individual variable values or joint conditions, not over the bins. 
+
+Entropy gaps. For a positive count vector n = ( n1, . . . , n K ), define pi = ni/∑︁ j nj and the normalized entropy imbalance 
+
+I(n) = 1 − −∑︁ Ki=1 pi log pi
+
+log K , ∆a =⃓⃓ I(ntrain  
+
+> a
+
+) − I(ntest  
+
+> a
+
+)⃓⃓ , (12) Zero counts are excluded and I = 0 when K ≤ 1, including the single held-out cell line in Replogle– Nadig. Here A contains each variable axis and the joint pair (2D) or triplet (3D) distribution. For Replogle–Nadig and PBMC, marginal counts are totaled over the full treated subset and restricted to train/test variable values; Tahoe uses marginals within the respective train/test target blocks. Joint counts always come from those target blocks. Each table entry is one such absolute train–test entropy difference; smaller values indicate more similar abundance imbalance. The gaps are used as one component of split selection together with count-distribution and support criteria, rather than as a model-training loss. Tables 5 and 6 report the selected splits. 14 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 756 757 758 759 760 761 762 763 764 765 766 767 768 769 770 771 772 773 774 775 776 777 778 779 780 781 782 783 784 785 786 787 788 789 790 791 792 793 794 795 796 797 798 799 800 801 802 803 804 805 806 807 808 809
+
+Table 5: Entropy gaps for the three 2D benchmarks. Cell identity denotes cell line for Re-plogle–Nadig and Tahoe-100M, and cell type for PBMC. Joint denotes perturbation × cell identity. Values are fixed-split statistics, rounded to six decimal places; smaller gaps indicate more similar normalized entropy imbalance. 
+
+Dataset Perturbation Cell identity Joint Replogle–Nadig 0.007273 0.015557 0.009409 Tahoe-100M 0.007415 0.007561 0.000284 PBMC-2D 0.000076 0.000014 0.000366 
+
+Table 6: Entropy gaps for PBMC-3D. Joint denotes perturbation × cell type × donor. Values are fixed-split statistics, rounded to six decimal places. 
+
+Dataset Perturbation Cell type Donor Joint PBMC-3D 0.000327 0.006464 0.009370 0.000116 
+
+B IMPLEMENTATION DETAILS 
+
+B.1 DATA PREPROCESSING 
+
+For each cell, let x ∈ RG 
+
+> ≥0
+
+denote the raw gene-count vector and let s(x) = ∑︁ Gg=1 xg be its library size. We first perform library-size normalization to a common target sum τ = 10 ,000 :˜︁ 
+
+xg = τ xg
+
+max {s(x), 1} , g = 1 , . . . , G. (13) We then apply the elementwise logarithmic transform z = log(1 + ˜︁ x). Highly variable genes are selected using only cells visible to the training split, including the corresponding training controls. For each gene, we compute its mean μg and sample variance vg in this transformed space, form the log-dispersion 
+
+dg = log (︃ vg
+
+max {μg , ϵ })︃ , ug = log(1 + μg ), (14) and divide genes into 20 bins according to ug . Within each bin b, we standardize dg using the bin mean and standard deviation: 
+
+hg = dg − mean j∈b(g) dj
+
+std j∈b(g) dj
+
+. (15) We retain the top 2,000 genes by hg and use the resulting log-normalized vectors in all model inputs and losses. This train-only selection prevents test-condition expression values from affecting the feature space. B.2 MODEL AND TRAINING CONFIGURATION 
+
+Each cell is projected to a 512-dimensional representation. A Q-former with q = 15 learned query tokens summarizes each cell set, followed by a population-mean token. The two states in each demonstration are processed by two pair-level self-attention blocks, and target cells use four trunk cross-attention blocks to attend to the context memory. The context and target populations are sam-pled with n = 128 cells per bulk; the standard training configuration uses five context pairs for each active context group, batch size 32, and AdamW with learning rate 10 −4 and weight decay 10 −4.We use eight attention heads, a 2,048-dimensional feed-forward layer, zero dropout, and cosine learning-rate decay to a minimum of 10 −5 over 40,000 steps. Each experiment takes approximately 8 hours on a single NVIDIA A100 GPU. 15 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 810 811 812 813 814 815 816 817 818 819 820 821 822 823 824 825 826 827 828 829 830 831 832 833 834 835 836 837 838 839 840 841 842 843 844 845 846 847 848 849 850 851 852 853 854 855 856 857 858 859 860 861 862 863
+
+Table 7: Main implementation hyperparameters. 
+
+Hyperparameter Value HVGs 2,000 Cell representation dimension d 512 Q-former query tokens q 15 Attention heads 8Pair self-attention blocks Lp 2Trunk cross-attention blocks Lt 4Feed-forward dimension 2,048 Cells per bulk n 128 Context pairs per group 5Batch size 32 Optimizer AdamW Learning rate 1 × 10 −4
+
+Weight decay 1 × 10 −4
+
+Minimum learning rate 1 × 10 −5
+
+Training steps 40,000 Dropout 0
+
+B.3 TRAINING OBJECTIVE AND EVALUATION METRICS 
+
+Let ˆ︁ X, X ∈ Rn×G denote the predicted and observed treated cell bulks after adding the predicted residual to the target controls. We minimize the empirical energy-kernel MMD: 
+
+MMD 2
+
+> k
+
+(ˆ︁ X, X ) = 1
+
+n2∑︂ i,j 
+
+k(ˆ︁ xi,ˆ︁ xj ) + 1
+
+n2∑︂ i,j 
+
+k(xi, xj ) − 2
+
+n2∑︂ i,j 
+
+k(ˆ︁ xi, xj ), (16) where k(u, v) = −∥ u − v∥2. The GeomLoss implementation uses blur parameter 0.05 . Equiva-lently, up to the sign convention induced by this negative energy kernel and an irrelevant positive constant factor, this is the usual energy-distance combination of cross-sample and within-sample Euclidean distances. The loss is evaluated in the 2,000-gene log-normalized expression space and averaged over the batch. For evaluation, let ¯xc and ˆ︁ ¯xc denote the observed and predicted mean expression profiles for test condition c, and let δc = ¯ xc − ¯xctrl  
+
+> c
+
+and ˆ︁ δc be the corresponding perturbation effects relative to the matched control mean. We report five complementary metrics, averaged over test conditions. 
+
+Expression error. Mean squared error and mean absolute error are 
+
+MSE = 1
+
+G
+
+> G
+
+∑︂ 
+
+> g=1
+
+(︁ˆ︁ 
+
+¯xc,g − ¯xc,g )︁ 2 , MAE = 1
+
+G
+
+> G
+
+∑︂ 
+
+> g=1
+
+⃓⃓ˆ︁ 
+
+¯xc,g − ¯xc,g ⃓⃓ . (17) They measure absolute agreement with the observed mean profile, with lower values indicating better performance. 
+
+Perturbation-effect correlation. PDCorr is the Pearson correlation between the predicted and observed perturbation-effect vectors: 
+
+PDCorr c =∑︁ g (ˆ︁ δc,g −ˆ︁ δ mean  
+
+> c
+
+)( δc,g − δ mean  
+
+> c
+
+)√︂∑︁  
+
+> g
+
+(ˆ︁ δc,g −ˆ︁ δ mean  
+
+> c
+
+)2√︂∑︁ g (δc,g − δ mean  
+
+> c
+
+)2
+
+. (18) The reported PDCorr is the mean of PDCorr c over conditions. 
+
+Perturbation discrimination score. For a target condition c, let Cc be the set of candidate condi-tions sharing all non-perturbation variables with c, including c. For each candidate c′ ∈ C c, define the cosine distance 
+
+dc,c ′ = 1 −ˆ︁ δT 
+
+> c
+
+δc′⃦⃦⃦ˆ︁ 
+
+δc⃦⃦⃦ 2
+
+∥δc′ ∥2
+
+, (19) 16 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 864 865 866 867 868 869 870 871 872 873 874 875 876 877 878 879 880 881 882 883 884 885 886 887 888 889 890 891 892 893 894 895 896 897 898 899 900 901 902 903 904 905 906 907 908 909 910 911 912 913 914 915 916 917
+
+with distance 1 if either vector has norm below the numerical tolerance. Let rc be the zero-based midrank of the correct candidate c among {dc,c ′ : c′ ∈ C c}, where tied candidates receive the average of their zero-based ranks. For |C c| > 1, the perturbation discrimination score is 
+
+PDS c = 1 − rc
+
+|C c| − 1 , PDS = 1
+
+|T | ∑︂ c∈T 
+
+PDS c . (20) When |C c| = 1 , we set PDS c = 1 . Thus, higher PDS means that the prediction is closer to the correct perturbation response than to alternative responses. In computing these distances, the gene panel excludes the target gene of every candidate when that gene is present in the panel. 
+
+Differential-expression direction reach. Let Gc be the reference differentially expressed genes for condition c, and rank genes by the predicted statistical evidence and effect magnitude. For each prefix of this ranking, let Top c(k) denote the reference DE genes recovered in the prefix, where 
+
+k = | Top c(k)|. Define its directional purity as 
+
+qc(k) = 1
+
+k∑︂ g∈Top c(k)
+
+⊮[︂ sign( ˆ︁ δc,g ) = sign( δc,g )]︂ . (21) Using a fixed 90% purity threshold, the deepest qualifying prefix gives 
+
+REACH c = max {k : qc(k) ≥ 0.9}|G c| , REACH = 1
+
+|T | ∑︂ c∈T 
+
+REACH c . (22) If no reference DE genes are available for a condition, its REACH value is undefined and is omit-ted from the macro-average; if no prefix reaches the threshold, the condition-level score is zero. REACH therefore rewards recovering a large fraction of reference DE genes with the correct re-sponse direction while prioritizing genes with stronger predicted statistical evidence. MSE and MAE are lower-is-better metrics; PDCorr, PDS, and REACH are higher-is-better metrics. 17 
+
+> .CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint
+
+918 919 920 921 922 923 924 925 926 927 928 929 930 931 932 933 934 935 936 937 938 939 940 941 942 943 944 945 946 947 948 949 950 951 952 953 954 955 956 957 958 959 960 961 962 963 964 965 966 967 968 969 970 971 
+
+C ADDITIONAL ABLATION RESULTS 
+
+All values below are reported as mean ± standard deviation over the three seeds used for the corre-sponding figure. The ablations are evaluated on PBMC-3D; metrics are PDCorr, PDS, and REACH (higher is better). C.1 EMBEDDING ABLATION 
+
+Table 8: Ablation of state and relation embeddings. 
+
+Variant PDCorr ↑ PDS ↑ REACH ↑
+
+No state + no relation 0.096 ± 0.002 0.507 ± 0.008 0.026 ± 0.005 
+
+No relation embedding 0.170 ± 0.005 0.599 ± 0.011 0.040 ± 0.004 
+
+No state embedding 0.303 ± 0.009 0.582 ± 0.014 0.162 ± 0.004 
+
+OURS 0.495 ± 0.005 0.833 ± 0.005 0.420 ± 0.011 
+
+C.2 CONTEXT COMPOSITION ABLATION 
+
+Table 9: Ablation of context groups defined by variables shared with the target. 
+
+Variant PDCorr ↑ PDS ↑ REACH ↑
+
+Without cell-type matches 0.379 ± 0.008 0.821 ± 0.005 0.162 ± 0.004 
+
+Without perturbation matches 0.217 ± 0.008 0.505 ± 0.018 0.134 ± 0.015 
+
+Without donor matches 0.154 ± 0.009 0.688 ± 0.014 0.120 ± 0.002 
+
+Only one shared variable 0.203 ± 0.015 0.626 ± 0.030 0.116 ± 0.002 
+
+Only two shared variables 0.486 ± 0.006 0.816 ± 0.008 0.409 ± 0.0004 
+
+OURS 0.495 ± 0.005 0.833 ± 0.005 0.420 ± 0.011 
+
+C.3 CONTEXT SIZE ABLATION 
+
+Table 10: Context-size ablation. m1 is the number of examples per single-shared group and m2 is the number per double-shared group.                                                                                                                                                                                                                                                                  
+
+> m1m2PDCorr ↑PDS ↑REACH ↑
+> 110.423 ±0.025 0.774 ±0.014 0.320 ±0.002
+> 120.474 ±0.013 0.808 ±0.013 0.369 ±0.013
+> 150.498 ±0.005 0.832 ±0.008 0.420 ±0.018
+> 180.508 ±0.003 0.847 ±0.001 0.438 ±0.004
+> 190.509 ±0.002 0.842 ±0.005 0.443 ±0.011
+> 210.424 ±0.021 0.775 ±0.018 0.319 ±0.008
+> 220.476 ±0.012 0.814 ±0.011 0.378 ±0.007
+> 250.497 ±0.006 0.834 ±0.007 0.415 ±0.026
+> 280.508 ±0.003 0.846 ±0.002 0.437 ±0.004
+> 290.509 ±0.002 0.841 ±0.004 0.445 ±0.008
+> 510.420 ±0.020 0.780 ±0.017 0.313 ±0.014
+> 520.472 ±0.013 0.814 ±0.014 0.369 ±0.018
+> 550.495 ±0.005 0.833 ±0.005 0.420 ±0.011
+> 580.506 ±0.004 0.848 ±0.003 0.436 ±0.006
+> 590.507 ±0.002 0.843 ±0.005 0.442 ±0.009
+> 810.416 ±0.013 0.780 ±0.011 0.305 ±0.009
+> 820.467 ±0.013 0.809 ±0.014 0.364 ±0.009
+> 850.494 ±0.006 0.837 ±0.005 0.417 ±0.010
+> 880.505 ±0.003 0.847 ±0.003 0.433 ±0.004
+> 890.506 ±0.002 0.845 ±0.003 0.452 ±0.008
+> 910.412 ±0.020 0.782 ±0.021 0.307 ±0.003
+> 920.467 ±0.013 0.810 ±0.011 0.363 ±0.024
+> 950.493 ±0.006 0.836 ±0.006 0.417 ±0.017
+> 980.504 ±0.003 0.847 ±0.003 0.430 ±0.007
+> 990.506 ±0.002 0.844 ±0.004 0.443 ±0.005
+
+18 
+
+.CC-BY-NC 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 3, 2026. ;https://doi.org/10.64898/2026.10.31.763027 doi: bioRxiv preprint 972 973 974 975 976 977 978 979 980 981 982 983 984 985 986 987 988 989 990 991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 
+
+C.4 RANDOM CONTEXT REPLACEMENT 
+
+Table 11 reports the numerical values underlying Figure 4b Table 11: Random replacement of context pairs. 
+
+Random context PDCorr ↑ PDS ↑ REACH ↑
+
+0% 0.495 ± 0.005 0.833 ± 0.005 0.420 ± 0.011 
+
+20% 0.422 ± 0.004 0.793 ± 0.003 0.108 ± 0.005 
+
+40% 0.344 ± 0.004 0.751 ± 0.016 0.086 ± 0.001 
+
+60% 0.263 ± 0.014 0.691 ± 0.006 0.069 ± 0.007 
+
+80% 0.165 ± 0.018 0.602 ± 0.016 0.060 ± 0.008 
+
+100% 0.071 ± 0.018 0.504 ± 0.021 0.048 ± 0.010 
+
+C.5 BORROWED CONTEXT REPLACEMENT 
+
+Table 12: Replacing the context with the complete context of another target sharing the listed vari-ables. The matched row is the normal context baseline. 
+
+Context relation PDCorr ↑ PDS ↑ REACH ↑
+
+Matched context 0.495 ± 0.005 0.833 ± 0.005 0.420 ± 0.011 
+
+Share cell type 0.077 ± 0.011 0.468 ± 0.012 0.065 ± 0.007 
+
+Share perturbation 0.203 ± 0.002 0.673 ± 0.007 0.103 ± 0.006 
+
+Share donor 0.185 ± 0.007 0.480 ± 0.017 0.113 ± 0.018 
+
+Share cell type + perturbation 0.236 ± 0.008 0.668 ± 0.003 0.139 ± 0.010 
+
+Share cell type + donor 0.217 ± 0.002 0.470 ± 0.010 0.167 ± 0.010 
+
+Share perturbation + donor 0.424 ± 0.003 0.807 ± 0.005 0.238 ± 0.001 
+
+19
