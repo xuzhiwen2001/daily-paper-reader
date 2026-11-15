@@ -1,0 +1,175 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-15T12:01:35.754273+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 2,
+    "deep_cap": 7,
+    "deep_selected": 2,
+    "quick_candidates": 2,
+    "quick_skim_target": 12,
+    "quick_selected": 2
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-11-08-765139-v1",
+      "source": "biorxiv",
+      "title": "Gene-level structure of prior knowledge and perturbation responses informs target-level predictability in prior-informed models",
+      "abstract": "Background: Predictive models of transcriptional responses to unseen genetic perturbations increasingly incorporate biological prior knowledge. However, it remains unclear how well prior knowledge reflects each target's perturbation-response relationships and how closely prior-derived measures track target-level predictive performance. Here, we develop a gene-similarity framework to quantify agreement among eight sources of biological prior knowledge and between prior knowledge and co-function or co-regulation relationships derived from six Perturb-seq datasets. Results: In genome-wide and essential-gene screens, prior agreement accounted for 30-47% of the variance in co-function agreement and 35-43% in co-regulation agreement. Agreement with Perturb-seq responses was higher for essential genes, lower for transcription factor and signaling genes, and varied with gene expression characteristics and cellular context. We compared prior agreement and prior-derived train-test similarity with measures based on the observed test response in tracking target-level predictive performance. Across three prior-informed models, predictions were more accurate for targets whose observed perturbation-response relationships better matched prior knowledge and that were more similar to training perturbations. Notably, prior agreement and prior-derived train-test similarity, calculated without the test response, tracked relative differences in target-level predictive performance. The strength of these associations varied across models and datasets and, for train-test similarity, across prior sources. Conclusion: Our framework reveals gene- and context-level heterogeneity in how biological knowledge aligns with perturbation responses, and provides an a priori basis for assessing relative perturbation predictability before perturbation responses are measured.",
+      "authors": [
+        "Park, J.",
+        "Sim, H.",
+        "Hwang, B."
+      ],
+      "primary_category": "genomics",
+      "categories": [
+        "genomics"
+      ],
+      "published": "2026-11-10T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.08.765139v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predictive models of transcriptional responses to unseen genetic perturbations",
+      "llm_evidence_cn": "预测未见遗传扰动的转录响应模型",
+      "llm_evidence": "预测未见遗传扰动的转录响应模型",
+      "canonical_evidence": "预测未见遗传扰动的转录响应模型",
+      "llm_tldr_en": "A gene-similarity framework quantifies agreement among eight prior knowledge sources and Perturb-seq derived co-function relations, linking gene-level prior structure to target-level predictability of perturbation response models.",
+      "llm_tldr_cn": "针对扰动响应预测模型大量引入生物学先验却缺乏先验质量评估的问题，作者提出基因相似性框架，量化八类先验知识之间以及与六个 Perturb-seq 数据集共功能、共调控关系的一致性。结果显示先验一致性可解释共功能一致性方差的 30-47%，并能追踪靶标层面的预测性能。该工作揭示了基因层面先验结构对扰动响应可预测性的指示作用。",
+      "llm_tldr": "针对扰动响应预测模型大量引入生物学先验却缺乏先验质量评估的问题，作者提出基因相似性框架，量化八类先验知识之间以及与六个 Perturb-seq 数据集共功能、共调控关系的一致性。结果显示先验一致性可解释共功能一致性方差的 30-47%，并能追踪靶标层面的预测性能。该工作揭示了基因层面先验结构对扰动响应可预测性的指示作用。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Predicting cellular response to genetic perturbations",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-05-764699-v1",
+      "source": "biorxiv",
+      "title": "MorphoANOVA: Dissecting Histology-Gene Expression Relationships in Spatial Transcriptomics",
+      "abstract": "Spatial transcriptomics (ST) measures the expression of hundreds to thousands of genes within tissue architecture, often accompanied by histology images. However, it remains challenging to systematically characterize which genes exhibit associations with tissue morphology, whether these associations vary spatially, and which genes show additional spatial expression patterns beyond those captured by morphology. Here we introduce MorphoANOVA, a gene-wise statistical framework for characterizing morphology--expression relationships across genes measured by ST. Using nested spatially varying coefficient models and sequential ANOVA, MorphoANOVA assesses slide-wide associations with an H\\&E-derived morphology feature, location-specific changes in these associations, and additional spatial variation after accounting for the selected feature. The resulting statistics enable gene prioritization and pathway enrichment analysis, while spatial component maps support the interpretation of individual genes. Simulations demonstrate MorphoANOVA's ability to distinguish the modeled components and recover their spatial patterns. Applications to human cortex and breast cancer identify biological programs associated with different morphology--expression patterns and reveal distinct relationships with cell composition. Across three HER2-positive breast cancer patients, invasive-cancer marker genes consistently exhibit stronger evidence of location-specific morphology associations. MorphoANOVA thus provides a framework for systematically interpreting spatial gene-expression patterns in relation to tissue morphology.",
+      "authors": [
+        "Chen, P.-W.",
+        "Yan, G.",
+        "Yu, S.",
+        "Li, J. J."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-09T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.05.764699v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "gene-wise statistical framework dissecting histology morphology and spatial gene expression relationships",
+      "llm_evidence_cn": "基因层面统计框架，解析组织学形态与空间基因表达的关系",
+      "llm_evidence": "基因层面统计框架，解析组织学形态与空间基因表达的关系",
+      "canonical_evidence": "基因层面统计框架，解析组织学形态与空间基因表达的关系",
+      "llm_tldr_en": "MorphoANOVA is a gene-wise statistical framework with nested spatially varying coefficient models and sequential ANOVA to quantify which genes associate with H&E morphology and which retain extra spatial patterns.",
+      "llm_tldr_cn": "空间转录组同时测量组织切片中大量基因表达并常配有组织学图像，但尚缺乏系统刻画哪些基因与组织形态相关、关联是否随空间变化的方法。作者提出MorphoANOVA，基于嵌套空间变系数模型与序贯方差分析，在基因层面评估切片整体关联、位置特异关联以及超出形态解释的额外空间表达模式。该框架可同时区分形态驱动的表达与残余空间结构。它为组织学图像与空间基因表达的联合解读提供了可解释的统计工具。",
+      "llm_tldr": "空间转录组同时测量组织切片中大量基因表达并常配有组织学图像，但尚缺乏系统刻画哪些基因与组织形态相关、关联是否随空间变化的方法。作者提出MorphoANOVA，基于嵌套空间变系数模型与序贯方差分析，在基因层面评估切片整体关联、位置特异关联以及超出形态解释的额外空间表达模式。该框架可同时区分形态驱动的表达与残余空间结构。它为组织学图像与空间基因表达的联合解读提供了可解释的统计工具。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-11-03-762080-v3",
+      "source": "biorxiv",
+      "title": "Perturbation-induced gene programs map the hidden regulatory architecture of complex diseases",
+      "abstract": "Steady-state molecular profiles incompletely capture the regulatory programs through which genetic variation influences complex disease, particularly programs that emerge only when cells are perturbed. Here, we introduce Perturbscape, a computational framework that learns multiscale gene programs for individual perturbations in a CRISPR Perturb-seq screen using linear and nonlinear contrastive approaches alongside complementary program-learning methods, and integrates them with human genetics to prioritize disease-relevant genes, perturbations and downstream regulatory pathways. Across 15,859 perturbation-by-context profiles from 7 Perturb-seq systems and 53 complex diseases and traits (mean GWAS N=291K), perturbation-induced programs showed up to 4.3-fold higher heritability informativeness than analogous steady-state multi-tissue gene prioritization, and retained significant conditional heritability informativeness across all 34 matched cell system-trait comparisons after accounting for steady-state prioritization. Preserving perturbation-specific programs further yielded 2.5-5.3-fold higher trait relevance scores than programs derived from control cells, pooled perturbations or differential-expression summaries. In K562, Perturbscape-prioritized genes showed stronger enrichment for rare-variant burden genes than steady-state prioritization and were supported by orthogonal enhancer CRISPRi screens. In HepG2, LDL cholesterol-associated perturbation-induced programs specifically revealed statin-responsive pathways not significantly enriched by steady-state PoPS prioritization, supported by pharmacological transcriptional responses and population plasma proteomics. Perturbscape also recovered blood-related trait-conditioned trans-regulatory relationships that were specifically supported by population trans-eQTLs in IFN-gamma-stimulated monocytes (OR = 1.30, P=1.6e-05). Perturbscape further revealed developmental-stage-specific convergence between monogenic diabetes regulators and polygenic T2D risk during pancreatic islet differentiation, and neuronal-subclass-specific autism-associated regulatory programs in vivo. Together, these findings establish perturbation-induced gene programs as a complementary layer of disease-relevant regulatory information, revealing genetically informative pathways and context-specific regulatory relationships incompletely represented by steady-state molecular atlases.",
+      "authors": [
+        "Turhan, B.",
+        "Lee, H.",
+        "Liu, D.",
+        "Le, A.",
+        "Ghosh, A.",
+        "Nandi, D.",
+        "Mazumder, R.",
+        "Engreitz, J. M.",
+        "Jin, X.",
+        "Huangfu, D.",
+        "Dey, K. K."
+      ],
+      "primary_category": "genetics",
+      "categories": [
+        "genetics"
+      ],
+      "published": "2026-11-11T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.03.762080v3.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "learns multiscale gene programs for individual perturbations in CRISPR Perturb-seq",
+      "llm_evidence_cn": "在CRISPR Perturb-seq中为单个扰动学习多尺度基因程序",
+      "llm_evidence": "在CRISPR Perturb-seq中为单个扰动学习多尺度基因程序",
+      "canonical_evidence": "在CRISPR Perturb-seq中为单个扰动学习多尺度基因程序",
+      "llm_tldr_en": "Perturbscape learns multiscale perturbation-induced gene programs from Perturb-seq screens via contrastive methods and links them to human genetics to prioritize disease genes and regulatory pathways.",
+      "llm_tldr_cn": "稳态分子谱难以揭示遗传变异影响复杂疾病的调控程序，尤其是仅在细胞受扰动后才出现的程序。作者提出Perturbscape框架，利用线性与非线性对比学习从CRISPR Perturb-seq数据中为单个扰动学习多尺度基因程序，并与人类遗传学数据整合。在7个Perturb-seq系统共15859个扰动-背景谱及53种复杂疾病与性状上，该框架能够优先排序疾病相关基因、扰动及下游调控通路。该工作把扰动诱导的基因程序与疾病遗传架构相连接，为机制解读提供新视角。",
+      "llm_tldr": "稳态分子谱难以揭示遗传变异影响复杂疾病的调控程序，尤其是仅在细胞受扰动后才出现的程序。作者提出Perturbscape框架，利用线性与非线性对比学习从CRISPR Perturb-seq数据中为单个扰动学习多尺度基因程序，并与人类遗传学数据整合。在7个Perturb-seq系统共15859个扰动-背景谱及53种复杂疾病与性状上，该框架能够优先排序疾病相关基因、扰动及下游调控通路。该工作把扰动诱导的基因程序与疾病遗传架构相连接，为机制解读提供新视角。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation modeling",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-02-11-705358-v2",
+      "source": "biorxiv",
+      "title": "Simple models outperform single-cell foundation models on downstream benchmarks",
+      "abstract": "Single-cell RNA sequencing (scRNA-seq) data exhibit strong and reproducible statistical structure. This has motivated the development of large-scale foundation models, such as TranscriptFormer, that use transformer-based architectures to learn a generative model for gene expression by embedding genes into a latent vector space. These embeddings have been used to obtain state-of-the-art (SOTA) performance on downstream tasks such as cell-type classification, disease-state prediction, and cross-species learning. Here, we ask whether similar performance can be achieved without utilizing computationally intensive deep learning-based representations. Using simple, interpretable pipelines that rely on careful normalization and linear methods, we obtain SOTA or near SOTA performance across multiple benchmarks commonly used to evaluate single-cell foundation models, including outperforming foundation models on out-of-distribution tasks involving novel cell types and organisms absent from the training data. Our findings highlight the need for rigorous benchmarking and suggest that the biology of cell identity can be captured by simple linear representations of single cell gene expression data.",
+      "authors": [
+        "Souza, H.",
+        "Mehta, P."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-10T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.02.11.705358v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "benchmarks single-cell foundation models that underlie virtual-cell modelling against simple linear pipelines",
+      "llm_evidence_cn": "以简单线性流程对比支撑虚拟细胞建模的单细胞基础模型",
+      "llm_evidence": "以简单线性流程对比支撑虚拟细胞建模的单细胞基础模型",
+      "canonical_evidence": "以简单线性流程对比支撑虚拟细胞建模的单细胞基础模型",
+      "llm_tldr_en": "Simple, interpretable pipelines using careful normalization and linear methods match or beat single-cell foundation models such as TranscriptFormer on cell-type classification, disease-state prediction and cross-species benchmarks.",
+      "llm_tldr_cn": "单细胞RNA测序数据具有强而可重复的统计结构，这促使人们构建TranscriptFormer等大规模基础模型，用Transformer学习基因表达的生成式表征以支持细胞类型分类与疾病状态预测。作者追问：不使用计算密集的深度表征是否也能达到同等性能。他们采用谨慎归一化加线性方法的简单可解释流程，在多个下游基准上取得与基础模型相当甚至更优的结果。该研究提示需重新评估单细胞基础模型在虚拟细胞任务中的必要性。",
+      "llm_tldr": "单细胞RNA测序数据具有强而可重复的统计结构，这促使人们构建TranscriptFormer等大规模基础模型，用Transformer学习基因表达的生成式表征以支持细胞类型分类与疾病状态预测。作者追问：不使用计算密集的深度表征是否也能达到同等性能。他们采用谨慎归一化加线性方法的简单可解释流程，在多个下游基准上取得与基础模型相当甚至更优的结果。该研究提示需重新评估单细胞基础模型在虚拟细胞任务中的必要性。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "virtual cell model",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

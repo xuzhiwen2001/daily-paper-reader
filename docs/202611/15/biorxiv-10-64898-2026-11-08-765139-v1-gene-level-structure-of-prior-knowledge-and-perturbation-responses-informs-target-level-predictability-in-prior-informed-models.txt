@@ -1,0 +1,1654 @@
+Title: Gene-level structure of prior knowledge and perturbation responses informs target-level predictability in prior-informed models
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.11.08.765139v1.full.pdf
+
+Number of Pages: 44
+
+Markdown Content:
+1
+
+Gene-level structure of prior knowledge and perturbation responses informs target-level 1
+
+predictability in prior-informed models 2
+
+Junha Park 1*, Hyungtai Sim 2* and Byungjin Hwang 1,2,3† 3 
+
+> 1
+
+Department of Medicine, Yonsei University College of Medicine, Seoul, Republic of Korea 4 
+
+> 2
+
+Department of Biomedical Sciences, Yonsei University College of Medicine, Seoul, Republic of 5
+
+Korea 6 
+
+> 3
+
+Brain Korea 21 Project, Yonsei University College of Medicine, Seoul, Republic of Korea 7
+
+*These authors contributed equally 8
+
+> †
+
+Correspondence to: bjhwang113@yuhs.ac 9
+
+10 
+
+Abstract 11 
+
+Background : Predictive models of transcriptional responses to unseen genetic perturbations 12 
+
+increasingly incorporate biological prior knowledge. However, it remains unclear how well prior 13 
+
+knowledge reflects each target’s perturbation-response relationships and how closely prior-14 
+
+derived measures track target-level predictive performance. Here, we develop a gene-similarity 15 
+
+framework to quantify agreement among eight sources of biological prior knowledge and 16 
+
+between prior knowledge and co-function or co-regulation relationships derived from six 17 
+
+Perturb-seq datasets. 18 
+
+Results : In genome-wide and essential-gene screens, prior agreement accounted for 30–47% 19 
+
+of the variance in co-function agreement and 35–43% in co-regulation agreement. Agreement 20 
+
+with Perturb-seq responses was higher for essential genes, lower for transcription factor and 21 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+2
+
+signaling genes, and varied with gene expression characteristics and cellular context. We 22 
+
+compared prior agreement and prior-derived train–test similarity with measures based on the 23 
+
+observed test response in tracking target-level predictive performance. Across three prior-24 
+
+informed models, predictions were more accurate for targets whose observed perturbation-25 
+
+response relationships better matched prior knowledge and that were more similar to training 26 
+
+perturbations. Notably, prior agreement and prior-derived train–test similarity, calculated without 27 
+
+the test response, tracked relative differences in target-level predictive performance. The 28 
+
+strength of these associations varied across models and datasets and, for train–test similarity, 29 
+
+across prior sources. 30 
+
+Conclusion : Our framework reveals gene- and context-level heterogeneity in how biological 31 
+
+knowledge aligns with perturbation responses, and provides an a priori basis for assessing 32 
+
+relative perturbation predictability before perturbation responses are measured. 33 
+
+Keyword : Perturb-seq, Biological prior, Gene-gene similarity, Perturbation prediction 34 
+
+35 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+3
+
+Background 36 
+
+Perturb-seq couples genetic perturbations with transcriptional readouts in single cells, enabling 37 
+
+precise measurement of how perturbations reshape cellular states. Comprehensive mapping of 38 
+
+genetic perturbations to rich transcriptional phenotypes under diverse cellular contexts has 39 
+
+facilitated in silico prediction of perturbation responses, in which predictive models are trained to 40 
+
+forecast transcriptional outcomes of unseen genetic perturbations. Recent predictive 41 
+
+approaches increasingly incorporate biological prior knowledge, including co-expression 42 
+
+patterns and Gene Ontology graphs [1–3], to enhance generalizability. Integrating multiple 43 
+
+priors, such as pathway annotations and pretrained gene embeddings, can further improve 44 
+
+prediction of unseen perturbation response and cross-dataset generalization [4,5]. 45 
+
+However, prior knowledge is not equally informative for every gene or cellular context. Perturb-46 
+
+seq measures response in a specific cell type and experimental condition, whereas prior 47 
+
+sources combine information from heterogeneous tissues, assays, annotations and 48 
+
+observational datasets [5]. A gene may therefore be well characterized in existing databases but 49 
+
+still show a context-specific perturbation response that those sources do not capture. Aggregate 50 
+
+benchmark scores can obscure differences among individual targets. At the aggregate level, 51 
+
+Systema showed that response components shared across perturbations can affect aggregate 52 
+
+predictive performance [6]. 53 
+
+Recent studies have also examined factors associated with target-level performance. GEARS 54 
+
+examined knowledge-graph connectivity and model-derived uncertainty in relation to 55 
+
+generalization performance [1], whereas TxPert related target knowledge and graph degree to 56 
+
+perturbation-level performance [7]. PRESCRIBE further used target-to-training similarity and 57 
+
+training-data quality to quantify model uncertainty and estimate confidence for unseen 58 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+4
+
+perturbations [8]. PRESAGE also related prediction performance to neighborhood density in 59 
+
+aggregated prior embeddings [5]. These studies suggest that predictive performance for 60 
+
+individual targets can be related both to prior information and to their relationship with the 61 
+
+training set. Agreement among priors can be measured without the test response, but it does 62 
+
+not by itself show how well those priors capture the target’s perturbation-response relationships. 63 
+
+It therefore remains unclear how closely agreement among priors reflects agreement with each 64 
+
+target’s perturbation-response relationships, and how prior-derived measures compare with 65 
+
+measures based on the observed test response in tracking target-level predictive performance 66 
+
+across models. 67 
+
+To address these questions, we considered agreement among prior sources and train–test 68 
+
+similarity calculated from prior knowledge. We compared these prior-derived measures with 69 
+
+agreement between prior knowledge and the target’s observed perturbation-response 70 
+
+relationships, and with train–test similarity calculated from those responses. Within each model 71 
+
+and dataset, we assessed how closely each measure tracked relative differences in predictive 72 
+
+performance across held-out targets. Because genome-wide and essential-gene screens 73 
+
+sample different target spaces and perturbation responses depend on cellular context, we also 74 
+
+examined how these relationships varied across target sets and cellular contexts. 75 
+
+Accordingly, we developed a gene-similarity framework that systematically compares eight 76 
+
+heterogeneous prior knowledge sources with six Perturb-seq datasets. We quantified how 77 
+
+consistently each gene was represented across priors, which we termed prior agreement, and 78 
+
+how well the priors matched two Perturb-seq-derived relationships: similarity of perturbation 79 
+
+effects (co-function) and similarity of measured-gene responses across perturbations (co-80 
+
+regulation). Prior agreement accounted for substantial gene-to-gene variation in co-function and 81 
+
+co-regulation agreement across genome-wide and essential-wide screens. These agreements 82 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+5
+
+also varied with perturbation-target annotations, gene expression characteristics, and cellular 83 
+
+context. Even within the spliceosome, some genes showed consistently high co-function 84 
+
+agreement across contexts, whereas others showed marked context-specific variation. 85 
+
+Across three prior-informed models, predictions were more accurate when prior knowledge 86 
+
+better matched the target’s observed perturbation response and when the training set contained 87 
+
+perturbations with similar effects. Prior agreement and prior-derived train–test similarity, 88 
+
+calculated without the measured test response, were informative about relative predictive 89 
+
+performance, although the strength of these associations varied across models and datasets. 90 
+
+By linking agreement among priors, agreement with observed perturbation-response 91 
+
+relationships, and target-level predictive performance, our framework provides an a priori basis 92 
+
+for comparing relative predictability across targets before the test response is measured. We 93 
+
+envision using this framework to inform model- and context-aware prioritization of perturbations 94 
+
+for experimental characterization. 95 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+6
+
+Results 96 
+
+A gene-similarity framework linking prior knowledge to Perturb-seq responses and 97 
+
+predictive performance 98 
+
+To enable direct comparison across heterogeneous prior knowledge sources and Perturb-seq 99 
+
+datasets, we converted each source and dataset into gene-wise similarity profiles ( Fig. 1A ). 100 
+
+Each gene was represented by a vector of its similarity to all other genes. In Perturb-seq, 101 
+
+similarity between perturbation effects is referred to as co-function, whereas similarity between 102 
+
+the responses of measured genes across perturbations is termed co-regulation. 103 
+
+Using these shared representations, we compared similarity profiles at the gene level using the 104 
+
+local overlap of nearest neighbors and global correlation across the full profile ( Fig. 1B ). These 105 
+
+local and global measures were used for two types of comparison. First, comparisons among 106 
+
+priors measured how consistently each gene was represented across prior resources. We 107 
+
+summarized this consistency as prior agreement at the gene level. Second, comparisons 108 
+
+between each prior and Perturb-seq measured how closely prior knowledge matched co-109 
+
+function or co-regulation relationships. These comparisons were summarized as co-function and 110 
+
+co-regulation agreement. We then assessed the mean and standard deviation of co-function 111 
+
+agreement across four essential-wide screens to distinguish context-stable from context-specific 112 
+
+agreement patterns ( Methods ). 113 
+
+Next, we assessed how much variation in co-function and co-regulation agreement was 114 
+
+explained by prior agreement, and whether perturbation-target annotations and gene expression 115 
+
+characteristics explained additional variation. Using linear models, we estimated the 116 
+
+associations of prior agreement and these additional factors with co-function or co-regulation 117 
+
+agreement across cell lines ( Fig. 1C ). 118 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+7
+
+Finally, we evaluated predictive performance for each held-out perturbation target, whose 119 
+
+measured responses were excluded from model training and used only for evaluation, and 120 
+
+related it to the gene-level relationship structures. Two relationships were considered: 121 
+
+agreement-based metrics ( A) and train–test similarity metrics ( S). We asked whether prior 122 
+
+agreement ( Aprior ) and prior-derived train–test similarity ( Sprior ), calculated without the test 123 
+
+response, tracked relative predictive difficulty, and compared them with corresponding 124 
+
+response-informed metrics. These assessed whether predictions were more accurate when 125 
+
+prior knowledge better matched the similarity of the target’s perturbation effects to those of other 126 
+
+targets ( Acofunc ), and when the training set contained perturbations with similar effects ( Scofunc ;127 
+
+Fig. 1D ). 128 
+
+Similarity profiles enable direct comparison of heterogeneous prior knowledge and 129 
+
+Perturb-seq data 130 
+
+First, we collected eight prior knowledge sources spanning four types of biological information: 131 
+
+graph-derived databases (MSigDB and STRINGdb), model-derived embeddings (GenePT and 132 
+
+scGPT), CRISPR-based resources (DepMap and PERISCOPE), and genome-scale 133 
+
+observations (regulatory networks from Marbach et al. and gene–trait associations from 134 
+
+UnTANGLeD; Fig. 2A ) [9–14]. To compare all eight priors using the same set of genes, we 135 
+
+defined the 10,875 genes shared across all eight sources as the reference gene set. We then 136 
+
+asked how much of each Perturb-seq dataset remained represented in this common gene 137 
+
+space. Individual priors covered 75–100% of perturbation-targets and 86–99% of measured 138 
+
+mRNAs, whereas the reference gene set covered 69–83% and 77–81%, respectively (Fig. 2B ). 139 
+
+Although requiring coverage by all eight priors reduced coverage relative to individual sources, 140 
+
+the common gene space retained most perturbation targets and measured mRNAs across the 141 
+
+Perturb-seq datasets. 142 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+8
+
+The prior resources and Perturb-seq datasets contain features with different dimensions and 143 
+
+meanings, making their raw gene profiles difficult to compare directly. We therefore represented 144 
+
+each gene by a similarity profile describing its relationship to all other genes ( Methods ). In 145 
+
+Perturb-seq, similarity between perturbation profiles defines co-function, whereas similarity 146 
+
+between measured-gene responses across perturbations defines co-regulation ( Fig. 1A and 147 
+
+2C ). 148 
+
+A response component shared across many perturbations can increase pairwise similarity 149 
+
+through systematic variation rather than perturbation-specific effects [6]. Consistent with this, 150 
+
+uncentered co-function values were shifted upward in all essential-gene and TF screens and for 151 
+
+co-regulation in the RPE1 essential-wide dataset ( Fig. 2D ). We therefore mean-centered the 152 
+
+response profiles before calculating similarity, removing the response component shared across 153 
+
+perturbations. The resulting co-function and co-regulation distributions using all perturbation 154 
+
+targets or measured mRNAs were comparable to those using only genes in the reference gene 155 
+
+set ( Supplementary Fig. 1 ). 156 
+
+We next tested whether similarity profiles improved cross-dataset comparability in Perturb-seq, 157 
+
+where raw and similarity representations could be benchmarked directly. For a matched 158 
+
+analysis, we restricted the perturbation and mRNA spaces of the K562 genome-wide screen to 159 
+
+those of the K562 essential-wide screen. Across comparisons using Pearson correlation, 160 
+
+Spearman correlation, and cosine similarity, similarity profiles more clearly separated matched 161 
+
+gene pairs from randomly paired genes. Accordingly, the median energy distance increased 162 
+
+from 0.43–0.51 to 0.61–0.65 in the perturbation space and from 0.44–0.50 to 0.63–0.79 in the 163 
+
+mRNA space ( Fig. 2E ). These results show that similarity profiles improve cross-dataset 164 
+
+discrimination of corresponding genes on both axes of the matched Perturb-seq response 165 
+
+matrices, supporting their use in the following prior–prior and prior–Perturb-seq comparisons. 166 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+9
+
+Gene-level agreement reveals shared and distinct structure across prior knowledge 167 
+
+sources 168 
+
+To assess how consistently each gene was represented across prior sources, we quantified 169 
+
+both local and global agreement between its similarity profiles. Local agreement measured 170 
+
+whether two sources identified the same closely related genes, whereas global agreement 171 
+
+measured concordance across all gene relationships. Both measures were standardized 172 
+
+against randomly paired genes to obtain Z-scores (Methods; Supplementary Fig. 2A, B ). 173 
+
+Local and global Z-score distributions were shifted above zero, indicating greater agreement 174 
+
+between priors than expected by chance ( Fig. 3A ). The two scores were moderately correlated 175 
+
+(Pearson's R = 0.39; Spearman's ρ = 0.33; Supplementary Fig. 2C ). To summarize local and 176 
+
+global agreement in a single score, we averaged them to define the gene agreement score 177 
+
+(GAS), a combined measure of gene-level agreement for a given pair of similarity matrices. 178 
+
+For each prior pair, we next calculated the fraction of genes with significant local or global 179 
+
+agreement above the threshold (Z-score > 2.5; Fig. 3B ). Five sources—scGPT, GenePT, 180 
+
+MSigDB, STRINGdb, and DepMap—showed consistently higher mutual agreement. The 181 
+
+STRINGdb–GenePT pair showed local agreement above this threshold for 67% of genes. We 182 
+
+refer to these five sources as the functional consensus group in subsequent analyses. 183 
+
+PERISCOPE, UnTANGLeD, and Marbach et al. were less concordant with the gene 184 
+
+relationships shared by the five-prior group. This difference may reflect the distinct biological 185 
+
+relationships and assays represented by these sources. 186 
+
+Perturb-seq comparisons reveal context-specific agreement with priors 187 
+
+We next asked whether gene relationships represented in the priors were also reflected in co-188 
+
+function and co-regulation matrices from six Perturb-seq datasets ( Fig. 3C ) [15–18]. Gene-wise 189 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+10 
+
+GAS patterns were highly concordant when the same priors were compared with the matched 190 
+
+K562 essential-wide and genome-wide screens ( Supplementary Fig. 2D ), indicating that 191 
+
+relative gene-level agreement patterns were preserved across the two datasets. 192 
+
+In K562, the essential-wide screen showed higher co-function agreement overall than the 193 
+
+genome-wide screen ( Fig. 3C; Supplementary Fig. 2E ). In RPE1 cells, the TF-wide screen 194 
+
+showed lower co-function agreement than the essential-wide screen. This contrast suggests 195 
+
+that response to transcription factor perturbation measured in RPE1 cells may have distinct 196 
+
+relationships beyond those inferred from prior similarity, consistent with the context dependence 197 
+
+of transcription factor function [19,20]. In the matched K562 comparison, relative gene-wise 198 
+
+agreement patterns were preserved despite differences in overall agreement; the RPE1 199 
+
+comparison further shows that agreement differs across perturbation target spaces within the 200 
+
+same cell line. 201 
+
+The broad grouping observed in prior–prior comparisons was also evident in the prior–Perturb-202 
+
+seq comparisons. Within the functional consensus group, GenePT, MSigDB, STRINGdb, and 203 
+
+DepMap consistently showed stronger agreement with co-function than scGPT across the six 204 
+
+datasets, whereas scGPT showed the highest agreement with co-regulation. Thus, even priors 205 
+
+with high mutual agreement differed in how they aligned with co-function and co-regulation. The 206 
+
+stronger co-regulation agreement of scGPT is consistent with its pretraining on single-cell 207 
+
+expression data and with the reported association between gene co-expression and 208 
+
+perturbation-derived co-regulation [21]. In contrast, GenePT, MSigDB, STRINGdb, and DepMap 209 
+
+more closely matched co-function relationships between perturbation targets. This difference 210 
+
+between co-function and co-regulation is also consistent with previous benchmark results: 211 
+
+scGPT-derived embeddings of mRNAs well reconstructed the transcriptional response to 212 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+11 
+
+perturbations [22], whereas STRINGdb-derived embeddings of perturbations showed utility in 213 
+
+extrapolating perturbation function [23]. 214 
+
+Pathway-level agreement identifies shared and comparison-specific biological programs 215 
+
+We next utilized pathway-level enrichment analysis to identify which biological programs 216 
+
+contributed to the agreement patterns. For all 28 prior pairs, we performed gene set enrichment 217 
+
+analysis (GSEA) on GAS using three complementary annotations spanning biological processes 218 
+
+(GO Biological Process), protein complexes (CORUM), and disease- or trait- associated genes 219 
+
+(GWAS Catalog) [24–26]. We organized enriched terms into 12 prior pathway clusters (PCs) 220 
+
+shared across or specific to prior combinations (Fig. 3D, Supplementary Table 1 ). PC1 221 
+
+(Cytoplasmic translation and rRNA maturation) and PC2 (OXPHOS and Mitochondrial 222 
+
+metabolism) were enriched mainly in comparisons within the functional consensus group, 223 
+
+suggesting that these housekeeping programs are broadly represented across this group of 224 
+
+prior resources. PC4 (Antigen presentation and adaptive immunity) and PC12 (GWAS immune 225 
+
+and autoimmune traits) were enriched in pairs involving UnTANGLeD, consistent with its 226 
+
+representation of gene-trait relationships from complex-trait data. 227 
+
+We applied the same analysis to GAS from each prior–Perturb-seq comparison in the K562 228 
+
+genome-wide screen and identified six co-function pathway clusters (FCs) and six co-regulation 229 
+
+pathway clusters (RCs) (Fig. 3E, Supplementary Table 2, 3 ). Enriched terms for cytoplasmic 230 
+
+translation and rRNA maturation, oxidative phosphorylation (OXPHOS) and mitochondrial 231 
+
+metabolism, and proteasome/proteostasis overlapped with the PCs ( Fig. 3F ). Although scGPT 232 
+
+showed lower overall co-function agreement in Fig. 3C, FC1 was enriched in the scGPT–co-233 
+
+function comparison, indicating pathway-specific agreement for translation and rRNA maturation 234 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+12 
+
+genes. This is consistent with the reported performance of fine-tuned scGPT in predicting 235 
+
+responses to perturbations of ribosomal genes [6]. 236 
+
+Other programs differed between co-function and co-regulation. FC4 (transcription initiation and 237 
+
+mediator complex) was specific to co-function comparisons, enriched for agreement with 238 
+
+STRINGdb, MSigDB, DepMap, or GenePT. Conversely, RC6 (cell cycle and chromosome 239 
+
+segregation) was specifically enriched for co-regulation comparison with MSigDB. Together, 240 
+
+these patterns show that agreement among priors captures part, but not all, of the pathway 241 
+
+structure observed in prior–Perturb-seq comparisons. 242 
+
+To quantify this relationship at the level of individual genes, we averaged GAS across the 28 243 
+
+prior pairs to define prior agreement and across the eight prior–Perturb-seq comparisons for 244 
+
+each response matrix to define co-function and co-regulation agreement ( Fig. 3D, E ). We then 245 
+
+asked how much prior agreement accounted for gene-to-gene variation in co-function and co-246 
+
+regulation agreement, and whether gene annotations and expression characteristics explained 247 
+
+additional variation. 248 
+
+Prior agreement accounts for substantial variation in co-function and co-regulation 249 
+
+agreement 250 
+
+Using separate linear regression models, we tested how strongly prior agreement was 251 
+
+associated with co-function and co-regulation agreement and whether perturbation-target 252 
+
+annotations and gene expression characteristics explained additional variation ( Fig. 4A ). 253 
+
+Target-gene annotations included essential genes from DepMap [15,16], genes associated with 254 
+
+signaling pathways [27,28], and transcription factors (TFs; Methods ) [18]. Expression-related 255 
+
+covariates included the mean and variance of gene expression in control cells. We compared 256 
+
+these associations across cell lines to assess their context dependence. 257 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+13 
+
+In the K562 genome-wide screen, prior agreement explained 47% of the variation in co-function 258 
+
+agreement and 43% of the variation in co-regulation agreement ( Fig. 4B, C ). Across the four 259 
+
+essential-wide screens, the corresponding values were 30–42% and 35–40%, respectively 260 
+
+(Supplementary Fig. 3A, B ). Genes represented more consistently across priors therefore 261 
+
+tended to show stronger co-function and co-regulation agreement. Adding gene annotations and 262 
+
+expression characteristics further increased the explained variance, although the increase was 263 
+
+smaller than that explained by prior agreement alone ( ΔR² = 0.011–0.064 for co-function 264 
+
+agreement and 0.115–0.194 for co-regulation agreement). The additional contribution was 265 
+
+larger for co-regulation than for co-function agreement. 266 
+
+The RPE1 TF-wide screen differed from the genome-wide and essential-wide screens: prior 267 
+
+agreement explained only 1% of the variation in co-function agreement, compared with 29% for 268 
+
+co-regulation agreement ( Supplementary Fig. 3A, B ). The corresponding RPE1 essential-wide 269 
+
+screen did not show the same divergence, indicating that this pattern was not explained by cell 270 
+
+line alone and may instead reflect properties of TF perturbations that depend on target and 271 
+
+experimental context [19,20]. 272 
+
+Gene-level agreement varies with perturbation-target annotation, gene expression 273 
+
+characteristics, and cellular context 274 
+
+We next examined whether perturbation-target annotation and expression characteristics were 275 
+
+associated with co-function and co-regulation agreement after accounting for prior agreement 276 
+
+(Methods ). In the K562 genome-wide dataset, gene essentiality was positively associated with 277 
+
+both co-function and co-regulation agreement after adjustment for prior agreement and the 278 
+
+other covariates ( Fig. 4D, E; Supplementary Fig. 3C ). Together with the higher co-function 279 
+
+agreement observed for essential genes in the K562 genome-wide screen ( Supplementary 280 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+14 
+
+Fig. 2E ), this result suggests that perturbation responses of essential genes are more 281 
+
+consistently represented in prior knowledge. Transcription factor genes were associated with 282 
+
+lower co-function and co-regulation agreement in the K562 genome-wide dataset ( Fig. 4D, E; 283 
+
+Supplementary Fig. 3D ). Signaling genes were also negatively associated with both 284 
+
+agreement measures across the cell lines ( Fig. 4D, E; Supplementary Fig. 3E ). Higher mean 285 
+
+expression and lower expression variance were generally associated with greater co-function 286 
+
+and co-regulation agreement after adjustment for the other covariates. 287 
+
+The association of co-function agreement with prior agreement varied more across four 288 
+
+essential-wide screens than did the corresponding association for co-regulation 289 
+
+(Supplementary Fig. 3A ). To examine this variation among comparable targets, we focused on 290 
+
+co-function agreement for genes shared across the four essential-wide screens. 291 
+
+Across four essential-wide screens, we identified genes with consistently high or context-292 
+
+specific co-function agreement ( Fig. 4F ). We defined context-stable genes as those with high 293 
+
+mean co-function agreement and low standard deviation, and context-specific genes as those 294 
+
+with low mean and high standard deviation ( Methods; Supplementary Fig. 3F ). Pathway 295 
+
+enrichment analysis showed consistently high agreement for peptide-biosynthesis and mRNA-296 
+
+processing programs ( Supplementary Fig. 3H ). Cell-cycle-regulatory programs showed greater 297 
+
+context-dependent variation ( Supplementary Fig. 3G ), whereas spliceosome-related programs 298 
+
+were enriched in both context-stable and context-specific analyses ( Supplementary Fig. 3G, 299 
+
+H). 300 
+
+This pattern suggested that context dependence may differ among spliceosome components. 301 
+
+Co-function agreement was strongly correlated across cell lines for context-stable spliceosome 302 
+
+genes but substantially less concordant for the context-specific subset, particularly in 303 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+15 
+
+comparisons of K562 with RPE1 or Jurkat cells ( Fig. 4G ). Context-stable spliceosome genes 304 
+
+included DDX41, which was previously reported to show highly correlated transcriptome-wide 305 
+
+effects across cell lines [16]. Context-specific spliceosome genes included immunophilins such 306 
+
+as PPIL1 , PPIL2 , and PPIH [29], and PUF60 , which is associated with cell-cycle regulation [30]. 307 
+
+Thus, prior–Perturb-seq agreement varies not only across broad gene categories and pathways 308 
+
+but also among components of the same molecular complex, depending on cellular contexts. 309 
+
+A priori assessment of target-level predictability in prior-informed predictive models 310 
+
+We then asked whether two prior-derived measures—(1) prior agreement and (2) train–test 311 
+
+similarity—calculated without the observed test response were associated with predictive 312 
+
+performance for individual held-out targets. We compared their forecastability with that of 313 
+
+corresponding response-informed measures. Using a benchmark of three prior-informed 314 
+
+models, GEARS, scLAMBDA and PRESAGE [1,5,31], on held-out perturbations [32], we 315 
+
+quantified predictive performance for each test perturbation. To distinguish how well a metric 316 
+
+tracks target-level performance from the model’s predictive accuracy, we defined forecastability 317 
+
+as the Pearson correlation across test perturbations between a predefined predictability metric 318 
+
+and observed predictive performance ( Fig. 5A ). Thus, a high positive forecastability value 319 
+
+indicates that perturbations with higher metric values tend to have higher predictive 320 
+
+performance. We compared forecastability across predictive models, perturbation-target sets, 321 
+
+and cellular contexts. 322 
+
+We evaluated two types of metrics: agreement-based ( A) and train–test similarity ( S) metrics. 323 
+
+Each type was calculated from prior knowledge without the test response or from the observed 324 
+
+perturbation responses ( Fig. 5B ). This yielded a two-by-two comparison of the relationship 325 
+
+measured ( A or S) and the information used (prior-derived or response-informed). Agreement-326 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+16 
+
+based metrics compare gene relationships, whereas train–test similarity metrics relate each test 327 
+
+target to perturbations represented in the training set. 328 
+
+For agreement-based metrics, co-function agreement ( Acofunc ) served as the response-informed 329 
+
+metric, whereas prior agreement ( Aprior ) served as its prior-derived counterpart. For train–test 330 
+
+similarity metrics, we defined S within a given similarity matrix as the average similarity between 331 
+
+each test perturbation and its K nearest training perturbations. Computing S from the co-332 
+
+function matrix yielded Scofunc , whereas computing S separately from each prior matrix yielded 333 
+
+prior-specific S values. We averaged these prior-specific S values across the five priors in the 334 
+
+functional consensus group to define Sprior (Fig. 5B ). The S metrics were stable across the 335 
+
+evaluated values of K (Supplementary Fig. 4A; Methods ). 336 
+
+Across the five datasets, co-function agreement ( Acofunc ) showed higher forecastability than prior 337 
+
+agreement ( Aprior ) for all three models ( Fig. 5C, D; Supplementary Fig. 5A ). Thus, agreement 338 
+
+between prior knowledge and the observed test-perturbation response tracked target-level 339 
+
+predictive performance more closely than agreement among prior sources alone. Notably, Aprior 340 
+
+showed positive forecastability for both PRESAGE (Pearson's R = 0.297–0.408) and 341 
+
+scLAMBDA ( R = 0.268–0.358; Fig. 5E ), indicating that prior knowledge alone provided 342 
+
+information about relative predictive performance. Forecastability was weaker for GEARS ( R =343 
+
+0.012–0.209; Fig. 5E ), with the large differences between GEARS and PRESAGE observed in 344 
+
+the K562 genome-wide and essential-wide screen ( Fig. 5D; Supplementary Fig. 5A ). 345 
+
+To place these gene-level associations in a biological context, we compared PRESAGE 346 
+
+predictive performance, Aprior , and Acofunc across functional gene sets in the K562 essential-wide 347 
+
+screen ( Supplementary Fig. 5B ). The cytoplasmic ribosomal subunit sets combined relatively 348 
+
+high co-function agreement with positive predictive performance. Other gene sets showed 349 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+17 
+
+distinct relationships between prior agreement and performance: the Pol I and rRNA 350 
+
+biosynthesis set showed higher predictive performance but lower Aprior than the mitochondrial 351 
+
+39S ribosomal subunit set. 352 
+
+Next, we examined train-test similarity. Scofunc generally showed higher forecastability than S353 
+
+derived from individual prior sources ( Fig. 5F, G; Supplementary Fig. 5C ). Prior-derived S354 
+
+metrics that most closely tracked target-level predictive performance varied across models. In 355 
+
+GEARS, scGPT-derived S showed higher forecastability than Scofunc in most datasets. 356 
+
+For scLAMBDA, GenePT-derived S showed forecastability comparable to that of Scofunc and 357 
+
+higher than that of Sprior in four of the five datasets. In contrast, Sprior generally showed slightly 358 
+
+higher forecastability than individual-prior S metrics for PRESAGE ( Fig. 5G ). The arithmetic 359 
+
+mean of train–test similarity values across the five functional-consensus priors therefore did not 360 
+
+always yield the highest observed correlation with target-level performance. Sprior showed higher 361 
+
+forecastability for PRESAGE ( R = 0.267–0.386) than for scLAMBDA ( R = 0.151–0.216) or 362 
+
+GEARS ( R = −0.100–0.202; Fig. 5H; Supplementary Fig. 5C ). This may reflect the differences 363 
+
+in prior usage across evaluated prior-informed models. Together, these analyses show that prior 364 
+
+agreement and prior-derived train–test similarity can track relative differences in predictive 365 
+
+performance across held-out targets, but the strength of these associations varies across 366 
+
+predictive models and, for train–test similarity, across prior sources. 367 
+
+Forecastability varies across cellular contexts and perturbation-target sets 368 
+
+Because PRESAGE showed relatively high forecastability for both Aprior and Sprior , we next 369 
+
+examined cross-context variation within PRESAGE. We extended the PRESAGE benchmark to 370 
+
+genome-wide Perturb-seq datasets from HEK293 and HCT116 cells [17]. For each dataset, we 371 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+18 
+
+also constructed an essential-gene-restricted evaluation by limiting both training and test 372 
+
+perturbations to essential genes. 373 
+
+Across nine combinations of cellular contexts and perturbation-target sets, forecastability based 374 
+
+on prior agreement ( Aprior ) and prior-derived train–test similarity ( Sprior ) varied substantially ( Fig. 375 
+
+5I ). Both metrics showed higher forecastability for PRESAGE than for the mean-predictor 376 
+
+baseline, which relies only on the overall statistics of training perturbation responses, across 377 
+
+these settings. However, HEK293 and HCT116 showed lower forecastability than the other 378 
+
+screens in both genome-wide and essential-gene-restricted analyses. 379 
+
+To assess whether forecastability differed between target sets of the same size, we matched 380 
+
+the numbers of training and test perturbations between the genome-wide and essential-gene-381 
+
+restricted evaluations within each cell line ( Methods ). The essential-gene-restricted evaluations 382 
+
+showed higher predictive performance and forecastability, for both Aprior and Sprior (Fig. 5J, K). 383 
+
+The metrics therefore tracked differences in target-level performance more closely in the 384 
+
+essential-gene-restricted evaluations, even after matching perturbation counts. However, 385 
+
+forecastability remained comparatively lower than in the other essential-wide screens, indicating 386 
+
+that essential-gene restriction alone did not remove the differences between datasets. 387 
+
+High-similarity training sets yield better predictions for fixed targets under matched prior 388 
+
+agreement 389 
+
+To extend the assessment of target-level predictability to training-set selection, we asked 390 
+
+whether prior similarity could guide the choice of training perturbations for specified test targets. 391 
+
+In a retrospective training-set selection analysis, we compared high- and low-similarity training 392 
+
+sets while holding the test targets fixed and matching the distributions of Aprior in the training sets 393 
+
+(Supplementary Fig. 6A ). Across five randomly selected test sets of 100 perturbations each, 394 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+19 
+
+high-similarity training sets yielded higher predictive performance than low-similarity training 395 
+
+sets at each evaluated training-set size ( Supplementary Fig. 6B ). These analyses show how 396 
+
+prior-derived measures can inform both the assessment of relative target-level predictability and 397 
+
+the selection of training perturbations for specified targets. 398 
+
+399 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+20 
+
+Discussion 400 
+
+Prior-informed models such as GEARS, PRESAGE, and TxPert [1,5,7] incorporate biological 401 
+
+knowledge to predict responses to unseen perturbations. Recent benchmarks have shown that 402 
+
+systematic variation can affect aggregate predictive performance [6]. Comparisons with simple 403 
+
+baselines further show that conclusions about model performance depend on the evaluation 404 
+
+task and metric [22, 32]. In addition, differences between training and test perturbation sets can 405 
+
+also influence overall benchmark performance [33]. However, aggregate scores can mask 406 
+
+variation in predictive performance across individual perturbations. To address these gaps, we 407 
+
+introduced a gene-level framework linking agreement among priors, agreement with observed 408 
+
+perturbation-response relationships, and perturbation-specific predictability. Prior agreement 409 
+
+and prior-derived train–test similarity, calculated without the test response, were informative 410 
+
+about relative predictive performance across held-out targets, with associations varying across 411 
+
+models and datasets. 412 
+
+Prior–response agreement was biological program-specific and differed between co-function 413 
+
+and co-regulation. Agreement was concentrated in specific biological programs, with translation 414 
+
+and rRNA maturation represented in both co-function and co-regulation comparisons and 415 
+
+transcription initiation and the mediator complex specific to co-function comparisons. scGPT 416 
+
+showed the strongest co-regulation agreement, whereas GenePT, MSigDB, STRINGdb, and 417 
+
+DepMap more closely matched co-function. 418 
+
+At the gene level, we next examined gene-to-gene variation in co-function and co-regulation 419 
+
+agreement. Prior agreement accounted for a substantial component of this variation, with 420 
+
+additional variation associated with perturbation-target annotations and gene expression 421 
+
+characteristics. Spliceosome genes illustrated that co-function agreement can differ across 422 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+21 
+
+cellular contexts even among genes within the same molecular complex. Prior agreement 423 
+
+therefore captured a substantial but incomplete component of gene-level prior–response 424 
+
+agreement, with further variation associated with target annotations, expression characteristics, 425 
+
+and cellular context. 426 
+
+Forecastability complements aggregate predictive performance by assessing whether gene-427 
+
+level measures distinguish relatively easier and harder perturbations to predict. For agreement-428 
+
+based metrics, co-function agreement showed higher forecastability than prior agreement 429 
+
+across the three models ( Fig. 5C, D ; Supplementary Fig. 5A ). Notably, prior agreement was 430 
+
+positively correlated with target-level predictive performance in scLAMBDA and PRESAGE 431 
+
+(Pearson's R = 0.268–0.358 and 0.297–0.408, respectively). For train–test similarity, the metric 432 
+
+based on observed perturbation responses generally showed higher forecastability than prior-433 
+
+derived metrics, but some metrics derived from individual priors showed comparable or higher 434 
+
+forecastability in specific model–dataset settings. Thus, response-informed agreement metrics 435 
+
+consistently showed higher forecastability than their prior-derived counterparts, whereas this 436 
+
+advantage was less consistent for train–test similarity. 437 
+
+These differences suggest that prior-derived measures are not equally informative across 438 
+
+predictive models. In PRESAGE, averaging train–test similarity across the functional consensus 439 
+
+priors generally showed higher forecastability than metrics derived from individual priors. By 440 
+
+contrast, specific priors were more informative in the other models: GenePT-derived similarity 441 
+
+showed higher forecastability than the five-prior average in four of five datasets in scLAMBDA, 442 
+
+whereas scGPT-derived similarity showed relatively high forecastability in GEARS ( Fig. 5F, G ;443 
+
+Supplementary Fig. 5C ). The informativeness of prior-derived train–test similarity is therefore 444 
+
+model-dependent rather than a fixed property of the prior itself, and averaging across priors 445 
+
+does not necessarily yield the most informative train–test similarity measure for every model. 446 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+22 
+
+Taken together, these model-dependent associations suggest that prior-derived metrics may 447 
+
+help distinguish easier and harder targets to predict within a given model and dataset. Because 448 
+
+they do not require the test response, these metrics can be calculated before it is measured. 449 
+
+The extended PRESAGE analyses in HEK293 and HCT116 further showed higher 450 
+
+forecastability when both training and test perturbations were restricted to essential genes, even 451 
+
+after matching the number of target perturbation. 452 
+
+Because these metrics can be calculated without the test response, their associations with 453 
+
+predictive performance can inform relative confidence in target predictions and help prioritize 454 
+
+perturbations for experimental characterization. The fixed-target training-set analysis further 455 
+
+extends their use to selecting training perturbations. High-similarity training sets yielded better 456 
+
+predictions than low-similarity sets with matched distributions of Aprior (Supplementary Fig. 6 ). 457 
+
+This study has several limitations. First, both families of metrics were associated with predictive 458 
+
+performance, yet substantial variation remained, suggesting that other factors, such as 459 
+
+sequencing depth or cell numbers per perturbation, may also influence predictive performance. 460 
+
+Differences across screens also cannot be attributed to cellular context alone because target 461 
+
+composition and experimental protocols differ. Second, prior-derived estimates may be 462 
+
+constrained by the incomplete coverage and context specificity of current prior knowledge. 463 
+
+Requiring coverage by all eight priors may favor well-characterized genes, while shared 464 
+
+information and reuse of the same prior resources limit the independence of the agreement 465 
+
+measures. Finally, our analyses were restricted to perturbation responses measured in the 466 
+
+mRNA expression space. Whether similar agreement patterns and prior-derived associations 467 
+
+with predictive performance extend to protein-level, multi-omic, or imaging-based phenotypes 468 
+
+remains to be established [34–37]. 469 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+23 
+
+Conclusions 470 
+
+Our analyses show that the usefulness of prior knowledge depends on both the biological 471 
+
+relationship of interest and the model in which the prior is used, and that these patterns vary 472 
+
+across cellular contexts and perturbation targets. Agreement among priors explained part of the 473 
+
+gene-to-gene variation in how well prior knowledge matched observed perturbation responses. 474 
+
+Together with prior-derived train–test similarity, it also provided information about relative 475 
+
+predictive performance across held-out targets before their responses were observed. These 476 
+
+metrics could inform experimental prioritization strategies, including active-learning frameworks 477 
+
+[38], by highlighting perturbations for which existing information may provide limited support for 478 
+
+prediction. Large-scale Perturb-seq datasets spanning broader target sets and cellular contexts 479 
+
+could help evaluate the generalizability of prior-derived measures of perturbation predictability. 480 
+
+Prospective studies can test whether experimentally characterizing such perturbations improves 481 
+
+subsequent prediction of unseen perturbations. 482 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+24 
+
+Methods 483 
+
+Prior knowledge sources 484 
+
+Eight knowledge sources were assembled as comparative priors: model-derived embeddings 485 
+
+(GenePT and scGPT) [11,12]; graph-like resources (MSigDB embeddings from medium-486 
+
+confidence edges and STRINGdb embeddings) [9,10]; resources derived from observational 487 
+
+studies (Marbach et al. and the UnTANGLeD gene–trait association matrix) [19,39]; and 488 
+
+CRISPR knockout (KO) datasets (PERISCOPE and DepMap) [13,14]. For the GenePT 489 
+
+embedding, graph-like resources, and DepMap dataset, we used preprocessed matrices 490 
+
+generated by the PRESAGE study as gene-feature embeddings [5]. GenePT embeddings were 491 
+
+corrected using the mean embedding across all genes in the reference gene set because 492 
+
+random gene pairs showed high basal correlation. Source-specific preprocessing was 493 
+
+performed for resources not directly adopted from PRESAGE. scGPT gene embeddings were 494 
+
+extracted from the pretrained scGPT blood model by encoding gene-vocabulary IDs; the 495 
+
+resulting gene-by-embedding matrix was used. We loaded the gene-feature matrix measured by 496 
+
+PERISCOPE in A549 cells and converted the Marbach et al. regulatory network from chronic 497 
+
+myelogenous leukemia (CML) cells into a gene-by-TF weight matrix, setting missing edges to 498 
+
+zero. For UnTANGLeD gene–trait association data, we retrieved the MultiXcan gene–trait 499 
+
+association matrix and mapped Ensembl gene identifiers to gene symbols. The resulting 500 
+
+matrices were used to generate gene –gene similarity profiles. 501 
+
+Perturb-seq datasets 502 
+
+Raw count matrices from Replogle et al. (2022), Nadig et al. (2025), and the Huang et al. (2025) 503 
+
+datasets were retrieved according to the Data Availability instructions [15–17]. To prepare 504 
+
+similarity matrices from Perturb-seq datasets, we excluded perturbation labels represented by 505 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+25 
+
+fewer than 10 cells and retained expression features with a mean UMI count greater than 0.01 506 
+
+across the remaining cells. Counts were normalized for library size within each batch by scaling 507 
+
+each cell to the batch-specific median read depth across retained features. For each 508 
+
+perturbation, z-scores were averaged across all corresponding cells to generate an effect-size 509 
+
+matrix, with or without feature mean-centering. 510 
+
+Calculation of gene –gene similarity matrices 511 
+
+Gene –gene similarity matrices were calculated separately for each prior knowledge source and 512 
+
+Perturb-seq dataset. For prior knowledge sources, similarity matrices were computed from the 513 
+
+corresponding gene-feature matrices. Cosine similarity was used for PRESAGE-derived 514 
+
+embeddings (GenePT, STRINGdb, MSigDB, and DepMap) and scGPT embeddings. For the 515 
+
+other prior knowledge sources (PERISCOPE, Marbach et al., and UnTANGLeD), gene-feature 516 
+
+matrices were converted to similarity matrices using Spearman correlation across features. For 517 
+
+Perturb-seq datasets, similarity matrices were computed from perturbation-level effect-size 518 
+
+matrices. Cosine similarity, after centering by the mean across all perturbations, was used to 519 
+
+compare response profiles between perturbed genes. 520 
+
+Estimation of gene-level agreement between similarity matrices 521 
+
+Gene-level agreement between two similarity matrices was quantified using local and global 522 
+
+measures of their similarity profiles. For a given gene, its similarity profile was defined as the 523 
+
+vector of similarity values between that gene and all other shared genes, excluding self-524 
+
+similarity. 525 
+
+Local agreement was measured as the intersection over union (IoU) between the top-K nearest-526 
+
+neighbor gene sets identified from the two similarity profiles. We selected K=100 for the local 527 
+
+agreement to ensure sufficient neighborhood coverage and robustness ( Supplementary Fig. 528 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+26 
+
+2A and 2B ). Global agreement was measured as the Spearman correlation between the full 529 
+
+similarity profiles from the two matrices. To estimate agreement expected by chance, we 530 
+
+generated a null distribution by comparing randomly paired genes across the two matrices in 531 
+
+1,000 repetitions. The observed local IoU and global Spearman correlation were converted to 532 
+
+local and global Z-scores using the mean and standard deviation of the corresponding null 533 
+
+distribution. 534 
+
+A gene agreement score (GAS) was defined as the average of the local and global Z-scores for 535 
+
+each gene–matrix pair. Genes with either a local or global Z-score > 2.5 were considered to 536 
+
+show significant agreement. Prior agreement was calculated by averaging GAS across all 537 
+
+pairwise comparisons among prior knowledge sources. Co-function and co-regulation 538 
+
+agreement were calculated by averaging GAS across comparisons between each prior 539 
+
+knowledge source and the corresponding Perturb-seq-derived co-function or co-regulation 540 
+
+matrix, respectively. 541 
+
+Gene set enrichment analysis 542 
+
+Gene set enrichment analysis (GSEA) was performed using gseapy [24–26,40] to evaluate the 543 
+
+agreement of prior-wide and prior-specific signatures with GO Biological Process, CORUM 544 
+
+complex, and GWAS Catalog gene sets. Among significant enrichment results (FDR < 0.001), 545 
+
+clusters were annotated based on their biological roles. 546 
+
+Estimation of covariate-adjusted alignment between agreement measures 547 
+
+For each Perturb-seq dataset, we fitted separate ordinary least-squares regression models with 548 
+
+co-function or co-regulation agreement as the outcome and prior agreement as the predictor of 549 
+
+interest, with one gene as the unit of analysis. Covariate-adjusted analyses included the K562 550 
+
+genome-wide screen and four essential-wide screens (K562, RPE1, HepG2, and Jurkat), 551 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+27 
+
+retaining only genes with both prior-agreement and outcome values. Prior-agreement-only 552 
+
+regressions were also summarized for the RPE1 TF-wide screen ( Supplementary Fig. 3A, B ). 553 
+
+Full models included binary indicators of common-essential genes, signaling genes, and 554 
+
+transcription factors, together with continuous covariates for gene-wise mean expression and 555 
+
+expression variance. Common-essential, signaling, and transcription factor genes were defined 556 
+
+using the DepMap CRISPRInferredCommonEssentials set; the union of genes assigned to 557 
+
+KEGG 2026 canonical and system-specific signaling pathways in the immune, endocrine, 558 
+
+circulatory, and nervous systems; and targets from the Southard et al. transcription factor 559 
+
+screen [18,41], respectively. Mean expression and expression variance were calculated across 560 
+
+control cells, with variance calculated as the population variance. Missing covariate values were 561 
+
+mean-imputed. The common-essential indicator was included only in the K562 genome-wide 562 
+
+analysis. 563 
+
+All models included an intercept, and the coefficient for prior agreement was reported as the 564 
+
+covariate-adjusted alignment estimate. Additional variance explained by the covariates was 565 
+
+quantified as 𝛥𝑅 ! = 𝑅 "#$$ ! − 𝑅 %&'#(&' ! , where the reduced model contained prior agreement 566 
+
+alone. 567 
+
+Two-sided P values for regression coefficients were adjusted within each model using the 568 
+
+Benjamini–Hochberg procedure, and associations were summarized as 𝑠𝑖𝑔𝑛 (𝛽) × −𝑙𝑜𝑔 10(𝑞) ,569 
+
+where β is the regression coefficient and q is the adjusted P value. Variance inflation factors 570 
+
+were calculated for the predictors in the full model. 571 
+
+Identification of context-specific and context-stable agreement patterns 572 
+
+Co-function agreement patterns were classified as context-specific or context-stable by 573 
+
+thresholding the mean and standard deviation of co-function agreement across four cell lines 574 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+28 
+
+(K562, RPE1, HepG2, and Jurkat). Based on inspection of these distributions, GSEA was 575 
+
+performed among genes with a standard deviation < 0.25, using mean co-function agreement 576 
+
+as the gene-wise score, to identify pathways with context-stable agreement. Among genes with 577 
+
+a mean < 0.5, GSEA was performed using the standard deviation of co-function agreement to 578 
+
+identify pathways with context-specific agreement. Among enriched pathways (Benjamini– 579 
+
+Hochberg-adjusted P < 0.1), the five with the highest normalized enrichment scores (NESs) 580 
+
+were used to annotate gene sets harboring context-specific and context-stable agreement 581 
+
+patterns. 582 
+
+Calculation of forecastability metrics 583 
+
+Agreement-based ( A) and train –test similarity ( S) metrics were calculated as prior-derived or 584 
+
+response-informed measures. Aprior compares priors with one another, whereas Acofunc compares 585 
+
+priors with observed co-function relationships. Co-function agreement and prior agreement were 586 
+
+quantified as described above. Train–test similarity ( S) was defined from an input similarity 587 
+
+matrix and a given train–test split of perturbations. For each test perturbation, S was calculated 588 
+
+as its average similarity to the K nearest training perturbations. Scofunc was calculated using the 589 
+
+co-function matrix, whereas Sprior was calculated by averaging S across five prior similarity 590 
+
+matrices in the functional consensus group (GenePT, STRINGdb, MSigDB, DepMap, and 591 
+
+scGPT). Stability with respect to K was assessed for K = 5, 10, and 20; K = 5 was used in the 592 
+
+final implementation. 593 
+
+Estimation of predictive performance for Perturb-seq datasets 594 
+
+To assess predictive performance of prior-informed models, we extended the benchmark 595 
+
+framework of Miller et al. to six Perturb-seq datasets and an additional X-Atlas/Orion dataset 596 
+
+[15–18,32]. Preparation and quality-control workflows described by Miller et al. were 597 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+29 
+
+consistently applied across datasets. Briefly, perturbations were randomly selected with a 598 
+
+maximum of 2,500s and selected transcription factors were added for gene regulatory context. 599 
+
+For each model–dataset pair, models were trained using their original procedures or the 600 
+
+corresponding CellSimBench adapters and evaluated by fivefold perturbation-level held-out 601 
+
+cross-validation. For each held-out perturbation target, predictive performance was assessed 602 
+
+using weighted R2(Δpert) between predicted and observed perturbation-induced expression 603 
+
+changes for a fixed gene subset across held-out perturbations [32]. Results were then 604 
+
+aggregated across folds and benchmarked against mean-predictor baselines. 605 
+
+For the retrospective training-set selection analysis, we randomly selected five test sets of 100 606 
+
+perturbations each using K562 genome-wide screen dataset. Within each repeat, the test set 607 
+
+was held fixed while high- and low-similarity training sets were selected from the candidate 608 
+
+perturbation pool at each evaluated training-set size. The two training-set conditions were 609 
+
+matched on the distribution of Aprior and differed in prior similarity to the test set. The predictive 610 
+
+model was trained separately on each selected training set and evaluated on the same test 611 
+
+targets using Pearson( Δctrl). 612 
+
+613 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+30 
+
+REFERENCES 614 1. Roohani Y, Huang K, Leskovec J. Predicting transcriptional outcomes of novel multigene perturbations 615 with GEARS. Nat Biotechnol. 2024;42:927–35. https://doi.org/10.1038/s41587-023-01905-6 616 2. Bai D, Ellington CN, Mo S, Song L, Xing EP. AttentionPert: accurately modeling multiplexed genetic 617 perturbations with multi-scale effects. Bioinformatics. Oxford, England; 2024;40:i453–61. 618 https://doi.org/10.1093/bioinformatics/btae244 619 3. Piran Z, Cohen N, Hoshen Y, Nitzan M. Disentanglement of single-cell data with biolord. Nat 620 Biotechnol. 2024;42:1678–83. https://doi.org/10.1038/s41587-023-02079-x 621 4. Wang C, Karimzadeh M, Ravindra NG, Bounds LR, Alerasool N, Huang AC, et al. X-cell: scaling causal 622 perturbation prediction across diverse cellular contexts via diffusion language models [Internet]. 623 Systems Biology; 2026 [cited 2026 July 20]. https://doi.org/10.64898/2026.03.18.712807 624 5. Littman R, Levine J, Maleki S, Lee Y, Ermakov V, Qiu L, et al. Gene-embedding-based prediction and 625 functional evaluation of perturbation expression responses with PRESAGE [Internet]. Bioinformatics; 626 2025 [cited 2026 July 20]. https://doi.org/10.1101/2025.06.03.657653 627 6. Viñas Torné R, Wiatrak M, Piran Z, Fan S, Jiang L, Teichmann SA, et al. Systema: a framework for 628 evaluating genetic perturbation response prediction beyond systematic variation. Nat Biotechnol. 629 2026;44:1050–9. https://doi.org/10.1038/s41587-025-02777-8 630 7. Wenkel F, Tu W, Masschelein C, Shirzad H, Hodgson L, Bendidi I, et al. TxPert: using multiple 631 knowledge graphs for prediction of transcriptomic perturbation effects. Nat Biotechnol. 2026; 632 https://doi.org/10.1038/s41587-026-03113-4 633 8. Cheng J, Chi C, Zhou J, Xin H, Xia J. PRESCRIBE: predicting single-cell responses with bayesian 634 estimation. Advances in Neural Information Processing Systems 38 [Internet]. San Diego, California, USA 635 and Mexico City, Mexico: Neural Information Processing Systems Foundation, Inc. (NeurIPS); 2025 [cited 636 2026 Sept 8]. p. 161465–97. https://doi.org/10.52202/085713-4868 637 9. Liberzon A, Birger C, Thorvaldsdóttir H, Ghandi M, Mesirov JP, Tamayo P. The molecular signatures 638 database hallmark gene set collection. Cell Syst. 2015;1:417–25. 639 https://doi.org/10.1016/j.cels.2015.12.004 640 10. Szklarczyk D, Nastou K, Koutrouli M, Kirsch R, Mehryary F, Hachilif R, et al. The STRING database in 641 2025: protein networks with directionality of regulation. Nucleic Acids Res. 2025;53:D730–7. 642 https://doi.org/10.1093/nar/gkae1113 643 11. Cui H, Wang C, Maan H, Pang K, Luo F, Duan N, et al. scGPT: toward building a foundation model for 644 single-cell multi-omics using generative AI. Nat Methods. 2024;21:1470–80. 645 https://doi.org/10.1038/s41592-024-02201-0 646 12. Chen Y, Zou J. GenePT: a simple but effective foundation model for genes and cells built from 647 ChatGPT [Internet]. Bioinformatics; 2023 [cited 2026 July 21]. 648 https://doi.org/10.1101/2023.10.16.562533 649 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+31 13. Pacini C, Duncan E, Gonçalves E, Gilbert J, Bhosle S, Horswell S, et al. A comprehensive clinically 650 informed map of dependencies in cancer cells and framework for target prioritization. Cancer Cell. 651 2024;42:301-316.e9. https://doi.org/10.1016/j.ccell.2023.12.016 652 14. Feldman D, Singh A, Schmid-Burgk JL, Carlson RJ, Mezger A, Garrity AJ, et al. Optical pooled screens 653 in human cells. Cell. 2019;179:787-799.e17. https://doi.org/10.1016/j.cell.2019.09.016 654 15. Replogle JM, Saunders RA, Pogson AN, Hussmann JA, Lenail A, Guna A, et al. Mapping information-655 rich genotype-phenotype landscapes with genome-scale perturb-seq. Cell. 2022;185:2559-2575.e28. 656 https://doi.org/10.1016/j.cell.2022.05.013 657 16. Nadig A, Replogle JM, Pogson AN, Murthy M, McCarroll SA, Weissman JS, et al. Transcriptome-wide 658 analysis of differential expression in perturbation atlases. Nat Genet. 2025;57:1228–37. 659 https://doi.org/10.1038/s41588-025-02169-3 660 17. Huang AC, Hsieh T-HS, Zhu J, Michuda J, Teng A, Kim S, et al. X-atlas/orion: genome-wide perturb-seq 661 datasets via a scalable fix-cryopreserve platform for training dose-dependent biological foundation 662 models [Internet]. Genomics; 2025 [cited 2026 July 21]. https://doi.org/10.1101/2025.06.11.659105 663 18. Southard KM, Ardy RC, Tang A, O’Sullivan DD, Metzner E, Guruvayurappan K, et al. Comprehensive 664 transcription factor perturbations recapitulate fibroblast transcriptional states. Nat Genet. 665 2025;57:2323–34. https://doi.org/10.1038/s41588-025-02284-1 666 19. Marbach D, Lamparter D, Quon G, Kellis M, Kutalik Z, Bergmann S. Tissue-specific regulatory circuits 667 reveal variable modular perturbations across complex diseases. Nat Methods. 2016;13:366–70. 668 https://doi.org/10.1038/nmeth.3799 669 20. Thurman RE, Rynes E, Humbert R, Vierstra J, Maurano MT, Haugen E, et al. The accessible chromatin 670 landscape of the human genome. Nature. 2012;489:75–82. https://doi.org/10.1038/nature11232 671 21. Feng C, Peets EM, Zhou Y, Crepaldi L, Usluer S, Dunham A, et al. A genome-scale single-cell CRISPRi 672 map of trans gene regulation across human pluripotent stem cell lines. Cell Genomics. 2026;6:101076. 673 https://doi.org/10.1016/j.xgen.2025.101076 674 22. Ahlmann-Eltze C, Huber W, Anders S. Deep-learning-based gene perturbation effect prediction does 675 not yet outperform simple linear baselines. Nat Methods. 2025;22:1657–61. 676 https://doi.org/10.1038/s41592-025-02772-6 677 23. Cole E, Huizing G-J, Addagudi S, Ho N, Hasanaj E, Kuijs M, et al. Foundation models improve 678 perturbation response prediction [Internet]. Bioinformatics; 2026 [cited 2026 Sept 8]. 679 https://doi.org/10.64898/2026.02.18.706454 680 24. Tsitsiridis G, Steinkamp R, Giurgiu M, Brauner B, Fobo G, Frishman G, et al. CORUM: the 681 comprehensive resource of mammalian protein complexes–2022. Nucleic Acids Res. 2023;51:D539–45. 682 https://doi.org/10.1093/nar/gkac1015 683 25. Cerezo M, Sollis E, Ji Y, Lewis E, Abid A, Bircan KO, et al. The NHGRI-EBI GWAS catalog: standards for 684 reusability, sustainability and diversity. Nucleic Acids Res. 2025;53:D998–1005. 685 https://doi.org/10.1093/nar/gkae1070 686 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+32 26. Gene Ontology Consortium. The gene ontology knowledgebase in 2026. Nucleic Acids Res. 687 2026;54:D1779–92. https://doi.org/10.1093/nar/gkaf1292 688 27. Schmidt R, Steinhart Z, Layeghi M, Freimer JW, Bueno R, Nguyen VQ, et al. CRISPR activation and 689 interference screens decode stimulation responses in primary human T cells. Science. 690 2022;375:eabj4008. https://doi.org/10.1126/science.abj4008 691 28. Jiang L, Dalgarno C, Papalexi E, Mascio I, Wessels H-H, Yun H, et al. Systematic reconstruction of 692 molecular pathway signatures using scalable single-cell perturbation screens. Nat Cell Biol. 2025;27:505– 693 17. https://doi.org/10.1038/s41556-025-01622-z 694 29. Mesa A, Somarelli JA, Herrera RJ. Spliceosomal immunophilins. FEBS Lett. 2008;582:2345–51. 695 https://doi.org/10.1016/j.febslet.2008.06.006 696 30. Xu N, Ren Y, Bao Y, Shen X, Kang J, Wang N, et al. PUF60 promotes cell cycle and lung cancer 697 progression by regulating alternative splicing of CDC25C. Cell Rep. 2023;42:113041. 698 https://doi.org/10.1016/j.celrep.2023.113041 699 31. Wang G, Liu T, Zhao J, Cheng Y, Zhao H. Modeling and predicting single-cell multi-gene perturbation 700 responses with scLAMBDA [Internet]. Bioinformatics; 2024 [cited 2026 Sept 8]. 701 https://doi.org/10.1101/2024.12.04.626878 702 32. Miller HE, Mejia GM, Leblanc FJA, Wang B, Swain B, Camillo LPDL. Deep learning-based genetic 703 perturbation models Do outperform uninformative baselines on well-calibrated metrics [Internet]. 704 Bioinformatics; 2025 [cited 2026 July 21]. https://doi.org/10.1101/2025.10.20.683304 705 33. Wenteler A, Occhetta M, Branson N, Curean V, Huebner M, Dee W, et al. PertEval-scFM: 706 benchmarking single-cell foundation models for perturbation effect prediction [Internet]. 707 Bioinformatics; 2024 [cited 2026 July 21]. https://doi.org/10.1101/2024.10.02.616248 708 34. Frangieh CJ, Melms JC, Thakore PI, Geiger-Schuller KR, Ho P, Luoma AM, et al. Multimodal pooled 709 perturb-CITE-seq screens in patient models define mechanisms of cancer immune evasion. Nat Genet. 710 2021;53:332–41. https://doi.org/10.1038/s41588-021-00779-1 711 35. Chen KY, Lopez R, Eraslan B, Hata M, Takeshima Y, Makino K, et al. Massively multiplex multimodal 712 chemical screens at single-cell resolution [Internet]. Genomics; 2026 [cited 2026 July 21]. 713 https://doi.org/10.64898/2026.05.23.727396 714 36. Kudo T, Lopez R, Meireles AM, Rios A, Coelho P, Chandrasekar V, et al. Scalable multimodal mapping 715 of macrophage regulatory architecture by integrating optical and transcriptomic pooled screens 716 [Internet]. Genomics; 2026 [cited 2026 July 21]. https://doi.org/10.64898/2026.05.27.728345 717 37. Wang YV, Park J, Kim MC, Mazumder T, Sonpal K, Bikaran M, et al. A genome-wide CRISPR activation 718 map of surface protein expression in human CD4 T cells [Internet]. Genomics; 2026 [cited 2026 Sept 8]. 719 https://doi.org/10.64898/2026.08.08.743670 720 38. Huang K, Lopez R, Hütter J-C, Kudo T, Rios A, Regev A. Sequential Optimal Experimental Design of 721 Perturbation Screens Guided by Multi-modal Priors. In: Ma J, editor. Research in Computational 722 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+33 Molecular Biology [Internet]. Cham: Springer Nature Switzerland; 2024 [cited 2026 July 21]. p. 17–37. 723 https://doi.org/10.1007/978-1-0716-3989-4_2 724 39. Mizikovsky D, Naval Sanchez M, Nefzger CM, Cuellar Partida G, Palpant NJ. Organization of gene 725 programs revealed by unsupervised analysis of diverse gene-trait associations. Nucleic Acids Res. 726 2022;50:e87. https://doi.org/10.1093/nar/gkac413 727 40. Fang Z, Liu X, Peltz G. GSEApy: a comprehensive package for performing gene set enrichment 728 analysis in python. Bioinformatics. Oxford, England; 2023;39:btac757. 729 https://doi.org/10.1093/bioinformatics/btac757 730 41. Kanehisa M, Furumichi M, Sato Y, Kawashima M, Ishiguro-Watanabe M. KEGG for taxonomy-based 731 analysis of pathways and genomes. Nucleic Acids Res. 2023;51:D587–92. 732 https://doi.org/10.1093/nar/gkac963 733 
+
+734 
+
+735 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+34 
+
+Declarations 736 
+
+Ethics approval and consent to participate 737 
+
+Not applicable 738 
+
+Consent for publication 739 
+
+Not applicable 740 
+
+Availability of data and materials 741 
+
+All Perturb-seq datasets analyzed in this study were obtained from publicly available sources: 742 
+
+the Genome-Wide Perturb-seq portal for Replogle et al. (2022) (https://gwps.wi.mit.edu/), the 743 
+
+Gene Expression Omnibus under accession GSE264667 for Nadig et al. (2025) 744 
+
+(https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE264667), and the X-Atlas/Orion 745 
+
+dataset (https://huggingface.co/datasets/Xaira-Therapeutics/X-Atlas-Orion; 746 
+
+https://doi.org/10.1101/2025.06.11.659105). The preprocessed matrices generated by the 747 
+
+PRESAGE study were retrieved from the following Zenodo record 748 
+
+(https://zenodo.org/records/15587986). Code for the analyses is publicly available at 749 
+
+https://github.com/Yonsei-Hwang-Lab/page_reproducibility. 750 
+
+Competing interests 751 
+
+The authors declare that they have no competing interests. 752 
+
+Funding 753 
+
+This work was funded by grants from National Research Foundation of Korea (NRF) grants 754 
+
+funded by the Korean government (MSIT; Grant Nos. RS-2025-17992868 and RS-2026-755 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+35 
+
+25488562). Also, We acknowledge the support of the Seok-San Biomedical Science 756 
+
+Scholarship from Yonsei University College of Medicine. 757 
+
+Author contributions 758 
+
+B.H. conceptualized this study. J.P., H.S., and B.H. designed and performed data analysis. J.P. 759 
+
+and H.S. performed formal analysis. J.P., H.S., and B.H. wrote the original draft. 760 
+
+Acknowledgments 761 
+
+Not applicable 762 
+
+763 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+36 
+
+Figures 764 
+
+765 
+
+Fig. 1. Overview of the study. (A) Gene-wise similarity profiles provide a common 766 
+
+representation for comparing heterogeneous prior knowledge sources and Perturb-seq-derived 767 
+
+response profiles. ( B) Scheme for quantifying gene-level agreement within priors and between 768 
+
+Perturb-seq data and priors. In each comparison, local and global agreement were calculated at 769 
+
+the gene level. ( C) Agreement metrics are used to assess associations with perturbation-target 770 
+
+annotations and gene expression characteristics across cellular contexts. ( D) Prior-derived 771 
+
+measures of target-level prediction difficulty, calculated without the held-out response, are 772 
+
+compared with response-informed measures that use the observed test response. 773 
+
+774 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+37 
+
+775 
+
+Fig. 2. Gene–gene similarity profiles unify comparisons between Perturb-seq datasets 776 
+
+and diverse biological knowledge sources. (A) Overview of the biological knowledge sources 777 
+
+used for comparison. The sunburst plot summarizes knowledge-source categories and the 778 
+
+number of genes covered by each source; the UpSet plot shows gene coverage shared across 779 
+
+knowledge sources and Perturb-seq datasets. ( B) Coverage of perturbation-targets and 780 
+
+measured mRNAs in Perturb-seq datasets across knowledge sources. For each Perturb-seq– 781 
+
+knowledge-source intersection, the upper triangle shows the fraction of measured mRNAs 782 
+
+covered, and the lower triangle shows the fraction of perturbation-targets covered. Shading 783 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+38 
+
+indicates coverage proportion. ( C) Schematic of raw and similarity profiles in Perturb-seq data. 784 
+
+Similarity between perturbations defines the co-function matrix, whereas similarity between 785 
+
+mRNAs defines the co-regulation matrix. ( D) Effect of mean-centering perturbation responses 786 
+
+on pairwise similarity distributions. Gray outlines show uncentered distributions, and blue 787 
+
+histograms show distributions after centering by the mean perturbation response. ( E)788 
+
+Comparison of raw and similarity profiles using matched Perturb-seq datasets. K562 genome-789 
+
+wide data were restricted to the perturbation and mRNA spaces of the matched essential-wide 790 
+
+screen. Heatmaps show median energy distances between matched- and random-gene-pair 791 
+
+distributions across 100 repetitions and multiple similarity metrics. Density plots show 792 
+
+representative distributions of Spearman correlations for raw and similarity profiles in the 793 
+
+perturbation and mRNA spaces. 794 
+
+795 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+39 
+
+796 
+
+Fig. 3. Gene-level agreement reveals shared and distinct organization across prior 797 
+
+knowledge and perturbation responses. (A) Framework for quantifying gene-level 798 
+
+agreement. Local agreement was measured by the intersection over union (IoU) of K-nearest-799 
+
+neighbor sets, and global agreement by the Spearman correlation between similarity profiles. 800 
+
+Local and global agreement were standardized against random gene-pair null distributions, and 801 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+40 
+
+their average was defined as the gene agreement score (GAS). The bottom density plot shows 802 
+
+the distribution of standardized local and global Z-scores. ( B) Fractions of genes with significant 803 
+
+global (upper triangle, blue) or local (lower triangle, red) agreement between pairs of prior 804 
+
+knowledge sources. Annotations below indicate prior categories. (C) Fractions of genes with 805 
+
+significant agreement between each prior and perturbation-space co-function profiles (top) or 806 
+
+mRNA-space co-regulation profiles (bottom) across six Perturb-seq datasets. Upper blue and 807 
+
+lower red triangles denote global and local agreement, respectively. ( D) Gene-wise GAS across 808 
+
+28 prior pairs (top) and gene set enrichment analysis of GAS (bottom). The average across prior 809 
+
+pairs defines prior agreement, and enriched terms are grouped into 12 prior pathway clusters 810 
+
+(PC1–PC12). ( E) Corresponding analyses of co-function and co-regulation comparisons in the 811 
+
+K562 genome-wide screen. Enriched terms are grouped into six co-function pathway clusters 812 
+
+(FC1–FC6) and six co-regulation pathway clusters (RC1–RC6). Averages across eight priors 813 
+
+define co-function and co-regulation agreement. ( F) Jaccard index of enriched terms between 814 
+
+prior pathway clusters and co-function or co-regulation pathway clusters. 815 
+
+816 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+41 
+
+817 
+
+Fig. 4. Gene-level correlates and context dependence of agreement between prior 818 
+
+knowledge and perturbation responses. (A) Overview of the gene-level analysis. Co-function 819 
+
+and co-regulation agreement were modeled using prior agreement and covariates related to 820 
+
+perturbation-target annotations and gene expression characteristics, with analyses repeated 821 
+
+across cellular contexts. ( B, C ) Association of prior agreement with co-function agreement ( B)822 
+
+and co-regulation agreement ( C) in the K562 genome-wide screen (left), and R 2 for models 823 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+42 
+
+containing prior agreement alone or prior agreement plus covariates across five Perturb-seq 824 
+
+datasets (right). ( D, E ) Conditional associations of individual covariates with co-function ( D) and 825 
+
+co-regulation ( E) agreement. Bars show sign( β)×− log10(FDR), and dashed lines indicate FDR = 826 
+
+0.05. Common-essential-gene status was estimable only in the K562 genome-wide screen. ( F)827 
+
+Mean and standard deviation of co-function agreement for 1,625 perturbation-targets shared 828 
+
+across the four essential-wide screens. Highlighted genes denote leading-edge members of 829 
+
+selected enriched terms. ( G) Pairwise Pearson correlations of co-function agreement across the 830 
+
+four screens for all spliceosome genes represented in prior knowledge (n=86) and for context-831 
+
+stable (n=17) and context-specific (n=16) spliceosome subsets. 832 
+
+833 
+
+> (which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint
+
+43 
+
+834 
+
+(which was not certified by peer review) is the author/funder. All rights reserved. No reuse allowed without permission. The copyright holder for this preprint this version posted November 10, 2026. ;https://doi.org/10.64898/2026.11.08.765139 doi: bioRxiv preprint 44 
+
+Fig. 5. Forecastability of prior-informed predictive performance. (A) Schematic of 835 
+
+forecastability, defined as the Pearson correlation across held-out targets between a 836 
+
+predictability metric and observed predictive performance. ( B) Categories of predictability 837 
+
+metrics. Agreement-based (top) and train–test similarity (bottom) metrics were calculated as 838 
+
+response-informed measures using the observed test response (left) or prior-derived measures 839 
+
+without that response (right). ( C, D ) Forecastability of scLAMBDA ( C) and PRESAGE ( D)840 
+
+performance using agreement-based metrics (A). ( E) Global predictive performance (median 841 
+
+weighted R2 across all test perturbations) of GEARS, scLAMBDA, and PRESAGE across cell 842 
+
+lines (x axis) and corresponding forecastability using prior agreement ( Aprior ) (y axis). ( F, G )843 
+
+Forecastability of scLAMBDA ( F) and PRESAGE ( G) performance using train–test similarity 844 
+
+metrics ( S). ( H) Global predictive performance of GEARS, scLAMBDA and PRESAGE across 845 
+
+cell lines (x axis) and corresponding forecastability using train–test similarity (y axis). ( I)846 
+
+Forecastability of PRESAGE performance across nine combinations of cell lines and 847 
+
+perturbation-target sets. ( J) Distribution of PRESAGE performance (weighted R2 across test 848 
+
+perturbations) for genome-wide and essential gene-restricted subsets of the HCT116 and 849 
+
+HEK293 Perturb-seq experiments. Genome-wide screens were subsampled to match the 850 
+
+number of training and test perturbations in the essential-wide restriction. ( K) Forecastability of 851 
+
+PRESAGE performance using Aprior or Sprior as a metric for genome-wide and essential gene-852 
+
+restricted subsets of the HCT116 and HEK293 Perturb-seq experiments. 853
