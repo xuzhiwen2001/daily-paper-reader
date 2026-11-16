@@ -1,0 +1,1227 @@
+Title: S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence
+
+URL Source: https://arxiv.org/pdf/2611.17705v1
+
+Published Time: Mon, 16 Nov 2026 01:37:51 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+# S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence 
+
+1st Xiaoqi Sheng †
+
+School of Future Technology South China University of Technology 
+
+Guangzhou, China xqsheng@scut.edu.cn 
+
+2nd Hou Wang †
+
+School of Computer Science and Engineering South China University of Technology 
+
+Guangzhou, China cswh@mail.scut.edu.cn 
+
+3rd Yan Liang 
+
+School of Future Technology South China University of Technology 
+
+Guangzhou, China 202464870771@mail.scut.edu.cn 
+
+4th Yutong Li 
+
+School of Future Technology South China University of Technology 
+
+Guangzhou, China 202610197035@mail.scut.edu.cn 
+
+5th Wenhao Du 
+
+School of Future Technology South China University of Technology 
+
+Guangzhou, China 202521063846@mail.scut.edu.cn 
+
+6th Tinghe Zhang ∗
+
+School of Future Technology South China University of Technology 
+
+Guangzhou, China zhangth@scut.edu.cn 
+
+7th Jiawen Liu ∗
+
+School of Computer Science and Engineering South China University of Technology 
+
+Guangzhou, China 202610191544@mail.scut.edu.cn 
+
+8th Hongmin Cai ∗
+
+School of Future Technology South China University of Technology 
+
+Guangzhou, China hmcai@scut.edu.cn 
+
+Abstract —Predicting transcriptional responses to unseen ge-netic perturbations is essential for extending CRISPR screens across vast target–gene combinations. However, models can achieve strong aggregate predictive performance by reproducing historical gene-level response frequencies without adequately distinguishing the effects of different perturbations. Reliable prediction at the transcriptome scale is further challenged by uncertain response labels and redundant computation across millions of target–gene pairs. We present S1Pert, a System-One framework for target-specific gene response prediction with non-autoregressive online inference. S1Pert combines di-rectional Welch tests and equivalence testing to distinguish statistically supported responses from inconclusive observations. A frozen System-One encoder extracts reusable semantic rep-resentations of perturbation targets, query genes, and historical evidence. Compact pair-specific interactions are then computed and cached offline. A lightweight hierarchical cross-attention decoder integrates these representations with cross-target pair-wise ranking and synchronized historical-evidence dropout to reduce reliance on gene-level response frequencies. Extensive experiments demonstrate that S1Pert improves target-specific response discrimination while maintaining reliable prediction and efficient inference across diverse cellular contexts. These findings highlight the potential of System-One decision learning for scalable perturbation-response prediction beyond historical gene-level response tendencies. The source code is publicly available at https://github.com/liujiawen-jpg/S1Pert. 
+
+Index Terms —Genetic Perturbation Prediction, Scientific Data Management, Data Quality and Curation, Heterogeneous Evi-dence Integration, System-One Decision Learning.  
+
+> †
+
+Xiaoqi Sheng and Hou Wang contributed equally to this work (co-first authors).  
+
+> ∗
+
+Corresponding authors: Tinghe Zhang (zhangth@scut.edu.cn), Jiawen Liu (202610191544@mail.scut.edu.cn) and Hongmin Cai (hmcai@scut.edu.cn) 
+
+I. I NTRODUCTION 
+
+High-throughput CRISPR screens have enabled systematic measurement of transcriptional responses to genetic perturba-tions [1], [2], yet the vast number of possible perturbation– gene combinations remains beyond experimental capacity [3]. Computational approaches seek to predict responses to unseen perturbation targets [4], either by estimating continuous ex-pression profiles from gene representations and biological net-works [3], [5]–[8] or by classifying response directions using biological knowledge and language-based reasoning [9]–[13]. Despite advances in predictive performance, strong results on aggregate metrics do not necessarily establish whether a model distinguishes the effects of different perturbations on the same gene or merely reproduces its historical response tendency. Genes differ substantially in how frequently they respond to genetic interventions [2], [14]. Some genes are repeatedly upregulated or downregulated across diverse perturbations, allowing models to achieve strong aggregate performance by learning historical gene-level response frequencies. Such predictions may be accurate on average while remaining largely insensitive to the identity of the perturbed target. Consistent with this, recent benchmarks have shown that simple baselines can remain competitive with more complex perturbation predictors [15], [16]. Even under target-held-out evaluation, a gene’s historical response tendency remains informative across unseen interventions, so aggregate metrics alone do not establish whether predictions depend on the perturbed target. Reliable unseen-target prediction therefore requires distinguishing how the same query gene responds to different perturbations, both in whether its expression changes arXiv:2611.17705v1 [q-bio.GN] 13 Nov 2026 Training set Upregulated Downregulated Unchanged Inconclusive { ??Decrease (↓) No change (=) Increase (↑) Naive DE labeling S1Pert adjudication ? ?Excess unchanged supervision Supported labels only Excluded Inference Inference Test set Unseen perturbation prediction Test pair 1 Test pair 2 Test pair 3 Ground Truth Under naive labeling Under S1Pert adjudication Fig. 1. Label adjudication for unseen-perturbation prediction. Naive DE labeling treats inconclusive responses as unchanged, biasing predictions toward no change. S1Pert excludes inconclusive training pairs and retains statistically supported labels. Observations and predictions are schematic. 
+
+and in the direction of that change. Reliable target-specific prediction at transcriptome scale also faces two practical challenges: label uncertainty and redundant computation. Categorical perturbation-response datasets may classify statistically nonsignificant results as unchanged [9], although nonsignificance does not establish equivalence [17], [18]. As illustrated in Fig. 1, observa-tions with wide uncertainty intervals straddle the no-change equivalence zone and remain statistically inconclusive. Naive differential expression (DE) labeling merges these inconclu-sive responses into the unchanged class, introducing excess unchanged supervision [19]–[21] and distorting historical re-sponse priors, which biases the trained predictor toward out-putting no change for genuinely upregulated or downregulated test pairs. At scale, millions of target–gene pairs share gene annotations, perturbation descriptions, and historical evidence templates. Repeatedly encoding shared text or generating autoregressive rationales for individual pairs incurs substantial computational costs [10], [22]–[24]. Here we introduce S1Pert, a System-One perturbation-response predictor that combines statistically adjudicated su-pervision, reusable semantic representations, and single-pass, non-autoregressive decision-making. To improve label reli-ability, S1Pert integrates directional Welch tests with two-one-sided equivalence testing (TOST) [18], [25], retaining supported upregulation ( ↑), equivalence-supported unchanged responses ( =), and supported downregulation ( ↓) while ex-cluding statistically inconclusive observations ( ?) from training supervision (Fig. 1). S1Pert represents perturbation targets and readout genes through separate Condition and Query streams. A Historical Evidence stream summarizes out-of-fold response tendencies across training perturbations. To reduce redundant encoding, a frozen Jev model [26] processes |T | + |G| + 109 
+
+unique full-length inputs for |T | perturbation targets, |G| query genes, and 109 historical-evidence templates. Pair-specific in-teractions are preserved through compact 36-token sequences processed by the encoder’s upper eight layers, with both evidence-present and evidence-masked representations cached offline. During online inference, a lightweight hierarchical cross-attention decoder estimates expression-change and con-ditional direction probabilities without autoregressive genera-tion. Cross-target pairwise ranking encourages the model to distinguish different perturbations acting on the same query gene, while synchronized historical-evidence dropout reduces reliance on historical response frequencies. Across four cellular benchmarks, S1Pert consistently out-performs state-of-the-art baselines in directional decision ac-curacy, within-gene target discrimination, and online inference efficiency. The main contributions of this work are summarized as follows:  
+
+> •
+
+Reliable response supervision. We develop an equivalence-adjudicated labeling protocol that distinguishes statistically supported unchanged responses from inconclusive observations, with label fidelity evaluated using disjoint cell pools.  
+
+> •
+
+Scalable multi-stream decision architecture. We in-troduce a cached System-One framework that reduces full-prompt encoding from quadratic target–gene pairs to linear single-stream inputs while preserving cross-stream interactions for fast, non-autoregressive hierarchical de-coding.  
+
+> •
+
+Target-specific response learning. We integrate cross-target pairwise ranking with synchronized historical-evidence dropout to suppress gene-frequency shortcuts, substantially improving within-gene polarity discrimina-tion and robustness under conflicting or missing priors. II. R ELATED WORK 
+
+A. Target-Specific Perturbation Prediction 
+
+computational frameworks for unseen-target perturbation prediction broadly follow two paradigms [27], [28]. Contin-uous profile predictors such as GEARS [3] and STATE [29] regress post-perturbation transcriptomic states from gene co-expression graphs, biological ontologies, and context-aware state transitions [8]. Complementarily, discrete response clas-sifiers such as ALIGNED [13] integrate symbolic regulatory rules or multimodal priors [11] to categorize gene-level out-comes into upregulation, invariance, or downregulation. However, high aggregate accuracy under target-held-out evaluation does not guarantee genuine target-level discrimina-tion [16]. In data mining and recommender systems, models trained with pointwise supervision over skewed relational interactions are known to suffer from popularity and frequency bias, achieving low aggregate error by memorizing entity-level marginal frequencies rather than resolving pair-specific inter-actions [30], [31]. An analogous shortcut arises in perturbation screening, where predictors can minimize overall loss by reciting a query gene’s dominant historical response tendency across training interventions while remaining insensitive to the perturbed target. Extending counterfactual and deconfounded ranking principles from the data engineering literature [30], [31] to biological screen modeling, S1Pert decouples target, query, and prior streams and jointly optimizes cross-target pairwise ranking with synchronized evidence dropout to re-cover target-specific regulatory polarity. 
+
+B. Statistical Data Cleaning and Materialized LLM Inference 
+
+Downstream model reliability is fundamentally bounded by supervision quality, motivating extensive data engineering research on data cleaning for statistical modeling [32], proba-bilistic data repair [33], and learning under noisy labels [20]. In single-cell perturbation screens, standard differential expres-sion pipelines [17], [34], [35] default to an unchanged label whenever directional hypotheses fail to reach significance [11], [36], conflating low-depth sampling noise with biological invariance. To separate genuine invariance from insufficient statistical power, S1Pert adapts the two-one-sided tests (TOST) framework [25] into a pre-training data adjudication operator, combining scaled Welch statistics [37], [38] with equivalence bounds to filter inconclusive observations before supervision and prior construction. Integrating pretrained foundation models into perturba-tion screening introduces a second data engineering bottle-neck: scalable execution over millions of entity pairs. While scGPT [39] pretrains single-cell transformers, GenePT [40], [41] embeds functional text descriptions, and SUMMER [9] prompts language models with biological knowledge and em-pirical priors, applying large language models across Cartesian target–gene spaces incurs severe redundancy from repeatedly encoding shared context and decoding autoregressive ratio-nales [42]. Recent database and systems studies address bulk LLM analytics through declarative semantic operators [43], [44], flash-resident KV-cache management [45], and modular attention reuse across overlapping prompts [46]. Building on these view-materialization and state-reuse principles, S1Pert adopts a System-One decision paradigm [26] that factorizes pair-level inference into linear single-stream landmark pre-computation and compact upper-layer joint materialization, enabling fast, non-autoregressive hierarchical decoding over transcriptome-scale target–gene combinations. III. M ETHODOLOGY 
+
+A. Problem Formulation 
+
+For each cellular context ℓ, let Tℓ denote the set of per-turbation targets and Gℓ the set of measured query genes, where G = |G ℓ|. The targets are partitioned into mutually 
+
+Algorithm 1 Statistical label adjudication for target i across Gℓ
+
+Input: Raw UMI matrix X and cell total UMI counts {Ua};control and target-i cell sets Cc, Ci; query gene set Gℓ; equivalence margin ρ = 1 .2 and FDR threshold α = 0 .05 . Normalized expression is zrj = 10 4Xrj /U r .
+
+Output: Adjudicated labels yi = {yij }j∈G ℓ , with 
+
+yij ∈ { 0, 1, 2, ⊥} . 
+
+> 1:
+
+Step 1: Scaled Welch and TOST p-values  
+
+> 2:
+
+for each j ∈ G ℓ do  
+
+> 3:
+
+for each g ∈ { c, i } do  
+
+> 4:
+
+μjg = 1
+
+> ng
+
+P 
+
+> r∈C g
+
+zrj , mjg = P 
+
+> r∈C g
+
+I[Xrj > 0]  
+
+> 5:
+
+s2 
+
+> jg
+
+= 1 
+
+> ng−1
+
+P 
+
+> r∈C g
+
+(zrj − μjg )2, ejg = s2 
+
+> jg
+
+/n g 
+
+> 6:
+
+end for  
+
+> 7:
+
+if j̸ = i ∧ nc, n i ≥ 20 ∧ mjc , m ji ≥ 10 
+
+∧μjc , μ ji , e jc , e ji > 0 then  
+
+> 8:
+
+for each a ∈ { ρ, 1/ρ } do  
+
+> 9:
+
+∆ij (a) = μji − aμ jc , V 2 
+
+> ij
+
+(a) = eji + a2ejc  
+
+> 10:
+
+Tij (a) = ∆ ij (a)/V ij (a) 
+
+> 11:
+
+νij (a) = V 4 
+
+> ij
+
+(a)
+
+e2
+
+> ji
+
+/(ni − 1) + a4e2
+
+> jc
+
+/(nc − 1)  
+
+> 12:
+
+end for  
+
+> 13:
+
+pup  
+
+> ij
+
+= 1 − Fνij (ρ)
+
+ Tij (ρ) 
+
+> 14:
+
+pdown  
+
+> ij
+
+= Fνij (1 /ρ )
+
+ Tij (1 /ρ ) 
+
+> 15:
+
+peq  
+
+> ij
+
+= max 1 − pdown  
+
+> ij
+
+, 1 − pup  
+
+> ij
+> 16:
+
+else  
+
+> 17:
+
+pup  
+
+> ij
+
+= pdown  
+
+> ij
+
+= peq  
+
+> ij
+
+= 1  
+
+> 18:
+
+end if  
+
+> 19:
+
+end for  
+
+> 20:
+
+Step 2: Benjamini–Hochberg FDR control and label assignment  
+
+> 21:
+
+{qup  
+
+> ij
+
+, q down  
+
+> ij
+
+, q eq  
+
+> ij
+
+}j∈G ℓ = BH  {pup  
+
+> ij
+
+, p down  
+
+> ij
+
+, p eq  
+
+> ij
+
+}j∈G ℓ
+
+ 
+
+> 22:
+
+for each j ∈ G ℓ do  
+
+> 23:
+
+if qup  
+
+> ij
+
+≤ α ∧ ∆ij (ρ) > 0 then  
+
+> 24:
+
+yij = 0 (Upregulated)  
+
+> 25:
+
+else if qeq  
+
+> ij
+
+≤ α ∧ ∆ij (1 /ρ ) > 0 ∧ ∆ij (ρ) < 0 then  
+
+> 26:
+
+yij = 1 (Unchanged)  
+
+> 27:
+
+else if qdown  
+
+> ij
+
+≤ α ∧ ∆ij (1 /ρ ) < 0 then  
+
+> 28:
+
+yij = 2 (Downregulated)  
+
+> 29:
+
+else  
+
+> 30:
+
+yij = ⊥ (Inconclusive)  
+
+> 31:
+
+end if  
+
+> 32:
+
+end for  
+
+> 33:
+
+return yi
+
+exclusive training, validation, and test sets. For each target 
+
+i ∈ T ℓ and query gene j ∈ G ℓ, the predictor returns a three-class probability vector fθ (i, j, ℓ ) = ˆpij, 0, ˆpij, 1, ˆpij, 2
+
+T ∈ ∆2,corresponding to upregulation ( yij = 0 ), verified invariance (yij = 1 ), or downregulation ( yij = 2 ) relative to untreated controls. Test-target perturbed readouts are withheld from the predictor, which instead uses untreated-control statistics, curated gene-function annotations, and response propensities derived from the training split. The predictive performance of fθ depends on the reliability of its reference labels yij . In standard differential-expression analyses, a gene is often labeled unchanged when neither di-rectional hypothesis reaches statistical significance [11], [36]. Such a rule treats a lack of significant evidence for change as evidence of biological invariance, although the result may instead reflect finite-cell sampling noise [18]. S1Pert addresses this ambiguity with the two-stage adjudication protocol in 
+
+Algorithm 1 . In the protocol, Xaj and Ua denote the raw UMI count of gene j and the total UMI count in cell a, respectively. The sets Cc and Ci comprise untreated control cells and cells receiving target i, with sample sizes nc and ni, respectively. 
+
+Step 1 estimates the sample mean μjg , nonzero count mjg ,unbiased variance s2 
+
+> jg
+
+, and sampling variance of the mean 
+
+ejg = s2 
+
+> jg
+
+/n g for each group g ∈ { c, i }. Gene–target pairs that fail the minimum support criteria receive unit p-values for all three tests. S1Pert then evaluates the multiplicative equivalence boundaries a ∈ { ρ, 1/ρ } with ρ = 1 .2. For each boundary a, the estimated variance V 2 
+
+> ij
+
+(a) and standard error 
+
+Vij (a) = 
+
+q
+
+V 2 
+
+> ij
+
+(a) standardize the scaled mean difference 
+
+∆ij (a). The resulting Welch statistic Tij (a) [37] uses the Welch–Satterthwaite degrees of freedom νij (a) [38], with probabilities evaluated through the Student-t CDF Fν (·). The directional tests quantify evidence for responses above ρμ jc or below μjc /ρ , producing pup  
+
+> ij
+
+and pdown  
+
+> ij
+
+, respectively. In paral-lel, the two one-sided tests procedure evaluates equivalence within [1 /ρ, ρ ]μjc and produces peq  
+
+> ij
+
+[25]. This design dis-tinguishes affirmative evidence of invariance from directional nonsignificance. Step 2 applies Benjamini–Hochberg FDR control at α = 0 .05 to the 3|G ℓ| hypotheses for each target i.FDR-supported outcomes are labeled as upregulation yij = 0 ,verified invariance yij = 1, or downregulation yij = 2.Remaining pairs receive the inconclusive label yij = ⊥.Their exclusion from training and primary evaluation limits the propagation of uncertainty caused by UMI dropout and heterogeneous guide capture into historical-response priors and target prioritization [14], [17]. 
+
+B. Overview 
+
+Fig. 2 illustrates the overall framework of the proposed S1Pert, which consists of three key stages: Tri-Source Evi-dence Construction (Fig. 2-I), Multilevel Landmark Caching (Fig. 2-II), and Hierarchical Conditional Decoding (Fig. 2-III). Tri-Source Evidence Construction organizes functional annota-tions, control sequencing matrices, and target-level cross-fitted statistics into textual prompts (T Ci , T Qj , T Eij ) and continuous covariates (xCi , xQj , xEij ). Multilevel Landmark Caching ex-tracts compressed decision features offline via a parameter-shared frozen Jev backbone while projecting the continuous covariates into numerical features through trainable MLPs. Conditioned on both feature streams, Hierarchical Conditional Decoding uses a cross-attention decoder to predict a deci-sion vector (c, d ) that factorizes expression-change probability 
+
+σ(c) and directional polarity σ(d) for unseen perturbation prediction. Finally, random evidence dropout, binary cross-entropy loss, and pairwise ranking loss jointly optimize the decoder to preserve target-specific separability and suppress gene-frequency shortcuts.                                                                                   
+
+> TABLE I Structured prompts and examples for the tri-source streams in S1Pert.
+> Shared Task Prefix ( Ptask )
+> Prepended verbatim to both TCiand TQj.
+> Task Definition: Predict population-average RNA direction (upregulated / unchanged / downregulated vs. 10 4-UMI controls) after CRISPRi; missing knowledge ⇏unchanged.
+> Condition Stream Prompt ( TCi)Context: Ptask + Cell context: {cell }. CRISPRi targets {sym }
+> ({id }); intended action is reduced target transcription.
+> Target Control & Function: mean ={μι(i)c}, var ={s2
+> ι(i)c},det ={δcι(i)};{target_function }.
+> Example: rpe1 |RPL11 (ENSG00000142676) |18.4, 6.82, 0.96 |60S ribosomal subunit L11; regulates MDM2–p53 signaling.
+> Query Stream Prompt ( TQj)Query State & Function: Ptask + Query gene {sym }({id }) control mean ={μjc }, var ={s2
+> jc }, det ={δcj};{query_function }.
+> Question & Options: Population mean RNA change vs. controls
+> ◦Upregulated: >1.2;◦Unchanged: [1 /1.2,1.2] ;◦Downregulated:
+> <1/1.2.
+> Example: CDKN1A (ENSG00000124762) |2.31, 3.85, 0.74 |Cyclin-dependent kinase inhibitor 1; mediates p53-dependent arrest.
+> Historical Evidence Card ( TEij )
+> 108 + 1 discrete templates.
+> Evidence Schema: Across other training targets in {cell }, this query gene {tendency }with {concentration }concentration,
+> {support }support, and {source }estimate (target-specific mechanisms may deviate).
+> Example: more often increased |strong |broad (≥50 )|
+> cell-query specific .
+
+C. Tri-Source Evidence Construction 
+
+Response prediction for an untested CRISPRi target i and a readout gene j depends on the target’s functional context, the query gene’s regulatory and basal-expression properties, and response patterns observed across prior perturbations. Specifically, the basal expression and functional context of target gene i shape the perturbation effect [2]. For query gene j, regulatory connections inform the response, while basal expression and variability influence its statistical de-tectability [1], [17]. Historical perturbation profiles further characterize gene-specific responsiveness and stress-response programs shared across interventions [2], [14]. To represent these complementary factors, S1Pert encodes each target–gene pair (i, j ) using condition ( C), query ( Q), and historical-evidence ( E) streams. Each stream integrates its structured prompt schema in Table I with the associated continuous covariates. To represent the first two biological factors, S1Pert encodes the upstream perturbation target and downstream readout gene in the condition and query streams, respectively. Each stream pairs a textual prompt ( T Ci or T Qj ) with basal control covari-ates ( xCi or xQj ). The Shared Task Prefix Ptask , shown in Condition Target C Query-Gene Q 
+
+> Target Gene Functional Annotation Query Gene Functional Annotation
+
+I. Tri-Source Evidence Construction Seen Single-cell Perturbation Data 
+
+> Historical Evidence E
+> Perturbation + Control Query Gene + Control Target-level Cross-fit
+
+II. Multilevel LandMark Caching III Hierarchical Conditional Decoding 
+
+> JEV Backbone
+> JEV Backbone
+> JEV Backbone MLP
+> MLP
+> MLP
+> P(change) = σ(c)
+
+Changed? Changed Yes 
+
+> P(up)=σ(c)σ(d)
+
+Up-regulated 
+
+> P(same)=1−σ(c)
+
+Unchanged 
+
+> No
+> P(down)=σ(c)[1-σ(d)]
+
+Down-regulated Unseen Perturbation Prediction Binary Entropy Loss Binary Entropy Loss Pairwise Ranking Loss Pairwise Ranking Loss Randomly Evidence Dropout Randomly Evidence Dropout Binary Entropy Loss Pairwise Ranking Loss Randomly Evidence Dropout 
+
+𝑻𝒊 𝑪 𝑻 𝒋 𝑸 𝑻𝒊𝒋 𝑬 𝑿𝒊 𝑪 𝑿 𝒋 𝑸 𝑿𝒊𝒋 𝑬 
+
+> Cross-attention Decoder Cross-attention Decoder
+> Sigmoid ( σ)
+
+𝒄 𝒅  
+
+> Decision Vector
+> ？
+> iSequencing Matrix C
+> gene cell  jSequencing Matrix Q
+> Shared Parameters Shared Parameters Shared Parameters Shared Parameters Shared Parameters Shared Parameters
+> gene cell
+> Decision Features Numerical Features
+> Trainable Frozen
+
+Fig. 2. Overview of the S1Pert framework. (I) Tri-Source Evidence Construction pairs gene functional annotations and control sequencing matrices with target-level cross-fitted historical statistics to construct textual prompts (T Ci , T Qj , T Eij ) and continuous covariates (xCi , xQj , xEij ) for the condition target (C), query gene ( Q), and historical evidence ( E). (II) Multilevel Landmark Caching extracts and caches compressed semantic decision features offline via a parameter-shared frozen Jev backbone, while projecting continuous covariates into numerical features through trainable stream-specific MLPs. (III) 
+
+Hierarchical Conditional Decoding integrates the decision and numerical features through a cross-attention decoder—trained with random evidence dropout, binary cross-entropy loss, and pairwise ranking loss—to output a decision vector (c, d ) for hierarchical unseen perturbation prediction. 
+
+the top block of Table I, defines the three-class directional pre-diction task using expression counts normalized to 10 4 UMIs per cell. It also specifies that missing functional annotations do not constitute evidence of unchanged expression. S1Pert prepends this prefix verbatim to both T Ci and T Qj , providing consistent task instructions and evidence constraints before cross-stream interaction. This instruction reduces the risk that poorly annotated genes are implicitly represented as tran-scriptionally invariant. The second block of Table I organizes 
+
+T Ci into Context and Target Control & Function . In the RPE1 example, the prompt characterizes RPL11 knockdown by the target’s basal profile (mean=18.4, var=6.82, det=0.96 ) and curated roles in 60S ribosomal assembly and MDM2–p53 signaling. The third block organizes T Qj into 
+
+Query State & Function and Question & Options . For CDKN1A, it combines the baseline profile ( mean=2.31, var=3.85, det=0.74 ) and p53-mediated arrest function with the fold-change intervals specified in Algorithm 1,namely > 1.2, [1 /1.2, 1.2] , and < 1/1.2. The prompts encode control summaries as tokens for semantic processing, while tokenization discretizes their continuous magnitudes. More-over, a target outside the measured gene set Gℓ, indicated by ι(i) < 0, lacks a target-indexed representation. S1Pert therefore pairs textual prompts with continuous covariates to retain quantitative information and avoid dependence on a measured-gene index. S1Pert pairs the prompts with four-dimensional continuous covariates xQj , xCi ∈ R4 using control detection rate δcj = mjc /n c via 
+
+xQj =  log(1 + μjc ), log(1 + s2
+
+> jc
+
+), δ cj , 1T. (1) The condition covariate is defined as xCi = xQι(i) if ι(i) ≥ 0,and xCi = 04 otherwise, where ι(i) indexes target gene i
+
+within Gℓ and is negative if the target is unmeasured in the query panel. Historical response counts provide a training-derived esti-mate of each readout gene’s response propensity. To maintain a consistent information boundary, these counts are constructed exclusively from Tℓ, train , with validation and test outcomes withheld throughout feature construction. A full-training ag-gregate would contain the current training target’s label yij ,creating a self-inclusion shortcut that would be unavailable for unseen targets. S1Pert uses five-fold target-level cross-fitting to align training features with the validation and test setting. A split-locked random permutation assigns training targets to five mutually exclusive, approximately equal-sized folds {F 1, . . . , F5}. For gene j and label k ∈ { 0, 1, 2}, let 
+
+Ctr ,k j be the count across Tℓ, train and Cf,k j the count within 
+
+Ff . A training instance i ∈ F f receives the leave-fold-out count Ckij = Ctr ,k j − Cf,k j , based on the other 80% of training targets. For validation and test instances, the feature uses the complete training aggregate Ckij = Ctr ,k j . In both cases, query support is computed as Sqij = P2 
+
+> k=0
+
+Ckij .In single-cell screens, low transcript abundance and UMI dropout can leave a target–gene pair with no adjudicated out-of-fold observations ( Sqij = 0) or only sparse support (1 ≤ Sqij < 10 ). For query cold starts, S1Pert applies a three-tier provenance hierarchy indexed by oij ∈ { 0, 1, 2}. Query-specific counts Ckij are used whenever Sqij > 0, corresponding to oij = 0. When query-specific support is absent, cell-line-wide out-of-fold class totals Bkij are used if available, corresponding to oij = 1 . If cell-line-wide support is also absent, the hierarchy backs off to cross-cell-line global class totals Gkij , corresponding to oij = 2 . These sources define the effective counts eCkij and effective support Sev  
+
+> ij
+
+= P2 
+
+> k=0
+
+eCkij .Sparse-support queries retain their query-specific counts and provenance level oij = 0 . Laplace smoothing stabilizes their class-probability estimates by adding one pseudo-count per class: 
+
+pev  
+
+> ij,k
+
+=
+
+eCkij + 1 
+
+Sev  
+
+> ij
+
++ 3 , k ∈ { 0, 1, 2}, (2) The evidence representation also encodes support and un-certainty through normalized log-support log(1 + Sev  
+
+> ij
+
+)/D S ,where DS = max train log(1 + Sev ), normalized Shannon entropy Ent( pev  
+
+> ij
+
+)/ log 3 , and the sorted class propensities 
+
+p(3) ≥ p(2) ≥ p(1) . These features form the 12-dimensional representation 
+
+xEij =
+
+h pev 
+
+> ij
+
+T, log(1 + Sev  
+
+> ij
+
+)
+
+DS
+
+, Ent( pev  
+
+> ij
+
+), p (3) , p (3) − p(2) ,
+
+I[oij = r] 2
+
+> r=0
+
+, p ev  
+
+> ij, 0
+
+− pev 
+
+> ij, 2
+
+, I[Sev  
+
+> ij
+
+> 0] 
+
+iT
+
+.
+
+(3) Quantizing pev  
+
+> ij
+
+and Sev  
+
+> ij
+
+populates the Historical Evi-dence Card T Eij in the bottom block of Table I across four discrete slots: {tendency } (4 states at margin 0.08 ), 
+
+{concentration } (3 levels: weak , moderate , strong 
+
+at thresholds 0.50 /0.75 and margin 0.10 ), {support } (3 strata: limited < 10 for sparse support, moderate < 50 ,
+
+broad ≥ 50 ), and {source } (3 tiers via oij ∈ { 0, 1, 2}), defining a Cartesian schema of 4 × 3 × 3 × 3 = 108 
+
+structured templates alongside an unavailable-evidence card for Sev  
+
+> ij
+
+= 0 . Within each cell line, at most 31 templates are reachable. Margin rules exclude moderate /strong con-centration for mixed tendencies, while Laplace smoothing precludes strong concentration at very low support. Cell-line fallback Bkij has broad support ( ≥ 50 ), and oij = 2 is reserved for cross-atlas cold start. Overall, tri-source construction represents each target–gene pair (i, j ) by three structured prompts (T Ci , T Qj , T Eij ) paired with three continuous feature vectors (xCi , xQj , xEij ) for down-stream semantic caching and conditional decoding. 
+
+D. Multilevel Landmark Caching 
+
+Encoding (T Ci , T Qj , T Eij ) across millions of target–gene pairs requires capturing cross-stream interactions without run-ning quadratic full-text encoding over all (i, j ) pairs. As illustrated in Fig. 2-II, S1Pert processes all three text streams through a parameter-shared, frozen L-layer Jev backbone [26] (L = 32 , d = 2560 ) without autoregressive decoding. Specifically, we split the shared encoder Φ = Φ up ◦ Φlow 
+
+at layer Ls = 24 into a lower single-stream encoder Φlow 
+
+(layers 1 to Ls) and an upper cross-stream encoder Φup 
+
+(layers Ls + 1 to L). In a single forward pass of Φ on each unique text prompt, we extract hidden states at both the intermediate split layer ( τ = mid , via Φmid = Φ low ) and the final layer ( τ = top , via Φtop = Φ ). Variable-length token states are then compressed into fixed-size landmarks via segment-pooling operators Γ16 and Γ4, where Γ16 partitions a token sequence into 12 contiguous segments, averages each segment, and appends the last four token states, while Γ4
+
+averages three contiguous segments and appends the last token state. Following the stream order in Fig. 2-II, this yields the intermediate and final-layer semantic landmarks: 
+
+Cτi = Γ 16 
+
+ Φτ (T Ci ) ∈ R16 ×d, (4) 
+
+Qτj = Γ 16 
+
+
+
+Φτ (T Qj )
+
+
+
+∈ R16 ×d, (5) 
+
+Eτij = Γ 4
+
+ Φτ (T Eij ) ∈ R4×d. (6) Although Eqs. (4)–(6) encode each stream independently to preserve role-specific semantics, capturing cross-stream interactions for each pair (i, j ) without concatenating full-length prompts requires a secondary fusion pass. To achieve this, S1Pert concatenates the intermediate landmarks into a compact 36-token sequence Zij and passes it through the upper eight layers Φup :
+
+Zij = Cmid  
+
+> i
+
+; Qmid  
+
+> j
+
+; Emid 
+
+> ij
+
+ ∈ R36 ×d, (7) 
+
+bZij =  bCij ; bQij ; bEij 
+
+ = Φ up (Zij ), (8) where bCij ∈ R16 ×d, bQij ∈ R16 ×d, and bEij ∈ R4×d denote the resulting contextualized stream blocks. Let Mean( A) = 
+
+> 1
+> m
+
+Pmt=1 At, : ∈ R1×d denote the token-wise average of 
+
+A ∈ Rm×d. Averaging each stream block alongside the full sequence bZij produces a four-token joint summary: 
+
+Jij =
+
+h
+
+Mean( bCij ); Mean( bQij ); Mean( bEij ); Mean( bZij )
+
+i
+
+∈ R4×d.
+
+(9) To support evidence-dropout training, a prior-free counterpart of Jij is also precomputed by zeroing Emid  
+
+> ij
+
+and excluding its four positions from attention and averaging. Because T Eij takes values from only 109 distinct evidence prompts across the benchmark grid, Eqs. (4)–(6) evaluate full-length prompts on only |T ℓ| + |G ℓ| + 109 unique single-stream inputs, while Eq. (7) reduces pair-level fusion to lightweight 36-token passes through Φup . All final-layer single-stream landmarks ( Ctop  
+
+> i
+
+, Qtop  
+
+> j
+
+, Etop  
+
+> ij
+
+) and joint summaries ( Jij ) are precomputed once and cached on disk, allowing online training and inference to directly load cached semantic tensors along-side the continuous covariates (xCi , xQj , xEij ) without invoking the Jev backbone. 
+
+E. Hierarchical Conditional Decoding 
+
+During online execution, the conditional decoder ( D = 512 ,
+
+nh = 8 attention heads) maps the cached semantic land-marks and continuous covariates from Fig. 2-II into a shared 
+
+D-dimensional space. Along the semantic pathway, stream-specific linear projections with additive role embeddings map the cached final-layer landmarks (Ctop  
+
+> i
+
+, Qtop  
+
+> j
+
+, Etop  
+
+> ij
+
+) into 
+
+eCi ∈ R16 ×D , eQj ∈ R16 ×D, and eEij ∈ R4×D. In parallel, three trainable stream-specific two-layer MLPs with GELU activations, denoted as NC (·), NQ(·), and NE (·), project the continuous covariates xCi ∈ R4, xQj ∈ R4, and xEij ∈ R12 
+
+into single-token representations ˜xCi = NC (xCi ) ∈ R1×D ,
+
+˜xQj = NQ(xQj ) ∈ R1×D , and ˜xEij = NE (xEij ) ∈ R1×D
+
+(Fig. 2-II). Conditioning downstream gene readouts on the upstream perturbation concatenates these projected tokens into a 17-token target memory ¯Ci and a 23-token query–evidence sequence ¯Xij ending with a learnable readout token r0 ∈
+
+R1×D :
+
+¯Ci = ˜xCi ; eCi
+
+ ∈ R17 ×D, (10) 
+
+¯Xij = ˜xQj ; eQj ; ˜ xEij ; eEij ; r0
+
+ ∈ R23 ×D . (11) Two stacked Pre-LN Transformer decoder blocks then update 
+
+¯Xij (Fig. 2-III). Each block applies masked self-attention over ¯Xij , cross-attention using ¯Ci as keys and values, and a GELU feed-forward network, yielding the normalized readout state rij ∈ RD at the final token position. The cached upper-layer joint summary Jij from Eq. (9) is similarly projected into ¯Jij ∈ R4×D and fused with rij via a multi-head cross-attention layer Attn joint (·, ·) that takes rij as the query and 
+
+¯Jij as keys and values: 
+
+hij = rij + Attn joint 
+
+ rij , ¯Jij 
+
+ ∈ RD , (12) where the output projection of Attn joint is zero-initialized so that training starts from single-stream conditioning and gradually incorporates cross-stream interactions. Because the dominant unchanged class (yij = 1) in perturbation screens easily overwhelms minority directional signals under a flat three-way classifier, the decoder decouples response detection from directional polarity. Specifically, two linear heads map hij to a two-dimensional decision vector 
+
+[cij , d ij ]T ∈ R2 comprising a change logit cij ∈ R and a conditional direction logit dij ∈ R:
+
+cij = wT 
+
+> c
+
+hij + bc, (13) 
+
+dij = wT 
+
+> d
+
+hij + bd, (14) where wc, wd ∈ RD and bc, b d ∈ R are learnable pa-rameters. Applying the logistic sigmoid σ(·) to the decision vector defines the stage-level change probability P (change) = 
+
+σ(cij ) and conditional upregulation probability P (up |
+
+change) = σ(dij ). Following the hierarchical decision tree in Fig. 2-III, S1Pert first evaluates whether expression changes (Unchanged vs. Changed ) and then resolves directional polar-ity ( Upregulated vs. Downregulated ), yielding the factorized three-class posterior probabilities: 
+
+ˆpij, 1 = P (same) = 1 − σ(cij ), (15) 
+
+ˆpij, 0 = P (up) = σ(cij )σ(dij ), (16) 
+
+ˆpij, 2 = P (down) = σ(cij )1 − σ(dij ). (17) Online inference then predicts ˆyij = arg max k∈{ 0,1,2} ˆpij,k in a single forward pass. 
+
+F. Training Objective 
+
+To jointly learn response detection and target-specific di-rectional polarity while suppressing historical gene-frequency shortcuts, the conditional decoder is optimized under the three training mechanisms shown at the bottom of Fig. 2-III: synchronized (random) evidence dropout, binary cross-entropy loss, and cross-target pairwise ranking loss. 
+
+Synchronized Evidence Dropout. During training, each in-stance draws a retention gate ξij ∼ Bernoulli(1 − pev ) with dropout rate pev = 0.10 , retaining all historical-evidence inputs when ξij = 1 and masking eEij , resetting xEij to an uninformative prior [1 /3, 1/3, 1/3, 0, . . . , 0] T, and switching 
+
+Jij to its cached prior-free version when ξij = 0 . Randomly dropping all historical evidence forces the decoder to infer transcriptional responses from target and query features alone when historical priors are weak or unavailable. 
+
+Binary Cross-Entropy Loss. Let I[·] denote the indicator function, zij = I[yij ̸ = 1] indicate expression change, 
+
+bij = I[yij = 0] indicate upregulation, and BCE( ·) denote the binary cross-entropy loss. Over a training batch B, the hierarchical classification loss is computed on the decision logits (cij , d ij ) as 
+
+Lmain = 1
+
+|B| 
+
+X
+
+> (i,j )∈B
+
+h
+
+BCE( cij , z ij ) + zij BCE( dij , b ij )
+
+i
+
+,
+
+(18) where multiplying the second term by zij trains the polarity head dij only on changed instances, preventing unchanged pairs from diluting directional supervision. 
+
+Pairwise Ranking Loss. Fitting Lmain alone allows the model to repeat each gene’s historical propensity pev  
+
+> ij
+
+while ignoring the perturbed target i. For the same query gene j across two distinct training targets (i, i ′), S1Pert samples change versus no-change tuples (i, i ′, j ) ∈ P cs (yij ̸ = 1 , yi′j = 1 ) and upregulation versus downregulation tuples (i, i ′, j ) ∈ Pud 
+
+(yij = 0, yi′j = 2), computing the margin ranking loss (mp = 0 .05 , [x]+ = max(0 , x )) as 
+
+Lrank = 1
+
+|P cs |
+
+X
+
+> (i,i ′,j )∈P cs
+
+mp − cij + ci′j
+
+
+
+> +
+
++ 1
+
+|P ud |
+
+X
+
+> (i,i ′,j )∈P ud
+
+mp − dij + di′j
+
+
+
+> +
+
+,
+
+(19) where comparing targets i and i′ on the same query gene j
+
+forces the decoder to rank target-specific effects ( cij > c i′j and 
+
+dij > d i′j ) rather than relying on shared gene-level priors. The total training objective is L = Lmain + λpLrank with 
+
+λp = 0 .02 .IV. E XPERIMENTS 
+
+A. Experimental Settings 
+
+Benchmark Datasets. Experiments are conducted on four human genetic perturbation datasets covering HepG2, Jurkat, RPE1, and K562 [2], [14]. Applying the statistical label adjudication protocol in Algorithm 1 (ρ = 1 .2, α = 0 .05 )and excluding statistically inconclusive pairs ( yij = ⊥) yields the resolved three-class benchmark datasets summarized in Table III. Each cell line is modeled independently under five repeated target-held-out splits, partitioning perturbation targets 
+
+Tℓ into mutually exclusive training, validation, and test sets at a 7:1:2 ratio so that all query-gene instances of a given target reside in a single partition. To ensure a strictly fair comparison, S1Pert and all compared baselines are trained and evaluated on TABLE II Performance on four genetic perturbation datasets. 
+
+Method Overall Upregulated Downregulated Unchanged 
+
+Macro F1-score ↑
+
+Balanced Accuracy ↑ Precision ↑ Recall ↑ F1-score ↑ Precision ↑ Recall ↑ F1-score ↑ Precision ↑ Recall ↑ F1-score ↑
+
+Dataset: HepG2 
+
+GenePT-Gene 0.694 ±0.015 0.690 ±0.015 0.687 ±0.035 0.522 ±0.020 0.593 ±0.017 0.676 ±0.041 0.741 ±0.033 0.705 ±0.012 0.767 ±0.059 0.807 ±0.050 0.784 ±0.024 
+
+GenePT-Prot 0.751 ±0.017 0.747 ±0.015 0.744 ±0.024 0.620 ±0.023 0.676 ±0.013 0.724 ±0.043 0.789 ±0.013 0.755 ±0.023 0.818 ±0.028 0.831 ±0.051 0.823 ±0.023 
+
+Qwen3-4B-LoRA 0.618 ±0.021 0.617 ±0.027 0.517 ±0.032 0.456 ±0.100 0.479 ±0.044 0.575 ±0.045 0.642 ±0.084 0.602 ±0.028 0.809 ±0.070 0.753 ±0.094 0.773 ±0.036 
+
+GEARS 0.667 ±0.011 0.667 ±0.014 0.796 ±0.028 0.771 ±0.054 0.782 ±0.033 0.667 ±0.037 0.548 ±0.073 0.598 ±0.036 0.576 ±0.037 0.682 ±0.089 0.622 ±0.042 
+
+scGPT 0.515 ±0.030 0.517 ±0.035 0.481 ±0.034 0.463 ±0.117 0.467 ±0.071 0.638 ±0.085 0.498 ±0.066 0.553 ±0.032 0.478 ±0.046 0.589 ±0.045 0.525 ±0.021 
+
+STATE 0.709 ±0.034 0.704 ±0.036 0.757 ±0.025 0.650 ±0.062 0.698 ±0.043 0.746 ±0.054 0.776 ±0.025 0.760 ±0.031 0.655 ±0.050 0.687 ±0.043 0.670 ±0.039 
+
+ALIGNED 0.791 ±0.029 0.789 ±0.025 0.806 ±0.063 0.738 ±0.018 0.769 ±0.032 0.816 ±0.051 0.803 ±0.018 0.809 ±0.025 0.771 ±0.038 0.827 ±0.067 0.796 ±0.030 
+
+SUMMER 0.724 ±0.018 0.714 ±0.014 0.800 ±0.031 0.645 ±0.040 0.713 ±0.024 0.849 ±0.024 0.624 ±0.019 0.719 ±0.007 0.643 ±0.054 0.875 ±0.023 0.739 ±0.031 
+
+S1Pert (Ours) 0.850 ±0.045 0.851 ±0.042 0.860 ±0.045 0.817 ±0.045 0.837 ±0.033 0.829 ±0.099 0.874 ±0.024 0.847 ±0.044 0.883 ±0.023 0.861 ±0.120 0.867 ±0.060 
+
+Dataset: Jurkat 
+
+GenePT-Gene 0.543 ±0.029 0.531 ±0.044 0.562 ±0.139 0.321 ±0.080 0.393 ±0.060 0.404 ±0.116 0.376 ±0.125 0.360 ±0.054 0.861 ±0.043 0.896 ±0.072 0.875 ±0.015 
+
+GenePT-Prot 0.578 ±0.057 0.567 ±0.054 0.584 ±0.146 0.380 ±0.107 0.447 ±0.109 0.429 ±0.135 0.437 ±0.106 0.409 ±0.071 0.874 ±0.026 0.886 ±0.083 0.878 ±0.031 
+
+Qwen3-4B-LoRA 0.430 ±0.027 0.439 ±0.024 0.367 ±0.249 0.180 ±0.193 0.187 ±0.121 0.334 ±0.162 0.211 ±0.186 0.224 ±0.146 0.838 ±0.019 0.927 ±0.066 0.879 ±0.031 
+
+GEARS 0.560 ±0.059 0.542 ±0.054 0.648 ±0.172 0.500 ±0.079 0.554 ±0.081 0.299 ±0.090 0.245 ±0.091 0.269 ±0.092 0.833 ±0.031 0.881 ±0.014 0.856 ±0.022 
+
+scGPT 0.393 ±0.015 0.400 ±0.016 0.172 ±0.048 0.227 ±0.062 0.189 ±0.036 0.241 ±0.046 0.176 ±0.050 0.197 ±0.030 0.792 ±0.027 0.798 ±0.051 0.794 ±0.020 
+
+STATE 0.561 ±0.027 0.546 ±0.026 0.529 ±0.092 0.405 ±0.051 0.457 ±0.060 0.388 ±0.050 0.366 ±0.049 0.375 ±0.036 0.838 ±0.027 0.868 ±0.010 0.852 ±0.009 
+
+ALIGNED 0.638 ±0.042 0.618 ±0.011 0.637 ±0.142 0.509 ±0.014 0.559 ±0.064 0.523 ±0.132 0.432 ±0.027 0.464 ±0.048 0.873 ±0.020 0.914 ±0.053 0.892 ±0.019 
+
+SUMMER 0.583 ±0.012 0.545 ±0.008 0.635 ±0.082 0.432 ±0.022 0.513 ±0.041 0.532 ±0.073 0.260 ±0.028 0.346 ±0.013 0.842 ±0.025 0.942 ±0.017 0.889 ±0.011 
+
+S1Pert (Ours) 0.698 ±0.071 0.698 ±0.039 0.707 ±0.094 0.614 ±0.060 0.657 ±0.073 0.529 ±0.187 0.590 ±0.053 0.537 ±0.097 0.913 ±0.014 0.890 ±0.085 0.900 ±0.042 
+
+Dataset: RPE1 
+
+GenePT-Gene 0.645 ±0.015 0.638 ±0.013 0.573 ±0.022 0.438 ±0.025 0.495 ±0.014 0.674 ±0.020 0.770 ±0.014 0.718 ±0.013 0.739 ±0.028 0.707 ±0.049 0.722 ±0.035 
+
+GenePT-Prot 0.704 ±0.030 0.697 ±0.023 0.656 ±0.056 0.525 ±0.015 0.582 ±0.021 0.710 ±0.046 0.821 ±0.006 0.760 ±0.026 0.802 ±0.009 0.745 ±0.079 0.770 ±0.045 
+
+Qwen3-4B-LoRA 0.531 ±0.022 0.533 ±0.022 0.400 ±0.143 0.212 ±0.019 0.268 ±0.021 0.597 ±0.058 0.707 ±0.129 0.639 ±0.042 0.720 ±0.093 0.680 ±0.117 0.688 ±0.022 
+
+GEARS 0.662 ±0.035 0.659 ±0.043 0.677 ±0.022 0.627 ±0.103 0.647 ±0.060 0.694 ±0.012 0.716 ±0.049 0.704 ±0.029 0.639 ±0.054 0.634 ±0.040 0.635 ±0.034 
+
+scGPT 0.506 ±0.023 0.500 ±0.021 0.429 ±0.037 0.287 ±0.060 0.342 ±0.050 0.641 ±0.054 0.598 ±0.069 0.614 ±0.026 0.520 ±0.031 0.614 ±0.058 0.561 ±0.024 
+
+STATE 0.680 ±0.017 0.673 ±0.020 0.675 ±0.030 0.585 ±0.069 0.625 ±0.043 0.738 ±0.026 0.752 ±0.059 0.743 ±0.020 0.663 ±0.042 0.683 ±0.026 0.672 ±0.019 
+
+ALIGNED 0.727 ±0.016 0.728 ±0.010 0.688 ±0.037 0.660 ±0.010 0.674 ±0.018 0.732 ±0.030 0.854 ±0.014 0.788 ±0.016 0.777 ±0.017 0.670 ±0.038 0.719 ±0.018 
+
+SUMMER 0.654 ±0.024 0.638 ±0.023 0.660 ±0.024 0.498 ±0.044 0.566 ±0.028 0.777 ±0.024 0.633 ±0.039 0.697 ±0.023 0.632 ±0.043 0.782 ±0.027 0.698 ±0.022 
+
+S1Pert (Ours) 0.785 ±0.024 0.791 ±0.017 0.726 ±0.063 0.761 ±0.036 0.740 ±0.023 0.785 ±0.033 0.860 ±0.025 0.820 ±0.024 0.842 ±0.027 0.752 ±0.057 0.793 ±0.029 
+
+Dataset: K562 
+
+GenePT-Gene 0.552 ±0.024 0.533 ±0.031 0.551 ±0.054 0.409 ±0.069 0.466 ±0.051 0.404 ±0.072 0.279 ±0.055 0.322 ±0.027 0.832 ±0.029 0.910 ±0.032 0.868 ±0.009 
+
+GenePT-Prot 0.619 ±0.007 0.596 ±0.014 0.631 ±0.028 0.506 ±0.050 0.561 ±0.036 0.476 ±0.067 0.358 ±0.026 0.405 ±0.010 0.861 ±0.019 0.924 ±0.025 0.891 ±0.016 
+
+Qwen3-4B-LoRA 0.487 ±0.042 0.489 ±0.024 0.489 ±0.118 0.407 ±0.154 0.412 ±0.034 0.258 ±0.170 0.174 ±0.110 0.197 ±0.116 0.826 ±0.033 0.885 ±0.061 0.853 ±0.030 
+
+GEARS 0.563 ±0.023 0.574 ±0.016 0.631 ±0.081 0.713 ±0.065 0.663 ±0.016 0.233 ±0.062 0.155 ±0.041 0.183 ±0.040 0.833 ±0.030 0.854 ±0.045 0.843 ±0.030 
+
+scGPT 0.368 ±0.025 0.368 ±0.024 0.194 ±0.069 0.213 ±0.051 0.202 ±0.060 0.177 ±0.042 0.128 ±0.032 0.148 ±0.036 0.746 ±0.030 0.763 ±0.028 0.754 ±0.028 
+
+STATE 0.554 ±0.019 0.548 ±0.016 0.544 ±0.065 0.507 ±0.093 0.522 ±0.070 0.337 ±0.055 0.297 ±0.052 0.313 ±0.042 0.817 ±0.024 0.840 ±0.033 0.828 ±0.024 
+
+ALIGNED 0.705 ±0.009 0.689 ±0.007 0.718 ±0.052 0.688 ±0.016 0.701 ±0.023 0.580 ±0.074 0.445 ±0.019 0.501 ±0.014 0.893 ±0.020 0.935 ±0.015 0.913 ±0.006 
+
+SUMMER 0.627 ±0.022 0.591 ±0.022 0.701 ±0.049 0.550 ±0.033 0.616 ±0.033 0.554 ±0.066 0.285 ±0.041 0.375 ±0.045 0.845 ±0.024 0.938 ±0.009 0.889 ±0.012 
+
+S1Pert (Ours) 0.769 ±0.009 0.769 ±0.007 0.770 ±0.030 0.775 ±0.006 0.772 ±0.018 0.619 ±0.084 0.596 ±0.042 0.602 ±0.020 0.931 ±0.016 0.935 ±0.021 0.933 ±0.009 
+
+Results are reported as mean ± standard deviation over five target-held-out splits. Within each dataset and metric, light red shading with bold means indicates the best result; light orange shading with underlined means indicates the second-best result. Ties are broken by smaller standard deviation. ↑: higher is better. 
+
+TABLE III Label distribution across four genetic perturbation datasets. 
+
+Dataset Upregulated Downregulated Unchanged HepG2 95,183 154,197 168,307 Jurkat 30,877 52,592 323,094 RPE1 117,388 303,859 316,561 K562 101,304 84,161 533,703 
+
+the exact same adjudicated labels, target splits, and resolved target–gene pairs. 
+
+Compared Methods. To validate the effectiveness of our proposed S1Pert model, we compare its performance with rep-resentative gene representation models, perturbation response predictors, and general-purpose language model baselines. These comparative methods can be broadly categorized into three groups: 
+
+(1) Pre-trained Language and Gene Embedding Models: 
+
+• GenePT-Gene [40], [41], which is a semantic embedding model encoding textual gene descriptions into dense representations for response classification. 
+
+• GenePT-Prot [40], [41], which is a joint gene–protein embedding variant capturing functional semantics across biological text and protein modalities.  
+
+> •
+
+Qwen3-4B-LoRA [47] , which is a parameter-efficient fine-tuning baseline adapting the Qwen3-4B Transformer with low-rank adapters and a discriminative classification head. 
+
+(2) Continuous Perturbation Profile Predictors:  
+
+> •
+
+GEARS [3], which is a graph neural network integrating gene co-expression and Gene Ontology knowledge graphs to regress post-perturbation expression profiles.  
+
+> •
+
+scGPT [39], which is a pre-trained single-cell foundation Transformer adapted for perturbation-conditioned tran-scriptomic shift prediction.  
+
+> •
+
+STATE [29], which combines State Embedding (SE) for learning cell-state representations with State Transition (ST) for modeling perturbation effects across cell pop-ulations to improve response prediction across diverse cellular contexts. 
+
+(3) Neuro-Symbolic and Knowledge-Grounded Reasoning Models:  
+
+> •
+
+ALIGNED [13], which is a neuro-symbolic abductive learning framework aligning neural perturbation predic-tions with symbolic regulatory knowledge.  
+
+> •
+
+SUMMER [9], which is a knowledge-grounded prompt-ing framework synthesizing biological text and training priors for directional response prediction. All compared methods undergo task-specific adaptation for three-class response prediction. For continuous perturbation profile predictors, predicted expression changes are mapped to response classes using thresholds calibrated on the validation set. 
+
+Evaluation Metrics. Classification performance is evaluated using Macro-F1, balanced accuracy (BA), and class-wise Pre-cision, Recall, and F1-score. All methods are evaluated on the same five random target-held-out splits for each cell line, with results reported as mean ± sample standard deviation. The best and second-best results are highlighted in bold and underlined, respectively. 
+
+Implementation Details. S1Pert is implemented in PyTorch and trained on a single NVIDIA RTX PRO 6000 GPU. We instantiate the Jev-style System-One encoder using the open-source DECIDER-4B model [26]. The backbone is frozen, and its representations are precomputed and cached. The task-specific decoder is trained from scratch using AdamW with a learning rate of 10 −4, weight decay of 10 −2, and a batch size of 4,096 perturbation–query gene pairs. Training runs for up to 100 epochs, with a minimum of 10 epochs and early stopping after 10 epochs without a validation Macro-F1 improvement exceeding 10 −4. The checkpoint with the highest validation Macro-F1 is selected for testing. Hyperparameters are fixed across cell lines and the five random target-held-out splits. 
+
+B. Overall Performance 
+
+As shown in Table II, S1Pert achieves the highest perfor-mance across all four benchmarks, reaching Macro-F1 scores          
+
+> TABLE IV Ablation study and target-permutation diagnostic on K562.
+> Variant
+> Macro F1-score ↑
+> Upregulated F1-score ↑
+> Unchanged F1-score ↑
+> Downregulated F1-score ↑
+> S1Pert (full) 0.769
+> ±0.009
+> 0.772
+> ±0.018
+> 0.933
+> ±0.009
+> 0.602
+> ±0.020
+> NO_Jev 0.739
+> ±0.016
+> 0.755
+> ±0.028
+> 0.920
+> ±0.009
+> 0.542
+> ±0.022
+> NO_JOINT 0.755
+> ±0.012
+> 0.761
+> ±0.025
+> 0.923
+> ±0.008
+> 0.582
+> ±0.031
+> FLAT
+> 0.764
+> ±0.012
+> 0.770
+> ±0.023
+> 0.932
+> ±0.006
+> 0.589
+> ±0.033
+> NO_RANK 0.760
+> ±0.012
+> 0.769
+> ±0.014
+> 0.926
+> ±0.011
+> 0.587
+> ±0.030
+> NO_MASK 0.760
+> ±0.007
+> 0.767
+> ±0.015
+> 0.927
+> ±0.008
+> 0.584
+> ±0.023
+> Target permutation 0.703
+> ±0.017
+> 0.712
+> ±0.023
+> 0.907
+> ±0.014
+> 0.489
+> ±0.026 Each cell shows the mean above ±sample standard deviation over five target-held-out splits. Light red/bold and light orange/underlined means indicate the best and second-best results within each metric, respectively. ↑: higher is better. Target permutation is evaluated at inference time; the other variants are retrained.
+
+of 0.850, 0.698, 0.785, and 0.769 and balanced accuracies (BA) of 0.851, 0.698, 0.791, and 0.769 on HepG2, Jurkat, RPE1, and K562, respectively. Surpassing the strongest base-line in Table II by 5.8–6.4 percentage points in Macro-F1 and ranking first in class-wise F1 across all response states establishes the effectiveness of S1Pert for unseen-target response prediction. In addition, several notable observations can be drawn from Table II. ALIGNED outperforms the continuous profile predictors (GEARS, scGPT, and STATE) in Macro-F1 and secures the runner-up position in Table II across all cell lines, with scores of 0.791, 0.638, 0.727, and 0.705. SUMMER also outperforms these predictors on HepG2, Jurkat, and K562, but not on RPE1. These results support the effectiveness of knowledge-grounded discrete clas-sification under the evaluated protocol, although the relative performance varies by dataset and method. The frozen repre-sentation models GenePT-Gene and GenePT-Prot consistently outperform Qwen3-4B-LoRA, with Macro-F1 gains of 6.5– 17.3 percentage points. These results support the effectiveness of frozen functional representations with task-specific down-stream decoding in this benchmark. Unseen-target perturbation prediction is inherently chal-lenged by severe class imbalance, where unchanged pairs dominate over minority directional shifts (Table III). The con-tinuous profile predictors GEARS, scGPT, and STATE achieve Downregulated F1 scores of at most 0.313 on K562 and 0.375 
+
+on Jurkat, illustrating the difficulty of predicting this minority response class. Although ALIGNED and SUMMER mitigate class imbalance through abductive alignment or generative prompting, their highest Downregulated F1 scores reach 0.464 
+
+on Jurkat and 0.501 on K562. Mixing target, query, and prior information within a flat prompt or static graph obscures role-specific boundaries and lacks explicit cross-attention con-ditioning to isolate target-specific effects from gene-level tendencies. In contrast, S1Pert overcomes these limitations by unifying role-decoupled multilevel Jev landmark caching with a hierarchical cross-attention decoder and deconfounded optimization, dynamically extracting target-specific regulatory shifts to achieve state-of-the-art performance. 
+
+C. Ablation Study 
+
+Five ablated model variants and an inference-time diag-nostic protocol are evaluated on K562 to isolate the con-tribution of each design component in S1Pert. Specifically, (1) NO_Jev removes all frozen Jev semantic representations (Ctop  
+
+> i
+
+, Qtop  
+
+> j
+
+, Etop  
+
+> ij
+
+, and both evidence-present and prior-free versions of Jij ) and relies solely on the continuous covari-ates ( xCi , xQj , xEij ); (2) NO_JOINT removes both evidence-present and prior-free upper-layer cross-stream joint sum-maries Jij while retaining the independent layer-32 seman-tic landmarks; (3) FLAT replaces the hierarchical change– polarity probability factorization with a flat three-class softmax head; (4) NO_RANK disables the cross-target pairwise ranking loss ( L = Lmain ); and (5) NO_MASK disables synchronized historical-evidence dropout during training ( pev = 0 ). Beyond these retraining-based ablations, Target permutation is eval-uated directly on the trained full model by randomly shuffling the perturbation target i across test instances while keeping the query gene j and its historical evidence unchanged. A predictor that merely recites the historical response propensity of gene j would remain unaffected by target shuffling, so this mismatch directly tests whether S1Pert relies on the actual upstream intervention. Table IV identifies semantic encoding and target-conditioned learning as complementary contributors to S1Pert’s performance, with the complete model achieving the highest overall Macro-F1 and F1 for all three classes. Jev encoding provides the largest component-level gain: 
+
+NO_Jev reduces Macro-F1 from 0.769 to 0.739 and minority Downregulated F1 from 0.602 to 0.542 , demonstrating the value of semantic information beyond numerical covariates. Cross-stream contextualization further strengthens these representations. Without upper-layer joint interaction, 
+
+NO_JOINT yields Macro-F1 of 0.755 , Unchanged F1 of 
+
+0.923 , and Downregulated F1 of 0.582 , supporting the contribution of the joint summaries Jij to target–query integration. The decoding and training components reinforce minority-response discrimination. Replacing the hierarchical head with 
+
+FLAT lowers Downregulated F1 to 0.589 . Removing cross-target ranking or synchronized evidence dropout reduces Macro-F1 to 0.760 and 0.760 , respectively, with corresponding Downregulated F1 scores of 0.587 and 0.584 . The importance of target identity is most evident under test-time target permu-tation: Macro-F1 falls by 6.630 percentage points to 0.703 ,while Downregulated F1 falls by 11 .300 points to 0.489 .This sensitivity shows that S1Pert uses the perturbed target to distinguish response states rather than relying solely on query-gene response propensities. In summary, S1Pert combines multilevel System-One se-mantic encoding with prior-deconfounded hierarchical decod-ing to improve target-specific response prediction, particularly for the minority downregulated class. 
+
+D. Prior-Stress Deconfounding Evaluation 
+
+Aggregate classification scores in Table II can be inflated by memorizing dominant gene-level outcomes [16]. Across all 20 target-held-out splits, we therefore compare S1Pert against an unconditioned historical-propensity baseline (P1, outputting pev  
+
+> ij
+
+) and the top representative from each base-line family: GenePT-Prot, STATE, GEARS, and ALIGNED (Fig. 3). Holding each query gene j fixed across unseen targets, we compute within-gene Change AUC (Chg AUC, changed vs. unchanged) and Polarity AUC (Pol AUC, up-regulated vs. downregulated) [9], [16]. We further evaluate robustness across prior-entropy tertiles Ent( pev  
+
+> ij
+
+), counter-propensity reversals ( yij ̸ = arg max k pev 
+
+> ij,k
+
+), and training-support strata Sqij . In Fig. 3 (a), plotting pooled Macro-F1 against within-gene Pol AUC sharply separates target-specific discrimination from prior memorization. Both P1 (0.738 
+
+Macro-F1) and ALIGNED ( 0.715 Macro-F1) collapse onto the no-discrimination boundary ( ≈ 0.500 Pol AUC, ≤ 0.514 
+
+Chg AUC), revealing that ALIGNED achieves high pooled accuracy primarily by reciting gene-level historical tendencies rather than resolving target-specific regulation. Conversely, GenePT-Prot, STATE, and GEARS achieve moderate ranking (0.604 –0.667 Pol AUC) but low Macro-F1 ( 0.613 –0.663 ), whereas S1Pert dominates the upper-right frontier with the highest Macro-F1 ( 0.774 ) and Pol AUC ( 0.697 ), alongside a Chg AUC of 0.735 . In Fig. 3 (b), S1Pert leads all competitors across prior-entropy tertiles, reaching 0.778 and 0.641 Macro-F1 on medium- and high-entropy genes lacking dominant historical tendencies. Under counter-propensity reversals, P1 and ALIGNED plummet to 0.000 and 0.245 Down-F1, while S1Pert reaches 0.450 . Across decreasing training support Sqij 
+
+in Fig. 3 (c), S1Pert ranks first in every regime and retains 
+
+0.353 Macro-F1 at zero-support cold start ( Sqij = 0 , vs. 0.041 
+
+for P1), confirming that Jev semantics and basal control states sustain prediction without historical priors. 
+
+E. Statistical Label Fidelity and Boundary Generalization 
+
+Algorithm 1 requires two-one-sided equivalence testing (qeq  
+
+> ij
+
+≤ α) to assign verified invariance (yij = 1) and isolates underpowered observations failing both directional and equivalence tests as inconclusive ( yij = ⊥). Since ground-truth transcriptional states are unobservable in real screens, disjoint cell-pool validation is conducted on K562 by splitting the cells of each perturbation target and the untreated control group into two non-overlapping pools. Lower-depth Pool A (1/3 of cells) emulates limited single-cell sampling, while higher-depth Pool B ( 2/3 of cells) provides high-power refer-ence outcomes. Algorithm 1 (S1Pert TOST) is first compared against conventional single-test thresholding (Naive DE, where pairs with qup  
+
+> ij
+
+> α and qdown  
+
+> ij
+
+> α are labeled unchanged) across perturbed cell-count strata ( ni). Trained K562 models 0.45 0.50 0.55 0.60 0.65 0.70 0.75 
+
+Pol AUC 
+
+> 0.5 0.6 0.7 0.8 0.9
+> Overall Macro-F1
+
+a      
+
+> GEARS (Chg AUC: 0.720) STATE (Chg AUC: 0.639) GenePT-Prot (Chg AUC: 0.781) LIGNED AAUC: 0.514) (Chg 1PC: 0.500) U(Chg A S1Pert (Chg AUC: 0.735)
+> ≥ 50 10–49 1–9 Sqij = 0 Training support Sqij
+> 0.0 0.2 0.4 0.6 0.8
+> Macro-F1  S1Pert 0.353
+> P1 0.041
+
+c
+
+> Low Entropy Med. Entropy High Entropy 0.0 0.2 0.4 0.6 0.8 1.0
+> Macro-F1
+> 0.778 0.641
+
+b
+
+> Counter-Propensity 0.0 0.2 0.4 0.6 0.8 1.0
+> .450 0
+> P1 0.000
+> Down-F1
+
+S1Pert (Ours) P1 ALIGNED GenePT-Prot STATE GEARS Fig. 3. Cross-target ranking and prior-stress evaluation across four datasets with five target-held-out splits each. (a) Overall pooled Macro-F1 versus within-gene Polarity AUC ( Pol AUC ) and Change AUC ( Chg AUC , in parentheses). (b) Macro-F1 across out-of-fold prior-entropy tertiles (left) and Down-F1 under counter-propensity reversal ( yij ̸ = arg max k pev  
+
+> ij,k
+
+, right). (c) Macro-F1 across training-support regimes ( Sqij ), including zero-support cold start ( Sqij = 0 ). Error bars denote ±1 standard deviation across target-held-out splits. All (≥20) 20–39 40–79 80–149 ≥150 
+
+Perturbed Cell-Count Stratum ( ni)     
+
+> 020 40 60 80 100
+> Breakdown of Pool-B True DE Pairs (%)
+> 32.6% 24.5% 23.1% 37.2% 42.4%
+> All (≥20) 20–39 40–79 80–149 ≥150
+
+Perturbed Cell-Count Stratum ( ni)
+
+> 70 75 80 85 90 95 100
+> Cross-Pool Concordance (%) ↑
+> n=70.3k n=4.6k n=25.6k n=31.2k n=8.9k
+> Macro F1 Bal. Acc Up F1 Down F1 Unch. F1 Macro F1 Bal. Acc Up F1 Down F1 Unch. F1 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+> Score
+> Pool-A Unresolved (mean 55,562 pairs/split) 0.792 0.786 0.790 0.648 0.938 Full-Pool Unknown (mean 2,453 pairs/split) 0.651 0.740 0.426 0.733 0.792
+
+a b c
+
+Pool-A DE Pool-A unresolved Naive DE S1Pert TOST Hist. Prior (P1) S1Pert (Ours) 
+
+Fig. 4. Disjoint cell-pool validation and boundary generalization on K562. (a) Adjudication of 76 ,047 Pool-B reference DE pairs in lower-depth Pool A by cell-count stratum ( ni). Naive DE labels unresolved pairs as unchanged; S1Pert TOST marks them as inconclusive. (b) Cross-pool label concordance; n
+
+denotes pairs resolved in both pools by S1Pert TOST. (c) S1Pert versus historical-prior baseline P1 on Pool-A Unresolved and Full-Pool Unknown ,evaluated without retraining against Pool-B reference labels. Bars show means and error bars indicate ±1 standard deviation across five target-held-out splits. 
+
+are then evaluated without retraining on weak-signal boundary pairs ( yij = ⊥) that were withheld from training supervision (Fig. 4). Fig. 4 (a) tracks the 76 ,047 reference DE pairs ( yij ∈ { 0, 2})identified in Pool B when re-evaluated in lower-depth Pool A. Reduced cell depth in Pool A leaves only 32 .6% of the reference DE responses directly detectable as DE (Pool-A DE). The remaining 67 .4% (75 .5% –76 .9% at ni < 80 
+
+and 57 .6% at ni ≥ 150 ) become statistically underpowered (Pool-A unresolved). Treating nonsignificance as invariance under Naive DE mislabels this entire 67 .4% underpowered fraction as unchanged ( yij = 1 ) and corrupts both training labels and historical priors pev  
+
+> ij
+
+. By contrast, S1Pert TOST isolates all underpowered pairs as inconclusive ( yij = ⊥)without introducing false-invariance labels. In Fig. 4 (b), S1Pert TOST achieves > 99 .99% cross-pool concordance on mutually resolved pairs ( n = 70 .3k overall), whereas Naive DE drops to 79 .8% overall ( 74 .9% –83 .2% across ni
+
+strata). Isolating yij = ⊥ during training also preserves test-time inference on weak-signal pairs. Fig. 4 (c) compares the five target-held-out K562 models against P1 on Pool-B-resolved pairs that were underpowered in Pool A (Pool-A Unresolved, mean 55 ,562 pairs per split) or inconclusive in the combined cell pool (Full-Pool Unknown, mean 2,453 
+
+pairs per split). S1Pert surpasses P1 on all five metrics across both subsets, reaching 0.792 Macro-F1 and 0.648 Down-F1 (+11 .4 points over P1) on Pool-A Unresolved alongside 0.651 
+
+Macro-F1 and 0.733 Down-F1 ( +15 .5 points over P1) on Full-Pool Unknown. Equivalence-based adjudication therefore protects training supervision and historical priors from low-depth sampling noise while enabling reliable generalization to unresolved boundary regimes. 
+
+F. Runtime Efficiency 
+
+Transcriptome-scale perturbation screening requires accu-rate prediction with low computational overhead [17], [35]. HepG2 K562 10 −1 
+
+> 10 0
+> 10 1
+> 10 2
+> 10 3
+> Online Latency / 10k Pairs (s)
+
+a   
+
+> 2.27s 0.91s 582.5s 596.1s
+> 0.44s 0.35s
+> HepG2 K562 040 80 120 160
+> End-to-End Split Time (min)
+
+b 
+
+> 147.4m 90.6m 70.6m 142.4m
+> 16.4m 8.7m
+
+S1Pert (Ours) ALIGNED SUMMER Fig. 5. Runtime comparison on HepG2 and K562 using a single NVIDIA RTX PRO 6000 Blackwell (96 GB) GPU. (a) Online inference latency in seconds per 10 ,000 test pairs (base-10 logarithmic axis). (b) End-to-end runtime in minutes per split, excluding hyperparameter search. S1Pert’s one-time encoding cost is amortized across five splits and added to per-split decoder training and inference. 
+
+Lightweight embedding and regression baselines run quickly, but sacrifice substantial accuracy in Table II. Conversely, the two strongest external competitors (ALIGNED and SUM-MER) incur severe computational bottlenecks. Fig. 5 compares online latency per 10 ,000 test pairs and end-to-end runtime per split on HepG2 and K562 essential using one NVIDIA RTX PRO 6000 Blackwell (96 GB) GPU. Online latency measures test-split inference only, whereas end-to-end runtime per split covers the complete pipeline for one split without hyperparameter search. For S1Pert, one-time 4B encoding is amortized across the five splits and added to per-split decoder training and inference. ALIGNED executes two-round abduc-tive training and test evaluation per split. As a strong baseline, SUMMER has a per-split end-to-end runtime identical to its full-split online Qwen3-8B rationale decoding time. In Fig. 5 (a), S1Pert requires only 0.44 s and 0.35 s per 10 ,000 pairs. This online latency is 2.6 × –5.2× faster than ALIGNED (2.27 s and 0.91 s ) and 1,330 ×–1,720 × faster than SUMMER (582 .5 s and 596 .1 s ). In Fig. 5 (b), S1Pert requires 16 .4 min 
+
+and 8.7 min per split, running 9.0 × –10 .4× faster than ALIGNED ( 147 .4 min and 90 .6 min ) and 4.3 × –16 .4× faster than SUMMER ( 70 .6 min and 142 .4 min ). Offline landmark caching thus avoids repeated backbone computation during online inference and makes foundation-model perturbation screening practical at transcriptome scale. V. C ONCLUSION 
+
+In this work, we propose S1Pert, a unified framework for directional perturbation decision prediction across unseen genetic targets. By integrating equivalence-based statistical ad-judication, split-cached foundation-model landmark encoding, and factorized cross-attentive readout, S1Pert addresses key challenges in filtering low-depth sampling noise, overcoming foundation-model inference bottlenecks, and preventing his-torical prior shortcuts. Experiments on four real-world single-cell perturbation benchmarks show that S1Pert outperforms existing baselines in directional decision accuracy, within-gene target ranking, and runtime efficiency. Designed for transcriptome-scale screening, S1Pert serves as a practical in silico prioritization tool that narrows down candidate genetic interventions before wet-lab validation. Future work will ana-lyze boundary failure cases, extend the framework to combina-torial multi-gene perturbations and multimodal cellular signals, and scale to broader tissue contexts while preserving statistical rigor and efficiency. AI-G ENERATED CONTENT ACKNOWLEDGMENT 
+
+OpenAI Codex was used to assist with code development and debugging for the methods and experiments in Sections III and IV, and with manuscript drafting and language refinement in Sections I–IV. The authors take full responsibility for the manuscript and code. REFERENCES [1] A. Dixit, O. Parnas, B. Li, J. Chen, C. P. Fulco, L. Jerby-Arnon, N. D. Marjanovic, D. Dionne, T. Burks, R. Raychowdhury, B. Adamson, T. M. Norman, E. S. Lander, J. S. Weissman, N. Friedman, and A. Regev, “Perturb-seq: Dissecting molecular circuits with scalable single-cell RNA profiling of pooled genetic screens,” Cell , vol. 167, no. 7, pp. 1853–1866.e17, 2016. [2] J. M. Replogle, R. A. Saunders, A. N. Pogson, J. A. Hussmann, A. Lenail, A. Guna, L. Mascibroda, E. J. Wagner, K. Adelman, G. Lithwick-Yanai, N. Iremadze, F. Oberstrass, D. Lipson, J. L. Bonnar, M. Jost, T. M. Norman, and J. S. Weissman, “Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq,” Cell ,vol. 185, no. 14, pp. 2559–2575.e28, 2022. [3] Y. Roohani, K. Huang, and J. Leskovec, “Predicting transcriptional outcomes of novel multigene perturbations with GEARS,” Nature Biotechnology , vol. 42, no. 6, pp. 927–935, 2024. [4] W. Jiang, Y. Liu, E. Gao, E. Abbasnejad, L. Yao, and J. Q. Shi, “Learning latent dynamical causal processes for single-cell perturbation prediction,” in Proceedings of the 32nd ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 , 2026, pp. 11 177–11 188. [5] L. Cai, J. Yu, L. Liu, Q. Lin, X. Li, and K.-C. Wong, “Context-aware dual-graph neural network for cellular state inference under genetic perturbations,” IEEE Transactions on Big Data , vol. 12, no. 5, pp. 1938– 1949, 2026. [6] F. Wenkel, W. Tu, C. Masschelein, H. Shirzad, L. Hodgson, I. Bendidi, C. Eastwood, S. T. Whitfield, C. Russell, Y. El Mesbahi, J. Ding, M. M. Fay, B. Earnshaw, E. Noutahi, and A. K. Denton, “TxPert: Using multiple knowledge graphs for prediction of transcriptomic perturbation effects,” Nature Biotechnology , 2026. [7] O. Zhu and J. Li, “Scouter predicts transcriptional responses to genetic perturbations with large language model embeddings,” Nature Compu-tational Science , vol. 6, no. 1, pp. 21–28, 2026. [8] L. Cai, J. Yu, Q. Lin, L. Liu, X. Li, and K.-C. Wong, “Genetic perturbation modeling for human cell therapy with brnet,” IEEE Journal of Biomedical and Health Informatics , vol. 30, no. 5, pp. 3971–3980, 2026. [9] M. Wu, R. Littman, J. Levine, L. Qiu, T. Biancalani, D. Richmond, and J.-C. H¨ utter, “Contextualizing biological perturbation experiments through language,” arXiv preprint arXiv:2502.21290 , vol. 2025, pp. 73 598–73 624, 2025. [10] L. Phillips, M. B. Martell, A. Misra, J. L. Stoisser, C. A. Prada-Medina, R. Donovan-Maiye, and K. M¨ artens, “SynthPert: Enhancing LLM biological reasoning via synthetic reasoning traces for cellular perturbation prediction,” arXiv preprint arXiv:2509.25346 , 2025. [11] Z. Wang, G. Ye, W. Liu, and M. T. A. Ng, “AROMA: Augmented reasoning over a multimodal architecture for virtual cell genetic per-turbation modeling,” in Findings of the Association for Computational Linguistics: ACL 2026 . Association for Computational Linguistics, Jul. 2026, pp. 31 855–31 881. [12] D. Kim, Y. Gao, Y. Yang, and Y. Shen, “PertReason: A knowledge-grounded benchmark and framework for cell-state-conditioned mechanistic reasoning of perturbation effects,” arXiv preprint arXiv:2607.18777 , 2026. [13] Y. Xiang and L. Ai, “Adaptive data-knowledge alignment in genetic perturbation prediction,” in Proceedings of the 14th International Con-ference on Learning Representations (ICLR) , 2026. [14] A. Nadig, J. M. Replogle, A. N. Pogson, S. A. McCarroll, J. S. Weissman, E. B. Robinson, and L. J. O’Connor, “Transcriptome-wide analysis of differential expression in perturbation atlases,” Nature Ge-netics , vol. 57, pp. 1228–1237, 2025. [15] C. Ahlmann-Eltze, W. Huber, and S. Anders, “Deep-learning-based gene perturbation effect prediction does not yet outperform simple linear baselines,” Nature Methods , vol. 22, no. 8, pp. 1657–1661, 2025. [16] X. Yuan, X. Liu, J. Zhao, Y. Zhang, H. Guo, and J. Tang, “Plausibility is not prediction: Benchmarking large language models for virtual cell perturbation modeling,” arXiv preprint arXiv:2606.01042 , 2026. [17] T. Barry, K. Mason, K. Roeder, and E. Katsevich, “Robust differential expression testing for single-cell crispr screens at low multiplicity of infection,” Genome biology , vol. 25, no. 1, p. 124, 2024. [18] D. Lakens, “Equivalence tests: A practical primer for t tests, correlations, and meta-analyses,” Social psychological and personality science , vol. 8, no. 4, pp. 355–362, 2017. [19] A. Smirnova, J. Yang, D. Yang, and P. Cudre-Mauroux, “Nessy: A neuro-symbolic system for label noise reduction,” IEEE Transactions on Knowledge and Data Engineering , vol. 35, no. 8, pp. 8300–8311, 2023. [20] H. Yang, Y.-Z. Jin, Z.-Y. Li, D.-B. Wang, X. Geng, and M.-L. Zhang, “Learning from noisy labels via dynamic loss thresholding,” IEEE Transactions on Knowledge and Data Engineering , vol. 36, no. 11, pp. 6503–6516, 2024. [21] P. Li, X. Rao, J. Blase, Y. Zhang, X. Chu, and C. Zhang, “Cleanml: A study for evaluating the impact of data cleaning on ml classification tasks,” in 2021 IEEE 37th international conference on data engineering (ICDE) . IEEE, 2021, pp. 13–24. [22] L. Chen, Q. Zheng, Z. Pan, C. Yang, R. Zhang, and X. Zhou, “Bond: A co-designed framework for llm-powered analytics over relational data,” in 2026 IEEE 42nd International Conference on Data Engineering (ICDE) . IEEE, 2026, pp. 1914–1926. [23] C. Du, J. Chen, H. Tang, K. Liu, T. Lan, L. Qu, C. Niu, S. Liu, G. Chen, and F. Wu, “C2kv: Compressed and composable kv cache reuse for efficient llm inference,” in Proceedings of the 32nd ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 , 2026, pp. 991–1002. [24] H. Kim, S.-Y. Hwang, J. Lim, Y. Piao, Y. Oh, W. Y. Kim, C. Park, S. Ahn, and J. Jeon, “Progressive multi-agent reasoning for biological perturbation prediction,” 2026. [Online]. Available: https://arxiv.org/abs/2602.07408 [25] D. J. Schuirmann, “A comparison of the two one-sided tests procedure and the power approach for assessing the equivalence of average bioavailability,” Journal of Pharmacokinetics and Biopharmaceutics ,vol. 15, no. 6, pp. 657–680, 1987. [26] Mapika, “DECIDER-4B: An open system-one decision model for single-pass option probability estimation,” Hugging Face model repository, 2026, experimental checkpoint revision: c23ab4d2483e7c6a93484463e9afe1688b29bedd. [Online]. Available: https://huggingface.co/Mapika/decider-4b [27] J. E. Rood, A. Hupalowska, and A. Regev, “Toward a foundation model of causal cell and tissue biology with a perturbation cell and tissue atlas,” 
+
+Cell , vol. 187, no. 17, pp. 4520–4545, 2024. [28] S. Peidli, T. D. Green, C. Shen, T. Gross, J. Min, S. Garda, B. Yuan, L. J. Schumacher, J. P. Taylor-King, D. S. Marks, A. Luna, N. Bl¨ uthgen, and C. Sander, “scperturb: harmonized single-cell perturbation data,” Nature Methods , vol. 21, no. 3, pp. 531–540, 2024. [29] A. K. Adduri, D. Gautam, B. Bevilacqua et al. , “Predicting cellular responses to perturbation across diverse contexts with State,” Cell , vol. 189, no. 19, pp. 5914–5931.e20, 2026. [30] T. Wei, F. Feng, J. Chen, Z. Wu, J. Yi, and X. He, “Model-agnostic counterfactual reasoning for eliminating popularity bias in recommender system,” in Proceedings of the 27th ACM SIGKDD Conference on Knowledge Discovery & Data Mining (KDD) , 2021, pp. 1791–1800. [31] S. Tan, D. Li, R. Jiang, Z. Wang, X. Yu, and M. Okumura, “Taming recommendation bias with causal intervention on evolving personal popularity,” in Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining (KDD) , 2025, pp. 2790–2800. [32] S. Krishnan, J. Wang, E. Wu, M. J. Franklin, and K. Goldberg, “Active-Clean: Interactive data cleaning for statistical modeling,” Proceedings of the VLDB Endowment , vol. 9, no. 12, pp. 948–959, 2016. [33] T. Rekatsinas, X. Chu, I. F. Ilyas, and C. R´ e, “HoloClean: Holistic data repairs with probabilistic inference,” Proceedings of the VLDB Endowment , vol. 10, no. 11, pp. 1190–1201, 2017. [34] M. I. Love, W. Huber, and S. Anders, “Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2,” Genome Biology , vol. 15, no. 12, p. 550, 2014. [35] L. Heumos, Y. Ji, L. May et al. , “Pertpy: An end-to-end framework for perturbation analysis,” Nature Methods , vol. 23, no. 2, pp. 350–359, 2026. [36] Z. Wei, R. Ma, Z. Wang, Z. Li, S. Song, and S. Zheng, “Vcworld: A biological world model for virtual cell simulation,” in International Conference on Learning Representations , vol. 2026, 2026, pp. 72 795– 72 823. [37] B. L. Welch, “The generalization of ‘student’s’problem when several different population varlances are involved,” Biometrika , vol. 34, no. 1-2, pp. 28–35, 1947. [38] F. E. Satterthwaite, “An approximate distribution of estimates of variance components,” Biometrics bulletin , vol. 2, no. 6, pp. 110–114, 1946. [39] H. Cui, C. Wang, H. Maan, K. Pang, F. Luo, N. Duan, and B. Wang, “scGPT: Toward building a foundation model for single-cell multi-omics using generative AI,” Nature Methods , vol. 21, no. 8, pp. 1470–1480, 2024. [40] Y. Chen and J. Zou, “Simple and effective embedding model for single-cell biology built from ChatGPT,” Nature Biomedical Engineering ,vol. 9, no. 4, pp. 483–493, 2025. [41] Y. Chen, “Gene embeddings used in GenePT: A simple but hard-to-beat foundation model for genes and cells built from ChatGPT,” Zenodo, 2024, dataset, CC BY 4.0. [Online]. Available: https://doi.org/10.5281/zenodo.10833191 [42] C. Yang, X. Lin, W. Wang, Y. Li, T. Sun, X. Han, and T.-S. Chua, “Earn: Efficient inference acceleration for llm-based generative recom-mendation by register tokens,” in Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 , 2025, pp. 3483–3494. [43] L. Patel, S. Jha, M. Pan, H. Gupta, P. Asawa, C. Guestrin, and M. Zaharia, “Semantic operators and their optimization: Enabling LLM-based data processing with accuracy guarantees in LOTUS,” Proceedings of the VLDB Endowment , vol. 18, no. 11, pp. 4171–4184, 2025. [44] C. Liu, M. Russo, M. Cafarella, L. Cao, P. B. Chen, Z. Chen, M. Franklin, T. Kraska, S. Madden, R. Shahout, and G. Vitagliano, “Palimpzest: Optimizing ai-powered analytics with declarative query processing,” in Proceedings of the 15th Conference on Innovative Data Systems Research (CIDR) , 2025. [45] K.-W. Shin, J. H. Park, M. Oh, Y. Jo, J. Do, and S.-W. Lee, “Matkv: Trading compute for flash storage in llm inference,” in 2026 IEEE 42nd International Conference on Data Engineering (ICDE) . IEEE, 2026, pp. 877–890. [46] I. Gim, G. Chen, S.-s. Lee, N. Sarda, A. Khandelwal, and L. Zhong, “Prompt cache: Modular attention reuse for low-latency inference,” in 
+
+Proceedings of Machine Learning and Systems (MLSys) , vol. 6, 2024, pp. 325–338. [47] Qwen Team, “Qwen3 technical report,” 2025. [Online]. Available: https://arxiv.org/abs/2505.09388

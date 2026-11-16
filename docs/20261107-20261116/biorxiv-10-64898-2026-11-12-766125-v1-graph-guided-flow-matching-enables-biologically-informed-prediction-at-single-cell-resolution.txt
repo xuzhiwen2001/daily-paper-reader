@@ -1,0 +1,1756 @@
+Title: Graph-guided flow matching enables biologically informed prediction at single-cell resolution
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.11.12.766125v1.full.pdf
+
+Number of Pages: 35
+
+Markdown Content:
+Graph-guided flow matching enables biologically 1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10 
+
+11 
+
+12 
+
+13 
+
+14 
+
+15 
+
+16 
+
+17 
+
+# informed prediction at single-cell resolution 
+
+Huai-Yu Liou 1,2 , Maximilian Sprang 3,4 , David A. Selby 5, Gerrit Grossmann 5, Sebast ia nVollmer 5, Pablo Riesgo-Ferreiro 1,6 , Jennifer V. Gerbracht 1, Barbara Schrörs 1, Boris Strilic 1,Johnny Kim 1,7,* 
+
+> 1
+
+TRON – Translational Oncology at the University Medical Center of the Johannes Gutenberg University gGmbH, Mainz, Germany 
+
+> 2
+
+Faculty of Biology, Johannes Gutenberg University of Mainz, Mainz, Germany 
+
+> 3
+
+Department of Dermatology, University Medical Center of the Johannes Gutenberg University Mainz 
+
+> 4
+
+Institute of Quantitative and Computational Biology, Johannes Gutenberg University, Mainz, Germany 
+
+> 5
+
+Data Science and its Applications, German Research Center for Artificial Intelligence (DFKI), Germany 
+
+> 6
+
+BioNTech SE, Mainz, Germany 
+
+> 7
+
+Vascular Biology and Therapeutics Program and Department of Comparative Medicine, Yale University School of Medicine, New Haven, CT, USA 18 
+
+19 
+
+*Correspondence:  johnny.kim@tron-mainz.de 20 
+
+johnny.kim@yale.edu 21 
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint 1
+
+# Abstract 22 
+
+Perturb-seq enables systematic interrogation of massively parallel genetic perturbations at single-cell 23 
+
+resolution, yet exhaustive characterization of the full perturbation space remains impractical. Here, we 24 
+
+present Graph-guided Flow Matching (GFM), a generative framework that integrates biological 25 
+
+knowledge graphs with latent flow matching to predict post-perturbation single-cell transcriptomes. 26 
+
+Across multiple large-scale Perturb-seq datasets, GFM outperforms a strong linear baseline and 27 
+
+current deep-learning models in predicting unseen single-gene perturbations, while training up to 30x 28 
+
+faster and remaining robust with limited training data. GFM also demonstrates competitive 29 
+
+performance in the two-gene perturbation prediction task when neither perturbed gene is observed 30 
+
+during training. Ablation experiments show that combining flow matching with knowledge graphs 31 
+
+enables accurate prediction of perturbation responses. Finally, GFM accurately calculates 32 
+
+transcriptional consequences of HSP90AA1 inactivation and identifies target candidates unseen by 33 
+
+the model in chronic myeloid leukemia. Our study establishes GFM as a biologically informed 34 
+
+generative framework that predicts single-cell perturbation responses for prioritization of therapeutic 35 
+
+targets. 36 
+
+# Introduction 37 
+
+Perturbation sequencing (Perturb-seq) is a recently developed high-throughput screening technology 38 
+
+that combines CRISPR-based gene activation or repression with single-cell RNA sequencing (scRNA-39 
+
+seq). This assay enables systematic examination of hundreds of thousands of genetic perturbations 40 
+
+and their effects on the transcriptome of individual cells, facilitating the study of gene-gene 41 
+
+interactions, cell differentiation processes, and target identification in drug development 1–5 . Although 42 
+
+Perturb-seq captures causal relationships between target genes and their downstream effectors, 43 
+
+experimentally testing all possible genetic perturbations and their combinations remains impractical 44 
+
+because the complexity of the perturbation space rapidly outpaces experimental scalability. Therefore, 45 
+
+computational tools capable of learning from existing Perturb-seq data and generalizing to unseen 46 
+
+perturbations are instrumental for scalable target discovery and a deeper understanding of complex 47 
+
+gene regulatory networks 6.48 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+2
+
+Recent perturbation prediction methods leverage pretrained foundation models to improve 49 
+
+generalization to unseen perturbations. For example, single-cell generative pre-trained transformer 50 
+
+(scGPT) 7 adapts a transformer pretrained on observational scRNA-seq data, whereas CellFlow 851 
+
+incorporates representations from a protein language model (ESM2 9). However, these approaches do 52 
+
+not explicitly model perturbation-specific gene-gene interactions and therefore have limited capacity to 53 
+
+capture the complexity of gene regulatory cascades induced by genetic perturbations. Recently, 54 
+
+biological priors have been integrated into perturbation prediction frameworks using graph neural 55 
+
+networks (GNNs). GEARS 10 incorporates Gene Ontology (GO) and gene co-expression network 56 
+
+using GNNs to predict responses to unseen genetic perturbations, whereas TxPert 11 further 57 
+
+incorporates protein-protein interaction (PPI) networks, a data-derived perturbation graph, and image-58 
+
+based features. Despite these advances, the contributions of biological priors to predictive 59 
+
+performance remain poorly understood, and their incorporation into an effective generative framework 60 
+
+is still lacking. 61 
+
+Notwithstanding, advances in generative modeling have provided new opportunities for predicting 62 
+
+cellular responses to unseen perturbations. Flow matching is a recently emerged generative modeling 63 
+
+framework that learns continuous transformations, parameterized by neural ordinary differential 64 
+
+equations (ODEs), from noise or arbitrary source distributions to target data distributions 12,13 , making 65 
+
+it well-suited for single-cell data generation. Therefore, flow matching has been increasingly applied to 66 
+
+model cellular dynamics and to interpolate or extrapolate to unobserved cellular states in tasks such 67 
+
+as trajectory inference 14,15 and perturbation prediction 8. However, a central challenge for flow 68 
+
+matching is that the trajectories it seeks to learn are never directly observed: single-cell perturbation 69 
+
+experiments provide only separate populations of control and perturbed cells and not paired 70 
+
+observations of the same cell before and after perturbation. In addition, existing flow matching 71 
+
+approaches remain limited in their ability to incorporate biological knowledge and generalize to 72 
+
+unseen perturbations. To address this challenge, Meta Flow Matching 16 employs a GNN to condition 73 
+
+the source distribution, whereas MixFlow 17 learns a condition-dependent Gaussian-mixture source 74 
+
+distribution. Despite these advances, these methods primarily improve how the flow is initialized, 75 
+
+rather than how perturbation-induced changes are modeled throughout the transformation. 76 
+
+Consequently, they do not explicitly model how perturbations propagate through biological systems, 77 
+
+limiting their ability to generalize to unseen perturbations. 78 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+3
+
+Here, we present Graph-guided Flow Matching (GFM), a generative framework that combines multiple 79 
+
+biological knowledge graphs with latent flow matching to predict single-cell transcriptomic responses 80 
+
+to unseen perturbations. GFM employs latent flow matching with a Gaussian source distribution, 81 
+
+classifier-free guidance, and condition-specific optimal transport (OT) couplings to efficiently learn 82 
+
+perturbation-induced transcriptomic changes. Through comprehensive benchmarking, we 83 
+
+demonstrate that GFM achieves superior performance in single-gene perturbation prediction and 84 
+
+competitive performance in two-gene perturbation settings. We functionally validate GFM predictions 85 
+
+and show that GFM prioritizes therapeutic targets for chronic myeloid leukemia (CML). 86 
+
+# Results 87 
+
+## GFM model overview 88 
+
+GFM is an end-to-end framework that takes scRNA-seq data with perturbation labels during training 89 
+
+and generates post-perturbation gene expression profiles at single-cell resolution. Inspired by prompt-90 
+
+guided generation in modern image synthesis models 18–20 , GFM aims to transform Gaussian noise 91 
+
+into perturbed cellular states in a learned latent space conditioned on a knowledge-graph-derived 92 
+
+perturbation representation. 93 
+
+Specifically, GFM is built on three major components: a variational autoencoder (VAE), a GNN 94 
+
+module, and a neural ODE module. The VAE learns a latent representation from log-normalized 95 
+
+single-cell gene expression data while preserving the ability to reconstruct gene expression profiles 96 
+
+from the latent space (Fig. 1A). We adapted the GO graph from GEARS 10 but additionally constructed 97 
+
+a PPI graph from the STRING database 21 and a perturbation similarity graph derived from a K562 98 
+
+genome-wide CRISPRi Perturb-seq dataset 3. These three graphs are combined and parameterized 99 
+
+by a graph attention network (GAT), allowing for biologically informed inductive bias. Each gene in the 100 
+
+graph is associated with a trainable perturbation embedding that propagates to neighboring genes, 101 
+
+essentially enabling the model to generalize to unseen genetic perturbations. Importantly, the 102 
+
+perturbation embedding guides the velocity field generated by the neural ODE module that transports 103 
+
+Gaussian noise toward the corresponding perturbed cell state, allowing the model to learn 104 
+
+perturbation-induced shifts in small steps rather than directly generating data points (Fig. 1A). 105 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+4
+
+The VAE module is pretrained independently of the perturbation labels, and the GNN and neural ODE 106 
+
+modules are trained jointly using a flow matching objective. Before the flow-matching training, we 107 
+
+defined perturbation-specific probability paths between Gaussian noise and perturbed cells as straight 108 
+
+interpolants coupled by OT. The neural ODE that is conditioned on the GNN-derived perturbation 109 
+
+embeddings is then trained to match the velocity field along these OT paths. Once trained, GFM 110 
+
+predicts cellular states under unseen perturbations in the latent space and decodes them back into 111 
+
+gene expression space (Fig. 1A). Taken together, GFM is a generative framework for predicting 112 
+
+single-cell transcriptomic responses to unseen perturbations by integrating biologically informed 113 
+
+conditioning with perturbation-specific OT-based flow matching. 114 
+
+## GFM accurately predicts unseen single-gene perturbation responses 115 
+
+In order to test its generalization to unseen single-gene perturbations, we benchmarked GFM on four 116 
+
+CRISPRi Perturb-seq datasets targeting thousands of genes in the chronic myeloid leukemia cell line 117 
+
+K562, the retinal pigment epithelial cell line RPE1 4, the hepatocellular carcinoma cell line HepG2, and 118 
+
+the T-cell leukemia cell line Jurkat 5. For each dataset, perturbations were split into training (75%), 119 
+
+validation (10%), and test (15%) sets across three independent data splits (Fig. 2A). GFM was 120 
+
+compared with current models, including CellFlow 8, GEARS 10 , and scGPT 7. Additionally, a linear 121 
+
+baseline model that learns to linearly map a data-driven PCA-derived gene embedding to the 122 
+
+perturbation-induced gene expression shift was included 22 (see Methods). To provide empirical upper-123 
+
+and lower-bound references, we evaluated a technical duplicate (Dup), in which half of the ground-124 
+
+truth perturbed cells served as the prediction for the other half 23 , and a Perturb train baseline that 125 
+
+randomly samples perturbed cells from the training set 24 . Model performance was assessed using 126 
+
+complementary metrics that capture both mean expression prediction accuracy (Pearson correlation, 127 
+
+Pearson delta, and mean squared error (MSE)) and distributional similarity between predicted and 128 
+
+observed perturbation responses (2-Wasserstein distance (2-WD) and energy distance (E-distance)). 129 
+
+To facilitate comparison of perturbation-specific prediction performance across conditions, all metrics 130 
+
+except Pearson delta were normalized by subtracting the corresponding perturb-train baseline values. 131 
+
+Pearson delta was exempt from this normalization as it is inherently defined relative to the perturb-132 
+
+train baseline. Unless otherwise stated, evaluation was restricted to the top 20 differentially expressed 133 
+
+genes (DEGs) for each perturbation to focus on perturbation-specific transcriptional responses. 134 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+5
+
+In all tests, GFM systematically outperformed the other models in predicting the top 20 DEGs at both 135 
+
+the mean and population levels. Interestingly, consistent with previous reports 22 , the linear baseline 136 
+
+outperformed CellFlow, scGPT, and GEARS for mean gene expression prediction. However, GFM 137 
+
+surpassed the linear baseline (Fig. 2B, Fig. S1). Furthermore, GFM consistently yielded lower 2-WD 138 
+
+scores (Fig. 2B), indicating that its predicted cell populations more closely resemble true perturbed 139 
+
+distributions. However, GFM and other tested models exhibited similar or higher E-distance compared 140 
+
+to randomly sampled perturbed cells (Fig. S1), suggesting that none of the models adequately 141 
+
+captured the overall dispersion of the perturbed population. Similarly, when performance was 142 
+
+assessed using the top 10 to 100 DEGs as evaluation features, GFM demonstrated superior 143 
+
+performance across all metrics except E-distance (Fig. S2). We next assessed prediction accuracy by 144 
+
+visualizing representative perturbations from the test sets in two-dimensional UMAP space. For 145 
+
+example, following EIF2S1 knockdown in K562, GFM-predictions closely overlapped with the 146 
+
+observed perturbed cell population, whereas GEARS’ predictions resembled more closely 147 
+
+unperturbed cells and predictions based on CellFlow and scGPT failed to overlap with the ground 148 
+
+truth (Fig. 2C). Visualization of the predicted top 10 DEGs following EIF2S1 knockdown similarly 149 
+
+showed that GFM more accurately captured both the mean and variance of gene expression levels 150 
+
+than alternative models (Fig. 2D). Comparable prediction accuracy was observed across 151 
+
+perturbations in additional cell lines, including NHP2 knockdown in RPE1, PSMC4 in HepG2, and 152 
+
+GRPEL1 in Jurkat ( Figs. S3A-C). 153 
+
+Next, we examined the robustness of GFM under reduced training data. To this end, we evaluated its 154 
+
+ability to predict the held-out test set as the training size was gradually reduced from 75% to 2.5%, 155 
+
+across three independent data splits (Table S1). As expected, performance declined with a 156 
+
+decreasing amount of training data for all models. Notably, GFM consistently outperformed CellFlow, 157 
+
+scGPT, GEARS, and the linear baseline across mean metrics and 2-WD, (Fig. 2E, Fig. S4). 158 
+
+Furthermore, GFM required substantially less training time than the other deep-learning models (1.5-159 
+
+30× faster), while achieving inference times comparable to GEARS and ~100× shorter than those of 160 
+
+CellFlow and scGPT (Fig. S5). Taken together, these results establish GFM as a general framework 161 
+
+for predicting unseen perturbation-induced transcriptional responses. By integrating a latent flow-162 
+
+matching generative framework with perturbation-specific learning and knowledge graphs, GFM 163 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+6
+
+generalizes across perturbations in diverse cell types while consistently outperforming existing 164 
+
+methods, including a competitive linear baseline even under limited training data regimes. 165 
+
+## GFM predicts two-gene perturbations 166 
+
+Next, we applied GFM to a CRISPRa Perturb-seq dataset comprising 131 two-gene and 152 one-167 
+
+gene perturbations in K562 cells 3. Here, we only implemented the GO and PPI graphs in GFM since 168 
+
+the perturbation similarity graph was constructed based on a CRISPRi dataset 4, which intrinsically 169 
+
+carries different perturbation-specific information from the CRISPRa dataset. The two-gene 170 
+
+perturbations in the held-out test set were further divided into three subgroups based on the number 171 
+
+of perturbed genes seen during training: both genes seen (seen-2), one gene seen (seen-1), or 172 
+
+neither gene seen (seen-0), reflecting increasing prediction difficulty. For the seen-2 subgroup, we 173 
+
+additionally implemented an additive baseline, in which the predicted expression change is defined as 174 
+
+the sum of the two corresponding single-gene perturbation changes observed in the training data. 175 
+
+GFM achieved similar performance to the other models in the seen-2 and seen-1 subgroups but 176 
+
+showed superior performance in the seen-0 subgroup, where neither perturbed gene was present 177 
+
+during training (Fig. 3A, Fig. S6). For example, for the dual activation of CBL and PTPN9, GFM-178 
+
+predicted cells overlapped more closely with the ground truth in 2D UMAP space (Fig. 3B), and the 179 
+
+top 10 DEGs predicted by GFM and GEARS were better aligned with the observed data compared to 180 
+
+CellFlow and scGPT (Fig. 3C). Consistent with previous reports 22 , the additive model achieved the 181 
+
+highest performance for predicting the top 20 DEGs in the seen-2 subgroup, suggesting that the 182 
+
+transcriptional effects of two-gene perturbations in this dataset are largely additive. In summary, GFM 183 
+
+achieves comparable performance when one or both genes are seen and predicts two-gene 184 
+
+perturbations better than current deep-learning models when neither perturbed gene is seen during 185 
+
+training. 186 
+
+## Biological knowledge graph strongly influences GFM’s generalizability 187 
+
+To assess how the flow matching framework and the knowledge graph-constrained GNN contribute to 188 
+
+GFM's single-gene perturbation prediction, we performed ablation experiments using the same K562, 189 
+
+RPE1, HepG2, and Jurkat Perturb-seq datasets. To ablate the flow-based prior while maintaining the 190 
+
+same model structure, we used the same multilayer perceptron (MLP) architecture as in the neural 191 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+7
+
+ODE module but took its output directly as the generated latent data points instead of the velocity 192 
+
+field. Furthermore, no OT coupling between the Gaussian noise and the target perturbed cells was 193 
+
+computed before training. Removing the OT flow matching objective resulted in an overall 194 
+
+performance decline, particularly in the distributional metrics (Fig. 4A, Fig. S7). These results highlight 195 
+
+the importance of the flow matching generative framework for modeling accurate perturbation effects 196 
+
+while preserving single-cell heterogeneity. To measure the contribution of prior biological knowledge, 197 
+
+we randomly permuted the knowledge graph while maintaining the number of edges. This 198 
+
+manipulation removes biological relationships while preserving comparable graph density and 199 
+
+message-passing capacity. Intriguingly, we observed a significant performance loss in both mean and 200 
+
+distributional metrics when the graph connectivity became random (Fig. 4A, Fig. S7). Similarly, 201 
+
+simultaneous ablation of both components further impaired GFM performance. These data 202 
+
+demonstrate that the biological prior knowledge is largely responsible for the generalizability of GFM 203 
+
+and that the GNN module and the flow matching component synergistically contribute to its superior 204 
+
+predictive performance. 205 
+
+We next assessed the contribution of different types of biological knowledge to the predictive 206 
+
+performance of GFM by individually ablating each graph component by randomly permuting its 207 
+
+connections while leaving all other modules unchanged. Ablation of the perturbation similarity graph 208 
+
+markedly impaired GFM performance, whereas ablation of either the GO or PPI graph alone had only 209 
+
+modest effects (Fig. 4B, Fig. S8). Simultaneous permutation of any two graphs led to a further decline 210 
+
+in predictive performance, indicating that no single graph can compensate for the loss of the others 211 
+
+(Fig. 4B, Fig. S8). Together, these results suggest that the PPI and GO graphs provide 212 
+
+complementary biological information that is essential for its baseline predictive performance. The 213 
+
+perturbation similarity graph, which directly encodes perturbation-specific relationships, appears to be 214 
+
+the primary contributor to GFM's superior generalizability. 215 
+
+To further understand how biological priors influence the predictive performance of GFM, we 216 
+
+investigated the correlations between several graph connectivity-derived properties and prediction 217 
+
+accuracy. Importantly, since the GAT is a message-passing GNN, a representation of each target 218 
+
+node is iteratively shaped by information propagated from neighboring source nodes across layers. 219 
+
+Consequently, the quality of a target node representation is expected to depend on its connectivity 220 
+
+within the graph 25 . We therefore quantified how the connectivity of a target node, representing an 221 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+8
+
+unseen perturbation in the test set, to other perturbation nodes in the graph influences prediction 222 
+
+accuracy. To this end, we first measured two intrinsic graph properties for each test perturbation: the 223 
+
+number of its neighbors that belonged to the training set and the fraction of all its neighbors that 224 
+
+belonged to the training set. We found that the trained-neighbor fraction, rather than the number of 225 
+
+trained neighbors, were associated with better generalization performance across test metrics (Fig. 226 
+
+4C, Fig. S9). We then used the ground-truth gene expression data to compute two extrinsic properties 227 
+
+between each test perturbation and its training-set neighbors: the maximum and median similarity of 228 
+
+their perturbation effects, where perturbation effect was defined as the change in average gene 229 
+
+expression relative to control cells and similarity was measured by cosine similarity between these 230 
+
+expression-change vectors. Strikingly, these extrinsic properties showed even stronger associations 231 
+
+with test performance (Fig. 4C, Fig. S9), indicating that GFM predicts unseen perturbations more 232 
+
+accurately when its training-set neighbors have more similar transcriptional effects. For example, the 233 
+
+most similar training-set neighbor of PSMB2 knockdown was PSMB5 knockdown (cosine similarity = 234 
+
+0.965), corresponding to an accurate GFM prediction (Fig. 4D). By contrast, the most similar training-235 
+
+set neighbor of HIST1H2BN knockdown was MON1A knockdown (cosine similarity = 0.172), 236 
+
+corresponding to poor prediction performance (Fig. 4D). This finding confirms that graph construction 237 
+
+that is based on perturbation similarity is more informative for perturbation prediction. 238 
+
+## GFM reproduces HSP90AA1 knockdown effects in CML 239 
+
+Finally, we trained the GFM model on the genome-wide CRISPRi Perturb-seq dataset in K562 cells 4240 
+
+and predicted the transcriptional effects of all possible single-gene perturbations. The predicted 241 
+
+functions of each perturbation were annotated based on its down-regulated genes, identifying 242 
+
+categories such as cytoplasmic translation, RNA processing, and regulation of gene expression (Fig. 243 
+
+S10). Focusing on the heat-shock protein HSP90AA1, a well-established therapeutic target that 244 
+
+stabilizes the BCR-ABL1 complex and promotes chronic myeloid leukemia progression 26 , GFM 245 
+
+correctly predicted the suppression of chaperone-related functions and telomere maintenance 246 
+
+following its knockdown 27 (Fig. 5A) despite HSP90AA1 not being included in the training data. 247 
+
+Perturbations were ranked according to the similarity of their predicted downregulated gene 248 
+
+signatures to HSP90AA1 knockdown. Among the 15 highest-ranking perturbations were PTGES3, a 249 
+
+canonical HSP90 co-chaperone, DNAJB6, a member of the HSP40 family, and BAG2, a regulator of 250 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+9
+
+chaperone activity. Notably, these predicted knockdown targets were also unseen during training but 251 
+
+were predicted to induce similar transcriptional effects to HSP90AA1 knockdown (Fig. 5B). Taken 252 
+
+together, these results indicate that GFM generalizes beyond individual perturbations to recover 253 
+
+biologically accurate and functionally meaningful relationships suitable for in silico perturbation 254 
+
+experiments. 255 
+
+# Discussion 256 
+
+In this study, we presented GFM, a biologically informed generative model for simulating post-257 
+
+perturbation single-cell transcriptomes. Building on previous work 10,11 , we incorporated GO, PPI, and 258 
+
+perturbation similarity graphs into the model, enabling perturbation information to propagate and 259 
+
+aggregate through biologically meaningful relationships. Unlike transformer-based perturbation 260 
+
+embeddings, which rely on large-scale pretraining data to learn gene and perturbation 261 
+
+relationships 7,8,28 , GFM directly incorporates biological priors through graph structures, providing 262 
+
+inductive biases that facilitate learning in settings with limited perturbation data while allowing dataset-263 
+
+and context-specific optimization of perturbation representations. Beyond improving predictive 264 
+
+performance, these biological graphs provide a structured framework for modeling how perturbations 265 
+
+propagate through cellular systems. The perturbation similarity graph enables information sharing 266 
+
+between perturbations with related transcriptional consequences, whereas GO and PPI graphs 267 
+
+constrain gene-level information aggregation based on functional and physical relationships. It will be 268 
+
+interesting to test additional biological priors as they become available, such as transcription factor 269 
+
+regulatory networks, chromatin accessibility profiles, or ligand-receptor interaction networks. However, 270 
+
+since GFM performance depends on perturbation-relevant graph connectivity (Fig. 4C, 271 
+
+Supplementary Fig. 9), the utility of each prior will need to be evaluated for specific use cases rather 272 
+
+than assuming that any additional prior knowledge improves prediction. 273 
+
+Our analyses show that the improved performance of GFM arises from the combination of 274 
+
+complementary architectural components. First, GNNs introduce biologically informed inductive 275 
+
+biases that facilitate information transfer between related genes and perturbations, reducing the 276 
+
+dependence on large-scale perturbation datasets. Second, GFM leverages the latent flow matching 277 
+
+framework 20 , which models cellular state generation by transforming a simple Gaussian source 278 
+
+distribution into the target perturbed transcriptomic distribution through a deterministic ODE. Unlike 279 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+10 
+
+approaches that construct flow trajectories between unperturbed and perturbed cells 8, our model does 280 
+
+not rely on explicit coupling between pre- and post-perturbation cells. Because scRNA sequencing is 281 
+
+destructive, such one-to-one correspondences are fundamentally unobservable and must be 282 
+
+approximated computationally, potentially introducing errors into the learned trajectories. Additionally, 283 
+
+OT is used to couple Gaussian noise with perturbed latent representations on a per-condition basis 284 
+
+before training, encouraging straighter flow trajectories while avoiding repeated expensive minibatch 285 
+
+OT computations 13 required during training in CellFlow 8. Taken together, the integration of biologically 286 
+
+informed graph representations with latent flow matching enables GFM to efficiently generate 287 
+
+accurate single-cell perturbation responses while generalizing to unseen perturbations. 288 
+
+An effective latent flow matching model relies on a smooth and well-structured latent space, defined 289 
+
+by a VAE in GFM. Designing an autoencoder that simultaneously captures generalizable biological 290 
+
+variation and accurately reconstructs gene expression profiles remains challenging. Recent efforts 291 
+
+have focused on developing universal single-cell foundation models trained with both observational 292 
+
+and perturbational data 7,28–32 . However, their efficacy in predicting single-cell transcriptomes of out-of-293 
+
+distribution perturbations still requires further systematic evaluation. Here, we implemented a 294 
+
+standard VAE to demonstrate the effectiveness of the GFM framework and provide a foundation for 295 
+
+future integration of more advanced encoder architectures. We speculate that as improved 296 
+
+representations of cellular states become increasingly more available, they will further enhance the 297 
+
+ability of flow-based generative models to capture complex perturbation responses more accurately. 298 
+
+Notably, GFM consistently outperformed the simple yet competitive linear baseline, which itself 299 
+
+outperforms all other current deep-learning models in predicting unseen single-gene perturbations, 300 
+
+which is a fundamental phenomenon in the field 22 . We showed that GFM does not merely recapitulate 301 
+
+generic perturbation-associated expression changes by comparing predictions against randomly 302 
+
+selected perturbed cells from the training set 24 (Fig. 2B, Fig. S1). In the two-gene perturbation 303 
+
+prediction task, when none or one of the two tested genes was present in the training set (seen-0 and 304 
+
+seen-1 subgroups), GFM outperformed the linear baseline and the other deep-learning models. 305 
+
+However, when both individual genes were observed during training (seen-2 subgroup), the additive 306 
+
+model achieved near-perfect performance and consequently outperformed deep-learning-based 307 
+
+approaches. This observation is consistent with the finding of Ahlmann-Eltze et al. 33 that over 95% of 308 
+
+the two-gene perturbations in the Norman dataset 3 are additive, suggesting that models lacking 309 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+11 
+
+explicit additive assumptions may be disadvantaged when training data are limited. As larger and 310 
+
+more diverse perturbation atlases become available, frameworks such as GFM may become 311 
+
+increasingly valuable for learning complex, non-additive cellular responses that cannot be captured by 312 
+
+simple extrapolation from individual perturbations. 313 
+
+Collectively, our results demonstrate that accurate prediction of cellular responses to unseen 314 
+
+perturbations requires integration of expressive generative models with biologically meaningful 315 
+
+constraints. By combining knowledge graphs with latent flow matching, GFM provides a framework 316 
+
+that captures both shared biological relationships among perturbations and the heterogeneity of 317 
+
+single-cell transcriptomes. Particularly where datasets are limited, GFM can leverage existing 318 
+
+biological knowledge to infer biological relationships, thereby improving generalization. As 319 
+
+perturbation datasets continue to expand, biologically informed generative models may provide a 320 
+
+scalable strategy for predicting cellular responses and prioritizing experimentally testable hypotheses 321 
+
+in therapeutically relevant settings. 322 
+
+# Materials and Methods 323 
+
+## GFM 324 
+
+GFM is a deep learning framework designed to model and generate perturbation effects on single-cell 325 
+
+transcriptomic profiles. GFM consists of three core modules: (i) a VAE to encode gene expression 326 
+
+profiles into the latent space and decode them back to the gene expression space, (ii) a GNN for 327 
+
+learning perturbation representations informed by biological knowledge graphs, and (iii) a neural ODE 328 
+
+module to generate perturbed cells in the latent space conditioned by the GNN-derived perturbation 329 
+
+representation. 330 
+
+Let  𝑥 ∈ ℝ 𝐺  denote a cell-level gene expression vector with  𝐺  genes, and let  𝑦  denote the 331 
+
+perturbation condition, which may contain one or more perturbed genes. 332 
+
+VAE 333 
+
+We first map high-dimensional expression profiles into a low-dimensional latent space. The encoder 334 
+
+parameterizes a multivariate Gaussian posterior 335 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+12 
+
+𝑞 𝜙 ( 𝑧 ∣ 𝑥 ) = 𝒩 (𝜇 𝜙 (𝑥), 𝑑𝑖𝑎𝑔 (𝜎 𝜙 2(𝑥))), 336 
+
+where  𝑧 ∈ ℝ 𝑑  is a latent representation and  𝑑  is the latent dimension. Latent samples are obtained 337 
+
+with the reparameterization trick during training, 338 
+
+𝑧 = 𝜇 𝜙 (𝑥) + 𝜎 𝜙 (𝑥)  ⊙ ε, ε~𝒩(0, 𝐼), 339 
+
+where  𝐼  is an identity matrix. A decoder  𝑓 𝜃  reconstructs the expression profile, 340 
+
+𝑥̂ = 𝑓 𝜃 (𝑧). 341 
+
+The VAE is trained by minimizing the evidence lower bound (ELBO): 342 
+
+ℒ𝑉𝐴𝐸 = ‖𝑥  − 𝑥 ̂ ‖22 + 𝐷 𝐾𝐿  (𝑞 ϕ( 𝑧 ∣ 𝑥 )  ∥ 𝒩(0, 𝐼)). 343 
+
+Only the cells in the training set will be used to pretrain the VAE. After pretraining, the estimated mean 344 
+
+of the posterior  𝜇 𝜙 (𝑥)  is directly used as the deterministic latent encoding for downstream flow 345 
+
+matching training. 346 
+
+Knowledge graph-constrained GAT 347 
+
+To represent perturbation structure, GFM constructs a perturbation graph  𝐺 𝑃 = (𝑉, 𝐸) , which is a 348 
+
+concatenation of the GO, the PPI, and the perturbation similarity graphs. Within each graph, nodes 349 
+
+correspond to genes and edges encode prior biological relationships. Each perturbation node  𝑖 ∈ 𝑉  is 350 
+
+initialized with a learnable embedding  ℎ𝑖 (0) ∈ ℝ 𝑑 . These node features are updated with 2 layers of 351 
+
+GATs, enabling message passing and aggregation from 2-hop neighbor nodes. 352 
+
+𝐻 (2) = 𝐺𝐴𝑇𝑁𝑒𝑡(𝐻 (0) , 𝐺 𝑝 ), ℎ 𝑖 (𝑙) = 𝐻 𝑖,∶ (𝑙) .353 
+
+To represent a set of perturbations  𝑆 , GFM aggregates node-level perturbation embeddings by 354 
+
+summation: 355 
+
+𝑦 = ∑ ℎ 𝑖 𝑖∈𝑆 
+
+,356 
+
+where  𝑦  serves as the conditioning signal for the latent flow model. For the case of control cells, a 357 
+
+vector of zeros is used as  𝑦 .358 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+13 
+
+OT conditional flow matching 359 
+
+Given latent cell states and a perturbation condition, the neural ODE module learns a time-dependent 360 
+
+velocity field that transports Gaussian noise to target perturbed states in the latent space. To enable 361 
+
+efficient training and improve performance on conditional data, we leverage precomputed OT plans 362 
+
+for each condition before model training 34,35 . Specifically, before optimizing the flow model, GFM 363 
+
+computes exact OT couplings separately within each perturbation condition, yielding condition-specific 364 
+
+paired samples (𝑧 0, 𝑧 1) ~ 𝜋 (𝑦) , where  𝑧 0 denotes Gaussian noise and  𝑧 1 denotes a target latent state. 365 
+
+These precomputed couplings are then used throughout training. Conditioned on the perturbation 366 
+
+embedding and time, the model learns a velocity field 367 
+
+𝑣 𝜓 (𝑡, 𝑧 𝑡 , 𝑦), 368 
+
+where  𝑡 ∈ [0, 1], 𝑧 𝑡  is an intermediate latent state along the path, and  𝑦  is the perturbation label. For a 369 
+
+coupled pair (𝑧 0, 𝑧 1) and time  𝑡 ~ 𝑈𝑛𝑖𝑓𝑜𝑟𝑚(0, 1) , GFM uses an affine interpolation path 370 
+
+𝑧 𝑡 = (1 − 𝑡)𝑧 0 + 𝑡𝑧 1,371 
+
+with target velocity 372 
+
+𝑣 𝑡 = 𝑧 1 − 𝑧 0.373 
+
+The flow model is trained by regressing the predicted velocity to the target velocity with the conditional 374 
+
+flow matching (CFM) loss: 375 
+
+ℒ𝐶𝐹𝑀 = 𝔼 (𝑧 0,𝑧 1) ~ 𝜋 (𝑦) [‖𝑣 𝜓 (𝑡, 𝑧 𝑡 , 𝑦) − 𝑣 𝑡 ‖22]. 376 
+
+In the implementation, time is encoded with sinusoidal embeddings 36 , and the latent state, 377 
+
+perturbation embedding, and the time embedding are concatenated before being passed to a MLP 378 
+
+that outputs the velocity vector. The GNN module and the neural ODE module are trained jointly with 379 
+
+the CFM loss. 380 
+
+During inference, we implement classifier-free guidance 37 by combining conditional and unconditional 381 
+
+velocity fields: 382 
+
+𝑣 𝑔𝑢𝑖𝑑𝑒𝑑 = (1 − 𝛾)𝑣 𝜓 (𝑡, 𝑧 𝑡 , ∅) + 𝛾𝑣 𝜓 (𝑡, 𝑧 𝑡 , 𝑦), 383 
+
+where we pick  𝛾 = 1.5  as the guidance scale and  ∅ is a vector of zeros representing the unperturbed 384 
+
+condition. GFM generates perturbed latent states by integrating  𝑣 𝑔𝑢𝑖𝑑𝑒𝑑  from  𝑡 = 0  to  𝑡 = 1  using the 385 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+14 
+
+Dormand-Prince (dopri5) ODE solver 38 . The final latent state  𝑧 1 is then decoded by the pretrained 386 
+
+VAE decoder to obtain the predicted gene expression profile: 387 
+
+𝑥̂ 𝑝𝑒𝑟𝑡 = 𝑓 𝜃 ( 𝑧 1). 388 
+
+## Graph construction 389 
+
+GFM incorporates several biologically informed perturbation graphs. In all cases, nodes are genes, 390 
+
+and each target node retains its top-k highest-weight incoming neighbors. GFM concatenates multiple 391 
+
+biological knowledge graphs to form a joint graph  𝐺 𝑝 .392 
+
+GO graph 393 
+
+The GO similarity graph is directly obtained from GEARS 10 . Each gene is represented by its 394 
+
+annotated GO term set. Pairwise similarity between genes is computed with the Jaccard index, 395 
+
+𝐽𝑎𝑐𝑐𝑎𝑟𝑑(𝑖, 𝑗) = |𝒢 𝑖 ⋂𝒢 𝑗 ||𝒢 𝑖 ⋃𝒢 𝑗 |,396 
+
+where  𝒢 𝑖  and  𝒢 𝑗  are the GO-term sets for genes  𝑖  and  𝑗 . For each target gene, GFM keeps the top 20 397 
+
+most similar source genes. 398 
+
+PPI graph 399 
+
+For the protein-protein interaction (PPI) graph, edges are taken from STRING database (human, 400 
+
+v12.0) 21 with associated combined scores. For each target gene, the model retains the top 10 source 401 
+
+genes with the largest combined score. 402 
+
+Perturbation similarity graph 403 
+
+For the perturbation-similarity graph, GFM constructs a transcriptional signature for each perturbed 404 
+
+gene from the Replogle K562 genome-wide perturbation dataset 4. First, the mean expression profile 405 
+
+is computed for each perturbation condition and for the control condition. The corresponding 406 
+
+perturbation signature for perturbation  𝑖  is the control-relative difference 407 
+
+𝐷 𝑖 = 𝑥̅ 𝑖 − 𝑥̅ 𝑐𝑡𝑟𝑙 .408 
+
+The pairwise similarity between perturbations is computed with cosine similarity, 409 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+15 
+
+𝑠(𝑖, 𝑗) = 𝐷 𝑖 ⊤𝐷 𝑗 
+
+‖𝐷 𝑖 ‖2‖𝐷 𝑗 ‖2
+
+.410 
+
+For each target gene, the top 20 similar perturbations are connected. 411 
+
+## Baseline models 412 
+
+Linear model 413 
+
+We model each perturbation as an additive shift from the matched control expression state. We first 414 
+
+aggregate single-cell expression profiles into means for each perturbation-condition. Let  𝑥 𝑝  denote the 415 
+
+mean expression vector for perturbation  𝑝  and let  𝑥 𝑐𝑡𝑟𝑙  denote the control mean. We derive 416 
+
+perturbation embeddings by applying PCA to the transpose of the mean expression matrix of the 417 
+
+training data, producing a gene-level PCA embedding matrix  𝐸 ∈ ℝ 𝐺×𝑑  with  𝑑 = 50  components. For 418 
+
+perturbation p, a multi-hot vector  𝑚 𝑝  selects the perturbed gene or genes, and the perturbation 419 
+
+embedding is computed as: 420 
+
+𝑒 𝑝 = 𝑚 𝑝 𝐸, 421 
+
+where  𝑒 𝑝  is the PCA-based perturbation embedding. A linear model was then trained to predict the 422 
+
+perturbation-induced change in expression: 423 
+
+∆𝑥̂ 𝑝 = 𝑒 𝑝 𝑊 + 𝑏, 424 
+
+where  𝑊 ∈ ℝ 𝑑×𝐺  is the learned weight matrix, and  𝑏 ∈ ℝ 𝐺  is the learned bias vector. The model was 425 
+
+optimized by minimizing the MSE between the observed shift and the predicted shift: 426 
+
+ℒ = 1|𝑃 𝑡𝑟𝑎𝑖𝑛 | ∑ ‖(𝑥 𝑝 − 𝑥 𝑐𝑡𝑟𝑙 ) − ∆𝑥̂ 𝑝 ‖22𝑃 𝑡𝑟𝑎𝑖𝑛 
+
+.427 
+
+Finally, the predicted perturbed expression profile was obtained by adding the predicted perturbation 428 
+
+effect to the matched control state: 429 
+
+𝑥̂ 𝑝 = 𝑥 𝑐𝑡𝑟𝑙 + ∆𝑥̂ 𝑝 .430 
+
+Perturb train 431 
+
+To avoid biasing toward systemic variance in each dataset, we randomly select 100 perturbed cells 432 
+
+from the training set for each perturbation as the output of the perturb train model 24 .433 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+16 
+
+Technical duplicates 434 
+
+To use empirical data as the positive control for the evaluation metrics, we randomly split the ground-435 
+
+truth cells for each perturbation into two halves and use one half as the prediction to calculate the 436 
+
+evaluation metrics with the other half 33 .437 
+
+Additive model 438 
+
+In the “seen-2” subgroup of the test set in the two-gene perturbation prediction task, the output 439 
+
+perturbation shift is the summation of each perturbation in the training set. Let  𝑥 𝑃 𝑖 +𝑃 𝑗  be the mean 440 
+
+gene expression of perturbation  𝑖  and  𝑗 , and  𝑥 𝑐𝑡𝑟𝑙  be the mean expression of control cells. The 441 
+
+additive model output is 442 
+
+𝑥̂ 𝑃 𝑖 +𝑃 𝑗 = ∆𝑥 𝑃 𝑖 + ∆𝑥 𝑃 𝑗 + 𝑥 𝑐𝑡𝑟𝑙 , ∆𝑥 𝑃 𝑖 = 𝑥 𝑃 𝑖 − 𝑥 𝑐𝑡𝑟𝑙 , ∆𝑥 𝑃 𝑗 = 𝑥 𝑃 𝑗 − 𝑥 𝑐𝑡𝑟𝑙 .443 
+
+## Evaluation metrics 444 
+
+We select the top  𝑘  DEGs for each perturbation to evaluate model performance. Let  𝑋 ∈ ℝ 𝑚×𝑘  denote 445 
+
+the ground-truth expression matrix and  𝑌 ∈ ℝ 𝑛×𝑘  denote the predicted expression matrix of the 446 
+
+selected DEGs for a given perturbation. 447 
+
+MSE 448 
+
+MSE is computed between the gene-wise mean expression vectors of the true and the predicted 449 
+
+cells, 450 
+
+𝑀𝑆𝐸(𝑋, 𝑌) = 1𝑛 ∑(𝑋̅ − 𝑌̅) 2𝑛 𝑔=1 
+
+,451 
+
+where  𝑋̅ 𝑡𝑟𝑢𝑡ℎ  and  𝑋̅ 𝑝𝑟𝑒𝑑  are the mean expression profiles over the cells in each perturbation. 452 
+
+Pearson correlation coefficient ( r)453 
+
+Pearson correlation coefficient is computed between these same mean expression vectors, 454 
+
+𝑟 𝑃𝑒𝑎𝑟𝑠𝑜𝑛 = 𝑐𝑜𝑟𝑟(𝑋̅, 𝑌̅). 455 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+17 
+
+Pearson delta 456 
+
+To quantify whether the predicted perturbation effect matched the true shift, we also compute Pearson 457 
+
+delta correlation. Specifically, we use the mean expression profile from randomly selected perturbed 458 
+
+cells in the training set (perturb-train)  𝑋̅ 𝑟𝑒𝑓  as the reference. We first subtracted  𝑋̅ 𝑟𝑒𝑓  from both the 459 
+
+true and predicted mean profiles, and then computed Pearson correlation on the resulting differential 460 
+
+signals, 461 
+
+𝑟 Δ = 𝑐𝑜𝑟𝑟(𝑋̅ − 𝑋̅ 𝑟𝑒𝑓 , 𝑌̅ − 𝑋̅ 𝑟𝑒𝑓 ). 462 
+
+This metric emphasizes agreement in perturbation-induced changes rather than absolute expression 463 
+
+levels. 464 
+
+2-WD 465 
+
+To evaluate distributional similarity, we first use the 2-WD to measure the cheapest transport cost of 466 
+
+moving the true cell distribution to the predicted one. The implementation constructs the squared 467 
+
+Euclidean cost matrix 468 
+
+𝑀 𝑖𝑗 = ‖𝑋 − 𝑌‖ 22,469 
+
+assumes uniform weights over cells in each perturbation, and computes the OT cost 470 
+
+𝑊 2(𝑋, 𝑌) = ( min  
+
+> 𝜋∈Π(𝑎,𝑏)
+
+∑ ∑ 𝜋 𝑖𝑗 𝑀 𝑖𝑗 𝑛 𝑗=1 𝑚 𝑖=1 
+
+)
+
+> 1/2
+
+,471 
+
+where  𝑎 𝑖 = 1/𝑚 , 𝑏 𝑗 = 1/𝑛 , and  Π(𝑎, 𝑏)  denotes the set of all transport plans with marginals  𝑎  and  𝑏 .472 
+
+E-distance 473 
+
+Finally, we compute the E-distance that compares the pairwise Euclidean distances between two 474 
+
+distributions and within each distribution, which not only measures the distance between two 475 
+
+distributions but also accounts for the variations within them 39 . Formally, the pairwise Euclidean 476 
+
+distances are defined as 477 
+
+𝑑̅ 𝑋𝑌 = 1𝑛𝑚 ∑ ∑‖𝑥 𝑖 − 𝑦 𝑗 ‖
+
+> 𝑚 𝑗=1 𝑛 𝑖=1
+
+,478 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+18 
+
+𝑑̅ 𝑋𝑋 = 1𝑛 2 ∑ ∑‖𝑥 𝑖 − 𝑥 𝑗 ‖
+
+> 𝑛 𝑗=1 𝑛 𝑖=1
+
+,479 
+
+𝑑̅ 𝑌𝑌 = 1𝑚 2 ∑ ∑‖𝑦 𝑖 − 𝑦 𝑗 ‖
+
+> 𝑚 𝑗=1 𝑚 𝑖=1
+
+.480 
+
+The E-distance  𝐷̂ 𝐸  is 481 
+
+𝐷̂ 𝐸 = 2𝑑̅ 𝑋𝑌 − 𝑑̅ 𝑋𝑋 − 𝑑̅ 𝑌𝑌 .482 
+
+## Data preprocessing 483 
+
+For the Perturb-seq data from Replogle et al. 4 (K562, RPE1, K562 genome-wide perturbation 484 
+
+screening), we followed GEARS’ approach to filter for strong perturbations. Specifically, perturbations 485 
+
+were retained if they exhibited more than 50 differentially expressed genes, a percent knockdown of 486 
+
+at least 30%, and at least 25 cells. We further removed individual cells that did not show evidence of 487 
+
+knockdown at the single-cell level. For each perturbed gene, only cells in which the expression of the 488 
+
+targeted gene was at or below the 10th percentile of its expression in non-targeting control cells were 489 
+
+retained. HepG2 and Jurkat datasets from Nadig et al. 5 were pre-filtered in STATE 31 for strong 490 
+
+knockdown efficiency. For the two-gene perturbation dataset from Norman et al. 3, we followed the 491 
+
+steps in GEARS ( GEARS Norman preprocessing ) to reformat the metadata without further filtering. 492 
+
+Following perturbation-level filtering, all perturb-seq data were normalized by library size and log1p 493 
+
+transformed. The top 5000 highly variable genes and all perturbed genes were retained for 494 
+
+downstream analysis. Per-condition differentially expressed genes relative to the non-targeting control 495 
+
+were ranked by absolute effect size using a Wilcoxon rank-sum test 40 .496 
+
+## Training and prediction setup 497 
+
+For each single-gene perturbation dataset, perturbations were split into train (75%), validation (10%), 498 
+
+and test (15%) sets (Supplementary Table 2). For the Norman two-gene perturbation dataset 3,499 
+
+`prepare_split ` function with ` split=’simulation’ `) from ` gears ` was used to create the data splits, 500 
+
+ending up with 50% of the perturbations in the training, 10% in the validation, and 40% in the test sets 501 
+
+(Supplementary Table 3). The perturbations in the test set were held out during training and used only 502 
+
+for evaluating model performance. The validation set helped prevent the model from overfitting to the 503 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+19 
+
+training set. Three random splits for each dataset were used across all models. To ensure fair 504 
+
+comparisons, the number of predicted cells from all models was set to one hundred for each 505 
+
+perturbation. Each experiment was run on 1 GPU slice with 18 GB memory from 4 × NVIDIA H200 506 
+
+NVL GPUs (driver 610.43.02, CUDA 13.3). 507 
+
+GFM 508 
+
+GFM training consists of two stages: pretraining of the VAE and training of the latent flow matching 509 
+
+module. For VAE pretraining, only cells in the training set are used for optimization. Training runs for a 510 
+
+maximum of 500 epochs and is stopped early if the validation loss does not decrease for 100 511 
+
+consecutive epochs. The resulting latent cell representations are then used for OT coupling 512 
+
+computation and flow matching training as described above. The flow matching model is trained for a 513 
+
+maximum of 500 epochs. Every 50 epochs, the predicted latent cell representations of the validation 514 
+
+set are evaluated using the 2-WD. Training is stopped early if the validation 2-WD does not decrease 515 
+
+over four consecutive evaluations. 516 
+
+CellFlow (cellflow-tools v0.0.7) 517 
+
+For CellFlow implementation, ESM2 embeddings for all perturbed genes were first generated 518 
+
+following the author’s instructions ( CellFlow ESM embedding ). Default settings from the CellFlow 519 
+
+tutorial ( CellFlow GitHub ) were then applied for model training and unseen perturbation prediction. 520 
+
+GEARS (cell-gears v0.1.2) 521 
+
+We followed the GEARS tutorial ( GEARS GitHub ) for model training. To obtain gene expression 522 
+
+predictions at the single-cell level, we removed the final averaging step from the original prediction 523 
+
+function. 524 
+
+scGPT (scgpt v0.2.4) 525 
+
+We followed the scGPT tutorial ( Fine-tuning Pre-trained Model for Perturbation Prediction — scGPT 526 
+
+0.2.1 documentation ) to fine-tune the pretrained model for prediction. We downloaded the whole-527 
+
+human pretrained model from  bowang-lab/scGPT . The final averaging step in the original prediction 528 
+
+function was also removed to obtain single-cell gene expression predictions. 529 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+20 
+
+## Ablation experiments 530 
+
+For the ablation of GFM modules, we examined the role of the flow-matching objective and graph 531 
+
+topology. To disable flow matching, we replaced the OT velocity-matching objective with direct 532 
+
+regression from the source latent state  𝑧 0 to the target latent state  𝑧 1. Specifically, the neural ODE 533 
+
+module took uncoupled Gaussian noise and a sinusoidal time embedding 36 at  𝑡 = 0  as the inputs and 534 
+
+was optimized with an MSE loss between the predicted latent endpoint and the target latent state. 535 
+
+This preserves the same conditional architecture but removes the OT coupling and the continuous 536 
+
+transport formulation. To remove biologically informed graph topology, we kept the same number of 537 
+
+nodes and edges but randomly permuted graph source nodes, thereby disrupting biologically 538 
+
+meaningful connectivity while preserving graph density and degree scale. We performed both 539 
+
+operations if both modules were ablated. 540 
+
+For the ablation of different types of knowledge graphs, we evaluated the contribution of each 541 
+
+biological graph while keeping the rest of the model fixed. As mentioned above, we assessed whether 542 
+
+predictive performance is driven primarily by GO, PPI, perturbation similarity, or their combination by 543 
+
+randomizing the selected biological graph(s). 544 
+
+For all ablation experiments, model performance was assessed on held-out test conditions. 545 
+
+## Graph connectivity analysis 546 
+
+We quantified whether local graph connectivity was associated with predictive performance in GFM. 547 
+
+For each held-out test condition, we extracted upstream source nodes by traversing incoming edges 548 
+
+in the directed graph for two hops, corresponding to the local neighborhood used in this analysis. We 549 
+
+then identified which source nodes had been observed in the training split and recorded two 550 
+
+connectivity statistics: the number of trained source nodes and the fraction of all source nodes that 551 
+
+were present in training. To quantify transcriptional similarity between a test perturbation and its 552 
+
+trained graph neighbors, we computed the mean expression profile for each condition, subtracted the 553 
+
+mean control profile to obtain a perturbation effect vector, and calculated cosine similarity between the 554 
+
+held-out condition and each trained source-node perturbation reference. For each test condition, we 555 
+
+summarized these similarities by their maximum and median values. This analysis was performed 556 
+
+using three predefined data splits of the indicated single-gene perturbation datasets. 557 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+21 
+
+## CML target identification 558 
+
+GFM was trained on the Replogle K562 genome-wide perturbation screen dataset 4 using a 90% 559 
+
+training and 10% validation split and no held-out test set. The GO graph, PPI graph, and the 560 
+
+perturbation similarity graph as mentioned above were used here. The predictions were generated for 561 
+
+every perturbation node in the graph. For each perturbation, 20 synthetic single-cell profiles were 562 
+
+sampled for downstream analysis. Predicted cells were then aggregated to perturbation-level mean 563 
+
+expression profiles. The resulting perturbation means were embedded by PCA followed by Leiden 564 
+
+clustering and t-SNE visualization. Cluster identities were annotated by ranking differentially 565 
+
+expressed genes across Leiden clusters with a Wilcoxon test and performing Gene Ontology 566 
+
+Biological Process 41 enrichment on the 100 most downregulated genes per cluster. 567 
+
+For target identification, predicted perturbation profiles were compared against sampled control cells 568 
+
+by differential expression analysis. Using HSP90AA1 as the query perturbation, we quantified 569 
+
+similarity between the query signature and every other perturbation by the Jaccard index computed 570 
+
+on the two sets of 100 downregulated genes. Functional interpretation of the query signature was 571 
+
+obtained by Gene Ontology enrichment analysis of the same 100 downregulated genes using 572 
+
+`gseapy` 42 .573 
+
+# Data availability 574 
+
+Norman 3, Replogle K562, Replogle RPE1, Replogle K562 genome-wide perturbation screen 4575 
+
+datasets were obtained via pertpy package 43 (v0.10.0). The pre-filtered Nadig HepG2 and Nadig 576 
+
+Jurkat datasets 5 were downloaded from Arc Institute Hugging Face repository Replogle-Nadig-577 
+
+Preprint ( arcinstitute/Replogle-Nadig-Preprint at main ). The GO graph was obtained from GEARS 10 578 
+
+(https://dataverse.harvard.edu/api/access/datafile/6934319 ). The human PPI data for graph 579 
+
+construction was downloaded from STRING database v12.0 21 (string-db.org ). 580 
+
+# Code availability 581 
+
+The GFM package and the complete analysis scripts are available via GitHub at  TRON-582 
+
+Bioinformatics/GFM . GFM is distributed under the MIT License. 583 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+22 
+
+# References 584 
+
+1. Adamson, B. et al. A Multiplexed Single-Cell CRISPR Screening Platform Enables 585 
+
+Systematic Dissection of the Unfolded Protein Response. Cell 167 , 1867-1882.e21 (2016). 586 
+
+2. Dixit, A. et al. Perturb-Seq: Dissecting Molecular Circuits with Scalable Single-Cell RNA 587 
+
+Profiling of Pooled Genetic Screens. Cell 167 , 1853-1866.e17 (2016). 588 
+
+3. Norman, T. M. et al. Exploring genetic interaction manifolds constructed from rich single-589 
+
+cell phenotypes. Science 365 , 786–793 (2019). 590 
+
+4. Replogle, J. M. et al. Mapping information-rich genotype-phenotype landscapes with 591 
+
+genome-scale Perturb-seq. Cell 185 , 2559-2575.e28 (2022). 592 
+
+5. Nadig, A. et al. Transcriptome-wide analysis of differential expression in perturbation 593 
+
+atlases. Nat. Genet. 57 , 1228–1237 (2025). 594 
+
+6. Gavriilidis, G. I., Vasileiou, V., Orfanou, A., Ishaque, N. & Psomopoulos, F. A mini-review on 595 
+
+perturbation modelling across single-cell omic modalities. Comput. Struct. Biotechnol. J. 596 
+
+23 , 1886–1896 (2024). 597 
+
+7. Cui, H. et al. scGPT: toward building a foundation model for single-cell multi-omics using 598 
+
+generative AI. Nat. Methods 21 , 1470–1480 (2024). 599 
+
+8. Klein, D. et al. CellFlow enables generative single-cell phenotype modeling with flow 600 
+
+matching. Preprint at https://doi.org/10.1101/2025.04.11.648220 (2025). 601 
+
+9. Lin, Z. et al. Evolutionary-scale prediction of atomic-level protein structure with a language 602 
+
+model. Science 379 , 1123–1130 (2023). 603 
+
+10. Roohani, Y., Huang, K. & Leskovec, J. Predicting transcriptional outcomes of novel multigene 604 
+
+perturbations with GEARS. Nat. Biotechnol. 42 , 927–935 (2024). 605 
+
+11. Wenkel, F. et al. TxPert: using multiple knowledge graphs for prediction of transcriptomic 606 
+
+perturbation effects. Nat. Biotechnol. https://doi.org/10.1038/s41587-026-03113-4 (2026) 607 
+
+doi:10.1038/s41587-026-03113-4. 608 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+23 
+
+12. Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M. & Le, M. Flow Matching for Generative 609 
+
+Modeling. Preprint at https://doi.org/10.48550/ARXIV.2210.02747 (2022). 610 
+
+13. Tong, A. et al. Improving and generalizing flow-based generative models with minibatch 611 
+
+optimal transport. Preprint at https://doi.org/10.48550/ARXIV.2302.00482 (2023). 612 
+
+14. Rohbeck, M. et al. Modeling complex system dynamics with flow matching across time and 613 
+
+conditions. in International Conference on Learning Representations vol. 2025 12164– 614 
+
+12188 (2025). 615 
+
+15. Wang, D. et al. Joint Velocity-Growth Flow Matching for Single-Cell Dynamics Modeling. in 616 
+
+The Thirty-ninth Annual Conference on Neural Information Processing Systems (2025). 617 
+
+16. Atanackovic, L. et al. Meta Flow Matching: Integrating Vector Fields on the Wasserstein 618 
+
+Manifold. in The Thirteenth International Conference on Learning Representations (2025). 619 
+
+17. Rubbi, A. et al. MixFlow: Mixture-Conditioned Flow Matching for Out-of-Distribution 620 
+
+Generalization. CoRR abs/2601.11827 , (2026). 621 
+
+18. Rombach, R., Blattmann, A., Lorenz, D., Esser, P. & Ommer, B. High-Resolution Image 622 
+
+Synthesis with Latent Diffusion Models. Preprint at 623 
+
+https://doi.org/10.48550/ARXIV.2112.10752 (2021). 624 
+
+19. Labs, B. F. FLUX.2: Frontier Visual Intelligence. (2025). 625 
+
+20. Dao, Q., Phung, H., Nguyen, B. & Tran, A. Flow Matching in Latent Space. Preprint at 626 
+
+https://doi.org/10.48550/arXiv.2307.08698 (2023). 627 
+
+21. Szklarczyk, D. et al. The STRING database in 2023: protein–protein association networks 628 
+
+and functional enrichment analyses for any sequenced genome of interest. Nucleic Acids 629 
+
+Res. 51 , D638–D646 (2023). 630 
+
+22. Ahlmann-Eltze, C., Huber, W. & Anders, S. Deep-learning-based gene perturbation effect 631 
+
+prediction does not yet outperform simple linear baselines. Nat. Methods 22 , 1657–1661 632 
+
+(2025). 633 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+24 
+
+23. Miller, H. E. et al. Deep learning perturbation models can outperform baselines on 634 
+
+calibrated metrics. Nat. Biotechnol. https://doi.org/10.1038/s41587-026-03307-w (2026) 635 
+
+doi:10.1038/s41587-026-03307-w. 636 
+
+24. Viñas Torné, R. et al. Systema: a framework for evaluating genetic perturbation response 637 
+
+prediction beyond systematic variation. Nat. Biotechnol. https://doi.org/10.1038/s41587-638 
+
+025-02777-8 (2025) doi:10.1038/s41587-025-02777-8. 639 
+
+25. Veličković, P. et al. Graph Attention Networks. Preprint at 640 
+
+https://doi.org/10.48550/ARXIV.1710.10903 (2017). 641 
+
+26. Bhatia, S. et al. Targeting HSP90 dimerization via the C terminus is effective in imatinib-642 
+
+resistant CML and lacks the heat shock response. Blood 132 , 307–320 (2018). 643 
+
+27. Holt, S. E. et al. Functional requirement of p23 and Hsp90 in telomerase complexes. Genes 644 
+
+Dev. 13 , 817–826 (1999). 645 
+
+28. Szałata, A. et al. PerturBERT: Learning Gene Co-Variation Embeddings from Perturbation 646 
+
+Signatures. in ICLR 2026 Workshop on Machine Learning for Genomics Explorations (2026). 647 
+
+29. Palla, G. et al. Scalable Single-Cell Gene Expression Generation with Latent Diffusion 648 
+
+Models. Preprint at https://doi.org/10.48550/ARXIV.2511.02986 (2025). 649 
+
+30. Dong, M. et al. Stack: In-Context Learning of Single-Cell Biology. Preprint at 650 
+
+https://doi.org/10.64898/2026.01.09.698608 (2026). 651 
+
+31. Adduri, A. K. et al. Predicting cellular responses to perturbation across diverse contexts with 652 
+
+State. Preprint at https://doi.org/10.1101/2025.06.26.661135 (2025). 653 
+
+32. Rosen, Y. et al. Universal cell embedding provides a foundation model for cell biology. 654 
+
+Nature https://doi.org/10.1038/s41586-026-10689-z (2026) doi:10.1038/s41586-026-10689-655 
+
+z. 656 
+
+33. Miller, H. E. et al. Deep Learning-Based Genetic Perturbation Models Do Outperform 657 
+
+Uninformative Baselines on Well-Calibrated Metrics. Preprint at 658 
+
+https://doi.org/10.1101/2025.10.20.683304 (2025). 659 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+25 
+
+34. Cheng, H. K. & Schwing, A. The curse of conditions: Analyzing and improving optimal 660 
+
+transport for conditional flow-based generation. in Proceedings of the IEEE/CVF 661 
+
+International Conference on Computer Vision 15875–15884 (2025). 662 
+
+35. Hui, K.-H., Liu, C., Fu, C.-W., Vahdat, A., & others. Not-so-optimal transport flows for 3d 663 
+
+point cloud generation. in International Conference on Learning Representations vol. 2025 664 
+
+98748–98771 (2025). 665 
+
+36. Lipman, Y. et al. Flow Matching Guide and Code. Preprint at 666 
+
+https://doi.org/10.48550/ARXIV.2412.06264 (2024). 667 
+
+37. Zheng, Q. et al. Guided Flows for Generative Modeling and Decision Making. (2023). 668 
+
+38. Chen, R. T. Q. torchdiffeq. (2018). 669 
+
+39. Peidli, S. et al. scPerturb: harmonized single-cell perturbation data. Nat. Methods 21 , 531– 670 
+
+540 (2024). 671 
+
+40. Wolf, F. A., Angerer, P. & Theis, F. J. SCANPY: large-scale single-cell gene expression data 672 
+
+analysis. Genome Biol. 19 , 15 (2018). 673 
+
+41. The Gene Ontology Consortium et al. The Gene Ontology knowledgebase in 2026. Nucleic 674 
+
+Acids Res. 54 , D1779–D1792 (2026). 675 
+
+42. Fang, Z., Liu, X. & Peltz, G. GSEApy: a comprehensive package for performing gene set 676 
+
+enrichment analysis in Python. Bioinformatics 39 , btac757 (2023). 677 
+
+43. Heumos, L. et al. Pertpy: an end-to-end framework for perturbation analysis. Nat. Methods 678 
+
+23 , 350–359 (2026). 679 
+
+680 
+
+# Acknowledgements 681 
+
+This work was supported by the German Research Council (DFG) (496710327) and by the German 682 
+
+Federal Ministry of Research, Technology and Space (BMFTR) within the framework of the project 683 
+
+curATime (03ZU2202DA, 03ZU2202GB,  03ZU1202JA ). 684 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+26 
+
+# Author information 685 
+
+## Authors and Affiliations 686 
+
+TRON – Translational Oncology at the University Medical Center of the Johannes Gutenberg 687 
+
+University gGmbH, Mainz, Germany 688 
+
+Huai-Yu Liou, Pablo Riesgo-Ferreiro, Jennifer Gerbracht, Barbara Schrörs, Boris Strilic & Johnny Kim 689 
+
+Faculty of Biology, Johannes Gutenberg University of Mainz, Mainz, Germany 690 
+
+Huai-Yu Liou 691 
+
+Institute of Quantitative and Computational Biology, Johannes Gutenberg University, Mainz, 692 
+
+Germany 693 
+
+Maximilian Sprang 694 
+
+Department of Dermatology, University Medical Center of the Johannes Gutenberg University 695 
+
+Mainz 696 
+
+Maximilian Sprang 697 
+
+Data Science and its Applications, German Research Center for Artificial Intelligence (DFKI), 698 
+
+Germany 699 
+
+David A. Selby, Gerrit Grossmann & Sebastian Vollmer 700 
+
+BioNTech SE, Mainz, Germany 701 
+
+Pablo Riesgo-Ferreiro 702 
+
+Vascular Biology and Therapeutics Program and Department of Comparative Medicine, Yale 703 
+
+University School of Medicine, New Haven, CT, USA 704 
+
+Johnny Kim 705 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+27 
+
+## Contributions 706 
+
+H.L. conceptualized the study, developed GFM, performed analysis, and wrote the manuscript. 707 
+
+B.Sch., P.R.F, J.V.G., M.S., D.A.S, G.G., S.V., B.St., and J.K. provided overall input and guidance. 708 
+
+J.K. and B.St. supervised the project, and all authors contributed to writing the paper. 709 
+
+## Corresponding authors 710 
+
+Correspondence to  johnny.kim@tron.mainz.de 711 
+
+712 
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint 28 
+
+# Figures 713 
+
+## Figure 1 714 
+
+715 
+
+Fig. 1. Overview of GFM model architecture and the flow matching training procedure. (A) The 716 
+
+VAE encodes a log-normalized gene expression profile  𝑥  into the latent code  𝑧 , which can be 717 
+
+reconstructed to the gene space as  𝑥̂  by the decoder. The neural ODE learns to generate a time-718 
+
+dependent velocity field through a predefined path  𝑧 𝑡  from Gaussian noise ( 𝑡 = 0)  to a perturbed cell 719 
+
+state ( 𝑡 = 1) , conditioned by a selected GNN-derived perturbation embedding  𝑝 𝑖  and a time 720 
+
+embedding  𝑡 . (B) The OT maps are computed independently for each condition before training. Then, 721 
+
+the model is trained to generate the velocity field that follows these OT paths. Finally, a trained model 722 
+
+can be used to generate unseen perturbed cell profiles. Pert: perturbation. 723 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+29 
+
+## Figure 2 724 
+
+725 
+
+Fig. 2. Comprehensive benchmarking of GFM performance in single-gene perturbation 726 
+
+prediction. (A) The data splits for training and the number of one-gene perturbations in each dataset. 727 
+
+(B) Box plots showing Pearson delta and 2-WD of the predicted top 20 DEGs of each perturbation for 728 
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint 30 
+
+each model in K562, RPE1, HepG2, and Jurkat datasets. Randomly selected perturbed cells from the 729 
+
+training set (Perturb train) and technical duplicate (Dup) were used to normalize the metrics. The 730 
+
+tested perturbations in three independent data splits were pooled. (C, D) Joint UMAP representation 731 
+
+(C) and the predicted top 10 DEGs (D) of EIF2S1 knockdown in K562 from different models. 732 
+
+Expression levels were shown as log fold change relative to the mean control cell expression. Truth: 733 
+
+ground-truth gene expression. (E) Line plots showing Pearson delta of the predicted top 20 DEGs of 734 
+
+each perturbation with reduced training fractions (0.75, 0.5, 0.25, 0.1, 0.05, and 0.025). The analysis 735 
+
+was performed in the same way for each model in the K562, RPE1, HepG2, and Jurkat datasets. 736 
+
+Results calculated from three independent data splits were pooled, and the median and 95% 737 
+
+confidence interval were shown. 738 
+
+739 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+31 
+
+## Figure 3 740 
+
+741 
+
+Fig. 3. Two-gene perturbation predictions. (A) Box plots showing Pearson delta and 2-WD of the 742 
+
+predicted top 20 DEGs of each perturbation for each model in seen-0, seen-1, and seen-2 subgroups. 743 
+
+Randomly selected perturbed cells from the training set (Perturb train) and technical duplicate (Dup) 744 
+
+were used to normalize the metrics. The tested perturbations in three independent data splits were 745 
+
+pooled. (B, C) Joint UMAP representation (B) and the predicted top 10 DEGs (C) of CBL and PTPN9 746 
+
+overexpression in K562 from different models. Expression levels were shown as log fold change 747 
+
+relative to the mean control cell expression. Truth: ground-truth gene expression. 748 
+
+749 
+
+750 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+32 
+
+## Figure 4 751 
+
+752 
+
+Fig. 4. Ablation and graph connectivity analysis for single-gene perturbation prediction. (A) 753 
+
+The aggregated mean delta MSE and delta 2-WD relative to Perturb train baseline for the three data 754 
+
+splits in the K562, RPE1, HepG2, and Jurkat datasets in different ablation conditions. Additional 755 
+
+means and standard deviations are shown for each ablation condition. -FM: without OT flow matching, 756 
+
+-graph: randomly permuted graph. (B) A heatmap showing the averaged delta MSE and 2-WD relative 757 
+
+to Perturb train baseline across three independent splits of the K562, RPE1, HepG2, and Jurkat 758 
+
+datasets under multiple graph ablation conditions. The indicated biological graph was randomly 759 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+33 
+
+permuted (-) or remained intact (+). (C) Summarized Spearman correlation between delta 2-WD and 760 
+
+the graph-derived properties. Each data point shows the Spearman rho of a data split in the K562, 761 
+
+RPE1, HepG2, and Jurkat datasets. For each comparison group, the Fisher z-transformed mean of 762 
+
+the Spearman rho was shown as the bar, with the error bar showing the standard deviation. (D, E) 763 
+
+The top 10 DEGs of PSMB2 knockdown in the RPE1 dataset and HIST1H2BN knockdown in the 764 
+
+HepG2 dataset, together with the corresponding GFM predictions. The most similar graph-connected 765 
+
+perturbations in the training set, PSMB5 and MON1A knockdown, respectively, are also shown. 766 
+
+Expression levels are shown as log fold change relative to the mean control cell expression. Truth: 767 
+
+ground-truth gene expression. sim: cosine similarity. 768 
+
+769 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 13, 2026. ;https://doi.org/10.64898/2026.11.12.766125 doi: bioRxiv preprint
+
+34 
+
+## Figure 5 770 
+
+771 
+
+Fig. 5. GFM predicts and prioritizes novel targets for HSP90AA1 knockdown in the K562 cell 772 
+
+line. (A) Over-representation enrichment analysis of GO biological processes using GFM-predicted 773 
+
+down-regulated genes with HSP90AA1 knockdown. The dot size shows the proportion of the genes in 774 
+
+the enriched terms, and the color indicates log10-transformed 1/FDR. FDR: false discovery rate. (B) 775 
+
+The predicted top 15 perturbations that are similar to HSP90AA1 knockdown based on the Jaccard 776 
+
+index calculated with 100 down-regulated genes. The perturbations in red indicate the condition in the 777 
+
+training set. 778 
+
+779

@@ -1,0 +1,57 @@
+{
+  "date": "20261107-20261116",
+  "date_label": "2026-11-07 ~ 2026-11-16",
+  "generated_at": "2026-11-16 18:43:09 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-12-766125-v1",
+      "route": "20261107-20261116/biorxiv-10-64898-2026-11-12-766125-v1-graph-guided-flow-matching-enables-biologically-informed-prediction-at-single-cell-resolution",
+      "title": "Graph-guided flow matching enables biologically informed prediction at single-cell resolution",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "用图引导流匹配预测扰动后的单细胞转录组",
+      "first_seen_at": "2026-11-16 18:43:09 UTC",
+      "updated_at": "2026-11-16 18:43:09 UTC"
+    },
+    {
+      "paper_id": "2611.17705v1",
+      "route": "20261107-20261116/2611.17705v1-s1pert-scalable-target-specific-gene-response-prediction-with-system-one-intelligence",
+      "title": "S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "预测未见遗传扰动的转录响应",
+      "first_seen_at": "2026-11-16 18:43:09 UTC",
+      "updated_at": "2026-11-16 18:43:09 UTC"
+    },
+    {
+      "paper_id": "2611.17899v1",
+      "route": "20261107-20261116/2611.17899v1-more-genes-faster-inference-efficient-large-panel-spatial-transcriptomics-prediction-from-histology",
+      "title": "More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "直接从组织学图像预测大基因面板空间表达",
+      "first_seen_at": "2026-11-16 18:43:09 UTC",
+      "updated_at": "2026-11-16 18:43:09 UTC"
+    }
+  ]
+}

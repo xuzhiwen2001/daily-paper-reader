@@ -48,17 +48,17 @@
 <section class="dpr-home-dashboard-card dpr-home-report-card">
   <div class="dpr-home-dashboard-header">
     <div>
-      <span class="dpr-home-dashboard-kicker">2026-11-15</span>
+      <span class="dpr-home-dashboard-kicker">2026-11-07 ~ 2026-11-16</span>
       <h3 class="dpr-home-dashboard-title">今日汇总</h3>
     </div>
     <strong class="dpr-home-dashboard-count">共 3 篇</strong>
   </div>
   <dl class="dpr-home-dashboard-stats">
     <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>1 次</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>2</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>1</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>3</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>0</dd></div>
   </dl>
-  <p class="dpr-home-dashboard-body">最近更新：2026-11-15 12:04:30 UTC<br>状态：成功</p>
+  <p class="dpr-home-dashboard-body">最近更新：2026-11-16 18:43:09 UTC<br>状态：成功</p>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-brief-card">
   <div class="dpr-home-dashboard-header">
@@ -69,9 +69,7 @@
     <strong class="dpr-home-dashboard-count">AI</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p>今日3篇精选：精读“先验知识—扰动响应”的靶点可预测性与空间转录组组织学—基因表达关系，速读扰动诱导基因程序如何映射复杂疾病调控架构。</p>
-<p>最值得看的是9.0分那篇基因层面先验结构与扰动响应如何提升靶点级可预测性，以及8.0分MorphoANOVA对空间转录组中组织学—基因表达关系的拆解。</p>
-<p>普通读者可先读两篇精读文的摘要与图示，抓住“扰动响应+先验知识”和“空间组织学+基因表达”两条主线，再按兴趣跟进速读文的疾病调控架构线索。</p>
+<p>本期精读3篇，其中两篇高分论文聚焦单细胞分辨率预测与基因响应建模，最高分10.0。最值得看的是图引导流匹配如何把生物学先验带入单细胞预测（10.0），以及S1Pert面向目标特异性基因响应的可扩展预测（9.0）。普通读者可先读10.0这篇，重点看它如何用图结构约束预测，再对照S1Pert理解基因响应预测的落地思路。</p>
   </div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-deep-card">
@@ -80,12 +78,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">精读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">2 篇</strong>
+    <strong class="dpr-home-dashboard-count">3 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Gene-level structure of prior knowledge and perturbation responses informs target-level predictability in prior-informed models">Gene-level structure of prior knowledge and perturbation responses informs target-level predictability in prior-informed models</span></li><li><span class="dpr-home-dashboard-paper-title" title="MorphoANOVA: Dissecting Histology-Gene Expression Relationships in Spatial Transcriptomics">MorphoANOVA: Dissecting Histology-Gene Expression Relationships in Spatial Transcriptomics</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Graph-guided flow matching enables biologically informed prediction at single-cell resolution">Graph-guided flow matching enables biologically informed prediction at single-cell resolution</span></li><li><span class="dpr-home-dashboard-paper-title" title="S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence">S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence</span></li><li><span class="dpr-home-dashboard-paper-title" title="More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology">More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">virtual-cell <strong>2</strong></span><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span></div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-skim-card">
   <div class="dpr-home-dashboard-header">
@@ -93,12 +91,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">速读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">1 篇</strong>
+    <strong class="dpr-home-dashboard-count">0 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Perturbation-induced gene programs map the hidden regulatory architecture of complex diseases">Perturbation-induced gene programs map the hidden regulatory architecture of complex diseases</span></li></ul>
+<p class="dpr-home-dashboard-empty">今日暂无推荐。</p>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
+
 </section>
 </div>
 

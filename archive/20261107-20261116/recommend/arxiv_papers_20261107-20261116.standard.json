@@ -1,0 +1,270 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-16T18:40:01.290704+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 4,
+    "deep_cap": 7,
+    "deep_selected": 4,
+    "quick_candidates": 1,
+    "quick_skim_target": 12,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-11-12-766125-v1",
+      "source": "biorxiv",
+      "title": "Graph-guided flow matching enables biologically informed prediction at single-cell resolution",
+      "abstract": "Perturb-seq enables systematic interrogation of massively parallel genetic perturbations at single-cell resolution, yet exhaustive characterization of the full perturbation space remains impractical. Here, we present Graph-guided Flow Matching (GFM), a generative framework that integrates biological knowledge graphs with latent flow matching to predict post-perturbation single-cell transcriptomes. Across multiple large-scale Perturb-seq datasets, GFM outperforms a strong linear baseline and current deep-learning models in predicting unseen single-gene perturbations, while training up to 30x faster and remaining robust with limited training data. GFM also demonstrates competitive performance in the two-gene perturbation prediction task when neither perturbed gene is observed during training. Ablation experiments show that combining flow matching with knowledge graphs enables accurate prediction of perturbation responses. Finally, GFM accurately calculates transcriptional consequences of HSP90AA1 inactivation and identifies target candidates unseen by the model in chronic myeloid leukemia. Our study establishes GFM as a biologically informed generative framework that predicts single-cell perturbation responses for prioritization of therapeutic targets.",
+      "authors": [
+        "Liou, H.-Y.",
+        "Sprang, M.",
+        "Selby, D. A.",
+        "Grossmann, G.",
+        "Vollmer, S.",
+        "Riesgo-Ferreiro, P.",
+        "Gerbracht, J. V.",
+        "Schroers, B.",
+        "Strilic, B.",
+        "Kim, J."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-13T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.12.766125v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "predicts post-perturbation single-cell transcriptomes via graph-guided flow matching",
+      "llm_evidence_cn": "用图引导流匹配预测扰动后的单细胞转录组",
+      "llm_evidence": "用图引导流匹配预测扰动后的单细胞转录组",
+      "canonical_evidence": "用图引导流匹配预测扰动后的单细胞转录组",
+      "llm_tldr_en": "Perturb-seq cannot exhaustively cover perturbation space, so this work introduces Graph-guided Flow Matching, integrating biological knowledge graphs with latent flow matching to predict post-perturbation single-cell transcriptomes, outperforming baselines on unseen perturbations while training faster.",
+      "llm_tldr_cn": "Perturb-seq难以穷尽庞大的扰动空间。作者提出图引导流匹配GFM，将生物知识图谱与潜在流匹配结合，直接生成扰动后的单细胞转录组。在多个大规模Perturb-seq数据集上，GFM预测未见单基因扰动优于线性基线和现有深度模型，训练速度最高提升30倍且在小样本下依然稳健，并在双基因扰动预测中具备竞争力，为虚拟细胞式扰动响应预测提供了高效生成框架。",
+      "llm_tldr": "Perturb-seq难以穷尽庞大的扰动空间。作者提出图引导流匹配GFM，将生物知识图谱与潜在流匹配结合，直接生成扰动后的单细胞转录组。在多个大规模Perturb-seq数据集上，GFM预测未见单基因扰动优于线性基线和现有深度模型，训练速度最高提升30倍且在小样本下依然稳健，并在双基因扰动预测中具备竞争力，为虚拟细胞式扰动响应预测提供了高效生成框架。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.17705v1",
+      "source": "arxiv",
+      "title": "S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence",
+      "abstract": "Predicting transcriptional responses to unseen genetic perturbations is essential for extending CRISPR screens across vast target--gene combinations. However, models can achieve strong aggregate predictive performance by reproducing historical gene-level response frequencies without adequately distinguishing the effects of different perturbations. Reliable prediction at the transcriptome scale is further challenged by uncertain response labels and redundant computation across millions of target--gene pairs. We present S1Pert, a System-One framework for target-specific gene response prediction with non-autoregressive online inference. S1Pert combines directional Welch tests and equivalence testing to distinguish statistically supported responses from inconclusive observations. A frozen System-One encoder extracts reusable semantic representations of perturbation targets, query genes, and historical evidence. Compact pair-specific interactions are then computed and cached offline. A lightweight hierarchical cross-attention decoder integrates these representations with cross-target pairwise ranking and synchronized historical-evidence dropout to reduce reliance on gene-level response frequencies. Extensive experiments demonstrate that S1Pert improves target-specific response discrimination while maintaining reliable prediction and efficient inference across diverse cellular contexts. These findings highlight the potential of System-One decision learning for scalable perturbation-response prediction beyond historical gene-level response tendencies. The source code is publicly available at https://github.com/liujiawen-jpg/S1Pert.",
+      "authors": [
+        "Xiaoqi Sheng",
+        "Hou wang",
+        "Yan Liang",
+        "Yutong Li",
+        "Wenhao Du",
+        "Tinghe Zhang",
+        "Jiawen Liu",
+        "Hongmin Cai"
+      ],
+      "primary_category": "q-bio.GN",
+      "categories": [
+        "q-bio.GN"
+      ],
+      "published": "2026-11-13T03:35:01+00:00",
+      "link": "https://arxiv.org/pdf/2611.17705v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts transcriptional responses to unseen genetic perturbations",
+      "llm_evidence_cn": "预测未见遗传扰动的转录响应",
+      "llm_evidence": "预测未见遗传扰动的转录响应",
+      "canonical_evidence": "预测未见遗传扰动的转录响应",
+      "llm_tldr_en": "Predicting transcriptome responses to unseen CRISPR perturbations is hard, as aggregate metrics mask weak target discrimination. S1Pert combines Welch and equivalence tests with non-autoregressive inference to predict target-specific gene responses.",
+      "llm_tldr_cn": "预测未见遗传扰动的转录响应对扩展CRISPR筛选至关重要，但模型常靠复现历史基因响应频率获得高总体分数而难以区分不同扰动。作者提出S1Pert，采用非自回归在线推理，并结合方向性Welch检验与等价性检验来区分统计上可靠的响应。该框架提升了目标特异性基因响应预测的可信度与计算效率。这为大规模靶点-基因组合的转录组级扰动预测提供了更可靠的方案。",
+      "llm_tldr": "预测未见遗传扰动的转录响应对扩展CRISPR筛选至关重要，但模型常靠复现历史基因响应频率获得高总体分数而难以区分不同扰动。作者提出S1Pert，采用非自回归在线推理，并结合方向性Welch检验与等价性检验来区分统计上可靠的响应。该框架提升了目标特异性基因响应预测的可信度与计算效率。这为大规模靶点-基因组合的转录组级扰动预测提供了更可靠的方案。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Predicting cellular response to genetic perturbations",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.17899v1",
+      "source": "arxiv",
+      "title": "More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology",
+      "abstract": "Spatial transcriptomics (ST) prediction from histology aims to infer spatially resolved gene expression profiles directly from tissue images. This is a challenging problem that is currently often addressed with complicated model architectures, additional inputs, and complicated training procedures, while remaining limited to fixed, small gene panels. This raises a natural question: Is there an efficient method for large-panel ST prediction? Here, we present GeneFlow, a simpler yet effective framework for large-scale spatial gene expression prediction that unifies flow-matching generative modeling with structured multimodal fusion. Specifically, GeneFlow first encodes both histological morphology and cross-gene interactions in spatial spots through histology and gene tokenizers. The model directly predicts spatial gene expression, rather than an intermediate velocity field, while being trained with a velocity-based flow-matching objective. We show that, even without relying on heavy generative pipelines, GeneFlow achieves state-of-the-art performance across multiple ST benchmarks, with up to 56.8% gains in 1,000-gene prediction. Extensive experiments further show that GeneFlow produces biologically meaningful spot profiles while reducing computational cost by orders of magnitude, thereby improving efficiency and scalability, particularly in clinical settings. We believe GeneFlow provides an opportunity for leveraging widely available histology images for downstream biological discovery. Code is available at: https://github.com/ZZhangsm/GeneFlow",
+      "authors": [
+        "Songming Zhang",
+        "Yuxiao Luo",
+        "Shifu Luo",
+        "Siran Chen",
+        "Shuquan Su",
+        "Jinyan Li"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "q-bio.QM"
+      ],
+      "published": "2026-11-13T08:35:27+00:00",
+      "link": "https://arxiv.org/pdf/2611.17899v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts large-panel spatial gene expression directly from histology images",
+      "llm_evidence_cn": "直接从组织学图像预测大基因面板空间表达",
+      "llm_evidence": "直接从组织学图像预测大基因面板空间表达",
+      "canonical_evidence": "直接从组织学图像预测大基因面板空间表达",
+      "llm_tldr_en": "Predicting spatial transcriptomics from histology is often complex and limited to small gene panels, so GeneFlow unifies flow-matching generative modeling with structured multimodal fusion to efficiently predict large-panel spatial gene expression.",
+      "llm_tldr_cn": "从组织学图像推断空间转录组常依赖复杂架构与额外输入，且受限于固定的小基因面板。作者提出GeneFlow，将流匹配生成建模与结构化多模态融合统一起来，先编码组织形态与跨基因相互作用，再高效预测大面板空间基因表达。该框架在简化流程的同时扩展到大规模基因集，为图像到空间转录组的高效预测提供了新思路。",
+      "llm_tldr": "从组织学图像推断空间转录组常依赖复杂架构与额外输入，且受限于固定的小基因面板。作者提出GeneFlow，将流匹配生成建模与结构化多模态融合统一起来，先编码组织形态与跨基因相互作用，再高效预测大面板空间基因表达。该框架在简化流程的同时扩展到大规模基因集，为图像到空间转录组的高效预测提供了新思路。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-12-766149-v1",
+      "source": "biorxiv",
+      "title": "Spatial multi-omic profiling of non-autonomous transcriptomic and epigenomic responses to genetic perturbation",
+      "abstract": "Multicellular organisms develop and maintain differentiated cell states through a combination of cell-autonomous and non-autonomous regulatory mechanisms, including signal transduction pathways mediated by ligands, receptors, and kinases. Genetic perturbation through CRISPR pooled screening is widely used to study cell-autonomous regulatory mechanisms, but the challenges of cellular-resolution in situ measurement have limited the study of non-autonomous regulatory mechanisms. We developed Perturb-Tags, a spatial multi-omic technique for pooled CRISPR screening that tags nuclei with spatial barcodes, allowing joint measurement of single-nucleus gene expression, CRISPR guide RNAs, chromatin accessibility, and spatial positions within intact tissue. Perturb-Tags achieves cellular-resolution, unbiased gene expression and multi-omic profiling, and higher sensitivity than previous spatial perturbation approaches. We used Perturb-Tags to systematically perturb ligands, receptors, and all expressed kinases in human embryoid bodies. These experiments revealed extensive non-autonomous gene expression changes after perturbation, including distance-dependent loss of signaling pathway activity upon ligand knockdown, compensatory upregulation of alternative signaling pathways, and responses to receptor and kinase knockdown that vary with cell microenvironment. We also identified changes in the spatial organization of cells with ligand and kinase knockdowns. Finally, we trained a graph neural network to model the combined effects of genetic perturbations on gene expression and chromatin accessibility across an entire tissue. Our work provides a powerful experimental and computational platform for mechanistic studies of non-autonomous regulatory mechanisms across healthy and diseased tissues.",
+      "authors": [
+        "Ghaemmaghami, J.",
+        "Lee, K. H.",
+        "Jiang, S.",
+        "Zhao, Y.",
+        "Gadhvi, G.",
+        "Lu, L.",
+        "Wen, M.-C.",
+        "Wang, Y.",
+        "Liu, L.",
+        "Cable, D.",
+        "Welch, J. D."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-13T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.12.766149v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "spatial multi-omic profiling of single-cell responses to CRISPR genetic perturbation",
+      "llm_evidence_cn": "对CRISPR遗传扰动下单细胞响应的空间多组学刻画",
+      "llm_evidence": "对CRISPR遗传扰动下单细胞响应的空间多组学刻画",
+      "canonical_evidence": "对CRISPR遗传扰动下单细胞响应的空间多组学刻画",
+      "llm_tldr_en": "Perturb-Tags is a spatial multi-omic technique for pooled CRISPR screening that jointly measures single-nucleus gene expression, guide RNAs, chromatin accessibility and spatial barcodes, enabling study of non-autonomous perturbation responses.",
+      "llm_tldr_cn": "CRISPR混合筛选广泛用于研究细胞自主调控机制，但缺乏细胞分辨率的原位测量手段，限制了对非自主调控响应的研究。作者开发Perturb-Tags空间多组学技术，用空间条形码标记细胞核，联合测量单核基因表达、CRISPR向导RNA、染色质可及性与空间位置。该技术实现了对遗传扰动响应的空间分辨刻画，为扰动响应数据采集和建模提供了关键实验基础。",
+      "llm_tldr": "CRISPR混合筛选广泛用于研究细胞自主调控机制，但缺乏细胞分辨率的原位测量手段，限制了对非自主调控响应的研究。作者开发Perturb-Tags空间多组学技术，用空间条形码标记细胞核，联合测量单核基因表达、CRISPR向导RNA、染色质可及性与空间位置。该技术实现了对遗传扰动响应的空间分辨刻画，为扰动响应数据采集和建模提供了关键实验基础。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "single cell perturbation",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-11-05-764175-v1",
+      "source": "biorxiv",
+      "title": "Three-dimensional mapping of human lung fibrosis identifies spatial coupling between tissue microarchitecture and maladaptive repair states",
+      "abstract": "Human lung fibrosis progressively destroys three-dimensional tissue architecture, yet how the structural microenvironment shapes cellular states remains unclear. Integrating 3D X-ray histology with spatial omics, we generate a volumetric multimodal atlas of human lung fibrosis that enables direct interrogation of relationships between tissue microarchitecture and spatial molecular programmes. We identify collapse of the alveolar-capillary unit - the coupled loss of alveolar type 1 epithelial cells, capillary endothelial cells, and basement membrane integrity - as a structural transition associated with early fibrogenesis. Surrounding transitional zones exhibit aberrant epithelial differentiation and proteolytic matrix remodelling, with epithelium shifting toward bronchiolised, airway-like states. Stromal activation converges on spatially restricted fibrogenic cores, sites of maximal collagen maturation and matrix stabilisation that function as signalling hubs within surrounding perifocal and vascular microenvironments. Molecular signatures of atlas-defined tissue states were associated with lung function and mortality across independent patient cohorts. Together, these data support a model in which fibrosis emerges as a spatial tissue-state process, with alveolar-capillary collapse redirecting repair towards mechanically stabilised niches that reinforce pathological remodelling.",
+      "authors": [
+        "Bell, J. A.",
+        "Robinson, S. K.",
+        "Pedley, R.",
+        "Ahuja, G.",
+        "Szmul, A.",
+        "Reddin, I.",
+        "Thomas, J.",
+        "Norman, J.",
+        "James, S.",
+        "Basford, P. J.",
+        "Barozi, V.",
+        "Bhattacharya, D.",
+        "Parkin, J. G. H.",
+        "Allen, R.",
+        "Sayer, L. N.",
+        "Ward, J.",
+        "Haydon, G.",
+        "Vyas, N.",
+        "Jogai, S.",
+        "Johnston, D.",
+        "Alzetani, A.",
+        "Chee, S. J.",
+        "Ottensmeier, C. H.",
+        "Marshall, B. G.",
+        "Wallis, T.",
+        "Mahajan, S.",
+        "Thomas, G.",
+        "Offer, E.",
+        "Marshall, G.",
+        "Geillinger-Kastle, K.",
+        "Seither, P.",
+        "Thomas, M.",
+        "Vallejo, A. F.",
+        "Eyres, M.",
+        "Wang, Y.",
+        "Davies, D. E.",
+        "Jacob, J.",
+        "Fabre, A.",
+        "Katsamenis, O. L.",
+        "Natarajan, K.",
+        "Jones, M. G."
+      ],
+      "primary_category": "systems biology",
+      "categories": [
+        "systems biology"
+      ],
+      "published": "2026-11-08T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.05.764175v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "query:spatial-gene"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "multimodal atlas integrating 3D X-ray histology with spatial omics",
+      "llm_evidence_cn": "整合三维X射线组织学与空间组学的多模态图谱",
+      "llm_evidence": "整合三维X射线组织学与空间组学的多模态图谱",
+      "canonical_evidence": "整合三维X射线组织学与空间组学的多模态图谱",
+      "llm_tldr_en": "A volumetric multimodal atlas combining 3D X-ray histology with spatial omics links lung fibrosis microarchitecture to spatially resolved molecular programmes.",
+      "llm_tldr_cn": "人肺纤维化会破坏三维组织结构，但结构微环境如何塑造细胞状态仍不清楚。作者将三维X射线组织学与空间组学结合，构建了肺纤维化的体数据多模态图谱，可直接考察组织微结构与空间分子程序之间的关系。研究识别出肺泡毛细血管单元塌陷这一结构转变与早期纤维化相关，并刻画了过渡区异常上皮分化。该工作展示了组织学影像与空间转录信息联合分析的价值。",
+      "llm_tldr": "人肺纤维化会破坏三维组织结构，但结构微环境如何塑造细胞状态仍不清楚。作者将三维X射线组织学与空间组学结合，构建了肺纤维化的体数据多模态图谱，可直接考察组织微结构与空间分子程序之间的关系。研究识别出肺泡毛细血管单元塌陷这一结构转变与早期纤维化相关，并刻画了过渡区异常上皮分化。该工作展示了组织学影像与空间转录信息联合分析的价值。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

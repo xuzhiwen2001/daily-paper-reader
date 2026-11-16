@@ -1,0 +1,54 @@
+{
+  "label": "2026-11-07 ~ 2026-11-16",
+  "date": "2026-11-07 ~ 2026-11-16",
+  "generated_at": "2026-11-16T18:43:12",
+  "count": 3,
+  "papers": [
+    {
+      "paper_id": "20261107-20261116/biorxiv-10-64898-2026-11-12-766125-v1-graph-guided-flow-matching-enables-biologically-informed-prediction-at-single-cell-resolution",
+      "section": "deep",
+      "title_en": "Graph-guided flow matching enables biologically informed prediction at single-cell resolution",
+      "authors": "Liou, H.-Y., Sprang, M., Selby, D. A., Grossmann, G., Vollmer, S., Riesgo-Ferreiro, P., Gerbracht, J. V., Schroers, B., Strilic, B., Kim, J.",
+      "date": "2026-11-13",
+      "pdf": "https://www.biorxiv.org/content/10.64898/2026.11.12.766125v1.full.pdf",
+      "score": "10.0",
+      "evidence": "用图引导流匹配预测扰动后的单细胞转录组",
+      "tldr": "Perturb-seq虽能并行解析基因扰动，但穷尽扰动空间仍不现实。GFM将生物知识图谱与潜在流匹配结合，直接预测扰动后的单细胞转录组。在多个大规模数据集上，它优于线性基线和现有深度学习模型，训练最高快30倍，并在双基因扰动及有限数据下保持稳健。该框架还在HSP90AA1失活和慢性髓性白血病靶点识别中验证，为治疗靶点优先排序提供生物信息引导的生成方案。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "Perturb-seq enables systematic interrogation of massively parallel genetic perturbations at single-cell resolution, yet exhaustive characterization of the full perturbation space remains impractical. Here, we present Graph-guided Flow Matching (GFM), a generative framework that integrates biological knowledge graphs with latent flow matching to predict post-perturbation single-cell transcriptomes. Across multiple large-scale Perturb-seq datasets, GFM outperforms a strong linear baseline and current deep-learning models in predicting unseen single-gene perturbations, while training up to 30x faster and remaining robust with limited training data. GFM also demonstrates competitive performance in the two-gene perturbation prediction task when neither perturbed gene is observed during training. Ablation experiments show that combining flow matching with knowledge graphs enables accurate prediction of perturbation responses. Finally, GFM accurately calculates transcriptional consequences of HSP90AA1 inactivation and identifies target candidates unseen by the model in chronic myeloid leukemia. Our study establishes GFM as a biologically informed generative framework that predicts single-cell perturbation responses for prioritization of therapeutic targets.",
+      "source": "biorxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "20261107-20261116/2611.17705v1-s1pert-scalable-target-specific-gene-response-prediction-with-system-one-intelligence",
+      "section": "deep",
+      "title_en": "S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence",
+      "authors": "Xiaoqi Sheng, Hou wang, Yan Liang, Yutong Li, Wenhao Du, Tinghe Zhang, Jiawen Liu, Hongmin Cai",
+      "date": "2026-11-13",
+      "pdf": "https://arxiv.org/pdf/2611.17705v1",
+      "score": "9.0",
+      "evidence": "预测未见遗传扰动的转录响应",
+      "tldr": "CRISPR筛选需预测未见扰动对转录组的影响，但模型常依赖历史基因响应频率，弱化扰动特异性，且海量靶标-基因对存在标签不确定与重复计算。S1Pert以方向性Welch检验和等效性检验筛选可靠响应，用冻结System-One编码器提取可复用表示并离线缓存配对交互，再由轻量分层交叉注意力解码器结合跨靶标排序与历史证据丢弃。实验表明其提升靶标特异性判别，同时保持可靠预测与高效推理，为可扩展扰动响应预测提供新路径。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "Predicting transcriptional responses to unseen genetic perturbations is essential for extending CRISPR screens across vast target--gene combinations. However, models can achieve strong aggregate predictive performance by reproducing historical gene-level response frequencies without adequately distinguishing the effects of different perturbations. Reliable prediction at the transcriptome scale is further challenged by uncertain response labels and redundant computation across millions of target--gene pairs. We present S1Pert, a System-One framework for target-specific gene response prediction with non-autoregressive online inference. S1Pert combines directional Welch tests and equivalence testing to distinguish statistically supported responses from inconclusive observations. A frozen System-One encoder extracts reusable semantic representations of perturbation targets, query genes, and historical evidence. Compact pair-specific interactions are then computed and cached offline. A lightweight hierarchical cross-attention decoder integrates these representations with cross-target pairwise ranking and synchronized historical-evidence dropout to reduce reliance on gene-level response frequencies. Extensive experiments demonstrate that S1Pert improves target-specific response discrimination while maintaining reliable prediction and efficient inference across diverse cellular contexts. These findings highlight the potential of System-One decision learning for scalable perturbation-response prediction beyond historical gene-level response tendencies. The source code is publicly available at https://github.com/liujiawen-jpg/S1Pert.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "20261107-20261116/2611.17899v1-more-genes-faster-inference-efficient-large-panel-spatial-transcriptomics-prediction-from-histology",
+      "section": "deep",
+      "title_en": "More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology",
+      "authors": "Songming Zhang, Yuxiao Luo, Shifu Luo, Siran Chen, Shuquan Su, Jinyan Li",
+      "date": "2026-11-13",
+      "pdf": "https://arxiv.org/pdf/2611.17899v1",
+      "score": "9.0",
+      "evidence": "直接从组织学图像预测大基因面板空间表达",
+      "tldr": "从组织图像预测空间转录组常依赖复杂架构、额外输入与繁琐训练，且受限于固定小基因面板。GeneFlow将流匹配生成建模与结构化多模态融合统一，用组织学和基因tokenizer编码形态与跨基因交互，并直接预测空间基因表达。在多个基准上取得最优，千基因预测最高提升56.8%，计算成本降低数量级。该框架为大规模基因面板的高效、可扩展临床与生物学发现提供新途径。",
+      "tags": "query:spatial-gene",
+      "abstract_en": "Spatial transcriptomics (ST) prediction from histology aims to infer spatially resolved gene expression profiles directly from tissue images. This is a challenging problem that is currently often addressed with complicated model architectures, additional inputs, and complicated training procedures, while remaining limited to fixed, small gene panels. This raises a natural question: Is there an efficient method for large-panel ST prediction? Here, we present GeneFlow, a simpler yet effective framework for large-scale spatial gene expression prediction that unifies flow-matching generative modeling with structured multimodal fusion. Specifically, GeneFlow first encodes both histological morphology and cross-gene interactions in spatial spots through histology and gene tokenizers. The model directly predicts spatial gene expression, rather than an intermediate velocity field, while being trained with a velocity-based flow-matching objective. We show that, even without relying on heavy generative pipelines, GeneFlow achieves state-of-the-art performance across multiple ST benchmarks, with up to 56.8% gains in 1,000-gene prediction. Extensive experiments further show that GeneFlow produces biologically meaningful spot profiles while reducing computational cost by orders of magnitude, thereby improving efficiency and scalability, particularly in clinical settings. We believe GeneFlow provides an opportunity for leveraging widely available histology images for downstream biological discovery. Code is available at: https://github.com/ZZhangsm/GeneFlow",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

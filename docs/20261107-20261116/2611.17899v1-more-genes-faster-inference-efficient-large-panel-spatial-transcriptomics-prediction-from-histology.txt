@@ -1,0 +1,508 @@
+Title: More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology
+
+URL Source: https://arxiv.org/pdf/2611.17899v1
+
+Published Time: Mon, 16 Nov 2026 01:59:08 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology 
+
+# Songming Zhang ∗
+
+sm.zhang@smail.nju.edu.cn School of Computer Science, Nanjing University Faculty of Computer Engineering and Artificial Intelligence, Shenzhen University of Advanced Technology Nanjing, China 
+
+# Yuxiao Luo ∗
+
+yuxiao.luo@connect.polyu.hk Department of Land Surveying and Geospatial Science (LSGS), The Hong Kong Polytechnic University Hong Kong, China 
+
+# Shifu Luo 
+
+yc37182@umac.mo Faculty of Health Sciences, University of Macau Faculty of Computer Engineering and Artificial Intelligence, Shenzhen University of Advanced Technology Macau, China 
+
+# Siran Chen 
+
+srancchen@tencent.com Tencent Shenzhen, China 
+
+# Shuquan Su 
+
+sushuquan@suat-sz.edu.cn Faculty of Computer Engineering and Artificial Intelligence, Shenzhen University of Advanced Technology Shenzhen, China 
+
+# Jinyan Li †
+
+lijinyan@suat-sz.edu.cn Faculty of Computer Engineering and Artificial Intelligence, Shenzhen University of Advanced Technology Shenzhen, China 
+
+## Abstract 
+
+Spatial transcriptomics (ST) prediction from histology aims to in-fer spatially resolved gene expression profiles directly from tissue images. This is a challenging problem that is currently often ad-dressed with complicated model architectures, additional inputs, and complicated training procedures, while remaining limited to fixed, small gene panels. This raises a natural question: Is there an efficient method for large-panel ST prediction? Here, we present GeneFlow, a simpler yet effective framework for large-scale spatial gene expression prediction that unifies flow-matching generative modeling with structured multimodal fusion. Specifically, Gene-Flow first encodes both histological morphology and cross-gene interactions in spatial spots through histology and gene tokenizers. The model directly predicts spatial gene expression, rather than an intermediate velocity field, while being trained with a velocity-based flow-matching objective. We show that, even without relying on heavy generative pipelines, GeneFlow achieves state-of-the-art performance across multiple ST benchmarks, with up to 56.8% gains in 1,000-gene prediction. Extensive experiments further show that GeneFlow produces biologically meaningful spot profiles while re-ducing computational cost by orders of magnitude, thereby improv-ing efficiency and scalability, particularly in clinical settings. We believe GeneFlow provides an opportunity for leveraging widely 
+
+> ∗Equal contribution.
+> †Corresponding author: Jinyan Li. Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. Copyrights for components of this work owned by others than the author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+> Conference acronym ’XX, Woodstock, NY
+> © 2018 Copyright held by the owner/author(s). Publication rights licensed to ACM. ACM ISBN 978-x-xxxx-xxxx-x/YYYY/MM https://doi.org/XXXXXXX.XXXXXXX
+
+available histology images for downstream biological discovery. Code is available at: https://github.com/ZZhangsm/GeneFlow 
+
+## CCS Concepts 
+
+• Applied computing → Computational biology ; Computa-tional genomics ; • Computing methodologies → Machine learn-ing .
+
+## Keywords 
+
+Spatial Transcriptomics, Histology Image, Flow Matching 
+
+ACM Reference Format: 
+
+Songming Zhang, Yuxiao Luo, Shifu Luo, Siran Chen, Shuquan Su, and Jinyan Li. 2018. More Genes, Faster Inference: Efficient Large-Panel Spatial Tran-scriptomics Prediction from Histology. In Proceedings of Make sure to en-ter the correct conference title from your rights confirmation email (Confer-ence acronym ’XX). ACM, New York, NY, USA, 12 pages. https://doi.org/ XXXXXXX.XXXXXXX 
+
+## 1 Introduction 
+
+Histopathology with hematoxylin and eosin (H&E) staining has been the gold standard for clinical diagnosis of cancer and other diseases for more than a century. However, microscopic examina-tion of H&E images is often time-consuming and cannot reliably distinguish many molecularly distinct cell types by visual inspec-tion alone. Spatial transcriptomics (ST) technologies have enabled the joint measurement of tissue morphology and gene expression over the past decade [7, 30]. For instance, spot-based platforms such as 10x Visium [15] can quantify over 20,000 genes across entire sections without tissue dissociation. By providing spatially resolved gene expression profiles, ST platforms enable new insights into the prediction of key clinical outcomes of complex cellular behavior and disease states [3, 17]. However, despite recent advances in ST technologies, signifi-cant challenges remain for clinical translation, including high cost and experimental complexity. In contrast, histopathology images arXiv:2611.17899v1 [cs.CV] 13 Nov 2026 Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Zhang et al. 
+
+are routinely acquired and widely available in clinical practice. H&E-stained tissue sections provide rich structural information that reflects underlying biological processes at both cellular and tissue levels. Motivated by this complementarity between ST and histopathology, an appealing direction is to infer spatial spot expres-sion from histology images, enabling the reconstruction of omics profiles from easily accessible pathology data. As shown in Fig. 2, each histology image is partitioned into small spots and treated as a unit for spatial gene expression prediction. The goal is to infer the corresponding gene expression of each spot conditioned on its local image content and spatial coordinates. Several prior works have explored the spatial gene expression prediction problem using different modeling approaches. Some of them have used pretrained image encoders to directly regress gene expression from local histology patches [12, 25, 35, 37]; some exploited multi-scale feature fusion to capture cross-modal align-ment and spatial context [4, 6, 8, 32, 34]; and some went further to leverage generative modeling to better model gene expression distributions and improve prediction [10, 13, 22, 28, 41]. However, these advancements have several inherent limitations that restrict their clinical applicability: 
+
+• Complex pipelines. These existing approaches rely on complex architectures and multi-stage pipelines, which increase computa-tional cost and introduce additional design and optimization chal-lenges, making them difficult to deploy in resource-constrained clinical environments. 
+
+• Limited gene-panel scalability. All the previous methods de-pend on predefined gene panels often limited to a subset of 200 genes, whereas practical clinical applications typically require a coverage of 1000 or more genes; this gap discounts their analysis reliability for downstream tasks. 
+
+• Insufficient interaction modeling. Existing methods often fail to capture inter-gene interactions, instead treating genes in a largely independent manner or weakly coupled manner. This lack of structured modeling leads to off-manifold generation, where synthesized gene expression profiles may drift away from the true biological data distribution, especially for near-zero expression values or long-tailed gene distributions. Therefore, in the sequel, we try to ask and better address the fol-lowing question: 
+
+Can an efficient generative model support large-panel spatial gene expression prediction solely from histology images? 
+
+In response, GeneFlow is designed around three key ideas that make flow-based spatial gene expression prediction simple, sta-ble, and scalable. (1) Histology-conditioned gene-expression flow. GeneFlow uses pretrained pathology representations to con-dition a lightweight fusion network that directly predicts target gene expression profiles, bypassing iterative denoising and complex spatial interaction modeling while maintaining efficient histology-to-expression translation [39]. (2) ZINB-guided gene token space. 
+
+GeneFlow further maps high-dimensional gene vectors into struc-tured latent gene tokens and initializes the generative process from a ZINB prior, allowing the model to capture cross-gene dependen-cies under sparsity and overdispersion while remaining scalable to larger gene panels. Together, these designs enable GeneFlow to model spatial gene expression distributions with fewer architectural 
+
+Figure 1: Average PCC-1000 vs. inference time across all datasets. GeneFlow delivers high accuracy with low infer-ence time. 
+
+assumptions and lower computational cost. (3) Manifold-stable velocity loss. To better match the sparse and noisy geometry of ST measurements, GeneFlow predicts the terminal expression end-point and constructs the velocity from this endpoint, avoiding the unstable normalization that can arise when velocity is estimated from intermediate noisy states [21, 24]. We evaluate GeneFlow on four publicly available datasets span-ning different tissue types and sequencing platforms, including kidney, HER2ST, PRAD, and mouse brain. GeneFlow achieves state-of-the-art performance on gene expression prediction, consistently outperforming existing methods across PCC metrics, with a 17.1% improvement on PCC-1000 on the PRAD dataset, highlighting its effectiveness in modeling large-scale gene sets. GeneFlow also demonstrates improved accuracy in biologically relevant biomarker prediction, suggesting better preservation of meaningful cellular variation. Moreover, as shown in Fig. 1, our GeneFlow also offers orders-of-magnitude reductions in runtime and FLOPs compared to Diffusion-based approaches. We further analyze the evaluation protocol and show that distance-based metrics such as MSE and MAE are not sufficient to assess prediction quality, as they fail to capture biologically meaningful variation. We also conduct de-tailed ablation studies on key design components to validate the robustness and effectiveness of the proposed framework. To sum up, we have the following summarized contributions: 
+
+• Effective flow-based prediction. We propose GeneFlow, a novel flow-based framework for predicting spatial gene expres-sion from H&E histology images. It directly models gene expres-sion from image patches without extra multi-stage alignment. 
+
+• Gene-aware multimodal fusion. GeneFlow introduces a light-weight multi-modal fusion architecture to combine image and gene features, enabling efficient prediction over a broader gene set. This design improves flexibility for downstream tasks and supports potential clinical use. 
+
+• Accurate and efficient inference. GeneFlow achieves high-fidelity predictions that are spatially consistent and biologically meaningful over multiple datasets, while also enabling faster inference speed. More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+## 2 Related works 
+
+Spatial gene expression prediction from histology images. 
+
+Early deep learning methods for spatial gene expression predic-tion aim to infer gene expression profiles from histological con-text [12, 25, 35, 37]. StNet fine-tuned a DenseNet-121 pretrained on ImageNet to directly regress Visium spot gene expression from H&E image patches [12]. Xie et al. [34] applies a contrastive learn-ing paradigm: BLEEP maps histology patches and gene-expression profiles into a joint embedding space and enforces biological align-ment. Other approaches emphasize multi-scale and multi-branch architectures to capture tissue context [10, 11, 22, 27, 28]. TRIPLEX uses three parallel encoder branches and fuses features across scales to capture morphology at different resolutions [8]. Recent work also explores generative modeling of spatial transcriptomics. Stem formulates spot-level gene expression prediction as a conditional diffusion process [41]. Huang et al. [13] proposes STFlow, a flow-matching generative model that employs a slide-level encoder with local spatial attention to capture cell–cell interactions efficiently. In contrast, we argue that explicitly modeling spot–spot spatial re-lations is not always necessary for accurate prediction. Instead, we focus on a simpler and more scalable design that avoids hard-coded priors, enabling efficient extension to larger gene sets and faster inference without sacrificing performance. 
+
+Flow matching for generative modeling. Flow matching (FM) has recently emerged as an effective paradigm for generative mod-eling, demonstrating strong performance across diverse domains, including vision, biomolecular modeling, and robotics [18, 19, 29, 33, 39]. Rather than simulating a reverse stochastic process during training, FM learns a time-dependent vector field that transports samples from a simple prior distribution to the target data distribu-tion along a prescribed probability path. This formulation yields a conceptually simple objective and supports efficient, often deter-ministic, sampling, making it attractive for large-scale generation tasks. Recent studies have further revisited the parameterization of continuous generative models, suggesting that directly predict-ing clean signals can simplify the learning objective and improve empirical performance, compared with modeling noise or velocity fields [21, 24, 29, 36]. Motivated by these advances, we formulate gene expression prediction as a generative process that maps a flexible prior to target expression profiles, which is well suited to large gene panel prediction settings. 
+
+## 3 Method 3.1 Preliminary 
+
+Problem formulation. For each spatial spot 𝑠 , we observe an H&E image patch 𝐼 𝑠 ∈ RH×W× 3 and its coordinates 𝐶 𝑠 ∈ R2,with target gene expression counts x𝑠 ∈ N𝑛  
+
+> 0
+
+. Given a dataset D =
+
+{( 𝐼 𝑠 , 𝐶 𝑠 , x𝑠 )} 𝑁 𝑠 =1, the goal is to learn a conditional flow matching model 𝑓 𝜃 that predicts ˆ x𝑠 from the corresponding 𝐼 𝑠 under 𝐶 𝑠 :
+
+𝜃 ★ = arg min 
+
+> 𝜃
+
+1
+
+𝑁 
+
+> 𝑁
+
+∑︁ 
+
+> 𝑠 =1
+
+L( x𝑠 − ˆx𝑠 ), (1) where L is the flow field loss function defined in Sec.3.2. 
+
+Flow Matching. Flow Matching (FM) learns a velocity field v𝜃 
+
+that transports a prior distribution 𝑝 prior to the data distribution 
+
+𝑝 data by modeling a continuous-time flow. We consider a linear interpolation between a data sample x1 ∼ 𝑝 data and a noise sample 
+
+x0 ∼ 𝑝 prior :
+
+x𝑡 = (1 − 𝑡 )x0 + 𝑡 x1, 𝑡 ∈ [ 0, 1], (2) which induces the conditional velocity: 
+
+v𝜃 (x𝑡 , 𝑡 ) ≜ 𝑑 x𝑡 
+
+𝑑𝑡 = x1 − x0. (3) FM parameterizes a neural network v𝜃 (x𝑡 , 𝑡 ) to approximate this velocity field by minimizing the following objective: 
+
+LFM = Ex0,x1,𝑡 ∥v𝜃 (x𝑡 , 𝑡 ) − v∥2 . (4) After training, samples are generated by integrating the learned velocity field from 𝑡 = 0 to 𝑡 = 1, starting from a noise sample 
+
+x0 ∼ 𝑝 prior :
+
+x1 = x0 +
+
+∫ 10
+
+v𝜃 (x𝑡 , 𝑡 ) 𝑑𝑡, (5) which is typically approximated using numerical ODE solvers such as Euler or Heun methods. 
+
+## 3.2 GeneFlow Architecture Fusing Histology and Transcriptomics 
+
+Endpoint-parameterized flow matching. We adopt an endpoint-parameterized variant of flow matching in which the network di-rectly predicts the terminal sample, while the training objective remains defined in the velocity space. Given an intermediate state 
+
+x𝑡 , the time step 𝑡 , and the histology condition c𝐼 , the network predicts ˆ x1 = net 𝜃 (x𝑡 , 𝑡, c𝐼 ). We consider the linear interpolation path x𝑡 = (1 − 𝑡 )x0 + 𝑡 x1, 𝑡 ∈ [ 0, 1], where x0 is sampled from the prior distribution and x1 denotes the target gene-expression profile. The corresponding ground-truth conditional velocity is 
+
+v = x1 − x0 = (1 − 𝑡 )x1 − ( 1 − 𝑡 )x0
+
+1 − 𝑡 
+
+= x1 −  (1 − 𝑡 )x0 + 𝑡 x1
+
+
+
+1 − 𝑡 
+
+= x1 − x𝑡 
+
+1 − 𝑡 .
+
+(6) Although the network predicts the terminal expression rather than the velocity directly, its prediction can be converted into an instantaneous velocity as 
+
+v𝜃 (x𝑡 , 𝑡, c𝐼 ) = net 𝜃 (x𝑡 , 𝑡, c𝐼 ) − x𝑡 
+
+1 − 𝑡 . (7) The model is trained using the standard velocity-matching ob-jective: 
+
+LFM = Ex0,x1,𝑡 
+
+∥v𝜃 (x𝑡 , 𝑡, c𝐼 ) − v∥22
+
+ (8) This formulation can therefore be interpreted as x-prediction with a velocity-space loss : the network output is the clean endpoint ˆ x1,whereas supervision is applied after converting the endpoint predic-tion into the corresponding velocity [21]. For each fixed (x𝑡 , 𝑡, c𝐼 ),this objective and an unweighted endpoint objective share the same optimal endpoint predictor. However, the velocity-space objective weights endpoint prediction errors by (1 −𝑡 )−2 and therefore places greater emphasis on samples near the terminal time. Compared with directly predicting the velocity, endpoint parameterization provides the network with an explicit clean-expression prediction Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Zhang et al. Histology Image   
+
+> Spot expression
+> Histological tokenizer
+> Gene tokenizer
+> DiT Block DiT Block DiT Block
+> Predicted spot expression ...
+> Flow matching
+> (𝑥 -pred / 𝑣 -loss )
+
+Figure 2: Overview of GeneFlow. The training data for GeneFlow consists of ST datasets with paired H&E histology images and spot-level expression profiles. Gene expressions are first tokenized into latent representations, while image patches centered at each spot are encoded using a pretrained pathology foundation model to provide conditioning features. These image features guide a genetic flow-based network to learn endpoint-based gene expression prediction with velocity loss. At inference time, GeneFlow iteratively predicts gene expression from a given histology image patch. 
+
+target while preserving the standard flow-matching objective and ODE sampling dynamics. 
+
+Prior distribution. ST data exhibit two key characteristics: high sparsity due to excessive zero counts (i.e., non-activated genes) and overdispersion where the variance exceeds the mean. Standard dis-tributions such as Gaussian or zero fail to capture these properties. To address this, we adopt a zero-inflated negative binomial (ZINB) distribution Z( 𝜇, 𝜙, 𝜋 ) as the prior 𝑝 prior :                                    
+
+> 𝑝 (𝑦 |𝜇, 𝜙, 𝜋 )=
+> 
+> 𝜋 + ( 1−𝜋 )Γ(𝑦 +𝜙 )
+> Γ(𝜙 )𝑦 !
+> 𝜙 𝜙 +𝜇
+> 𝜙 𝜇 𝜙 +𝜇
+> 𝑦
+> ,𝑦 =0,
+> (1−𝜋 )Γ(𝑦 +𝜙 )
+> Γ(𝜙 )𝑦 !
+> 𝜙 𝜙 +𝜇
+> 𝜙 𝜇 𝜙 +𝜇
+> 𝑦
+> ,𝑦 >0.
+> (9)
+
+Here, 𝑦 denotes the observed count, 𝜇 is the mean, 𝜙 controls dis-persion, and 𝜋 is the zero-inflation probability. The parameter 𝜙 
+
+allows the negative binomial component to capture overdispersion beyond the Poisson assumption. This provides a more accurate statistical description of gene expression patterns and improves the modeling of realistic count data during training. 
+
+Sampling. We start from an initial expression sample x0 drawn from the ZINB distribution Z( 𝜇, 𝜙, 𝜋 ) and iteratively refine it through the learned flow model. At each step, given the intermediate state 
+
+x𝑡 , the network net 𝜃 (x𝑡 , 𝑡 ) predicts the terminal expression, which is then used to update the trajectory according to the flow formula-tion. This process is repeated across time steps and produces the final gene expression at 𝑡 = 1. 
+
+Histological tokenizer. Instead of training a pathology encoder from scratch, we directly leverage pretrained foundation models to extract histological representations. These models are trained on large-scale pathology datasets and provide general-purpose features with strong transferability, which is particularly beneficial in ST settings where labeled data are limited and distribution shifts across slides are common. Such representations also help mitigate batch effects by capturing more stable morphological patterns. Formally, we denote 𝑓 H (·) as a pathology foundation model that maps an input H&E image patch 𝐼 𝑖 to a pathology embedding 𝐸 𝑖 , i.e., 
+
+{𝐸 0, · · · , 𝐸 𝑁 } = 𝑓 H ({ 𝐼 0, · · · , 𝐼 𝑁 }) .
+
+In practice, we follow Stem [41] setting to obtain patch-level em-beddings produced by UNI [5] and CONCH [14], and project them to the generative model hidden space for subsequent processing. To further improve robustness and reduce overfitting, we also adopt lightweight data augmentation strategies, including rotations and flipping, without altering the underlying tissue structure. The re-sulting histological embeddings are then used as conditional inputs for downstream gene expression modeling. 
+
+Gene tokenizer. We assume that local morphological context in ST is implicitly provided by the pretrained histological represen-tations for each spatial spot; therefore, to maintain a simple and efficient design, we do not explicitly encode the spatial coordinates or inter-spot relations. Given a gene expression vector 𝑥 (𝑘 ) ∈ R𝐺 
+
+for each spot 𝑘 , we first project it into a latent token space using the gene tokenizer. Formally, the tokenization process can be written as 
+
+𝑍 (𝑘 ) = 𝜙 
+
+
+
+𝑥 (𝑘 )𝑊 + 𝑏 
+
+
+
++ 𝑃, 
+
+where 𝑊 ∈ R𝐺 × ( ℎ𝑑 ) and 𝑏 ∈ Rℎ𝑑 denote the learnable projection parameters, 𝜙 (·) is a non-linear activation function, and 𝑃 ∈ Rℎ×𝑑 
+
+is a learnable gene token-type embedding. The output is then re-shaped into 𝑍 (𝑘 ) ∈ Rℎ×𝑑 for each spot, where ℎ denotes the number of gene module tokens and 𝑑 is the token dimension. By compress-ing high-dimensional gene expression into a fixed number of gene module tokens, the model captures shared structure among genes while maintaining a compact and computationally efficient repre-sentation. In addition, the modular tokenization provides a more More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Token Embed Type Embed 
+
+> MLP
+> Time
+
+T
+
+> Time encoder
+> Histology image
+> Hist tokenizer MLP
+> Spatial cell
+> Gene
+> RMS norm Multi-head cross attention RMS norm MLP
+> DiT Block
+> *M
+> Concatenation Final Layer
+> Cell
+> Gene Tokenizer
+
+Figure 3: Visualization of GeneFlow architecture. 
+
+interpretable latent space, as each token can capture a relatively coherent functional gene program rather than an entangled mixture of unrelated signals. As we show in Fig. 10, these learned tokens tend to align with biologically meaningful and functionally distinct pathways. 
+
+Overall fusion architecture . Our GeneFlow network is built on a DiT-based transformer [26] that parameterizes a flow matching model. Gene expression inputs are encoded using a gene tokenizer, resulting in a sequence of hidden vectors with 𝐷 dimensions. Time information is encoded using a standard 256-dimensional sinusoidal embedding followed by a 2-layer MLP. For histology, each patch is represented by a single embedding extracted from pretrained pathology foundation models, either via special tokens or pooling; when multiple models are used, their embeddings are concatenated and projected through a 2-layer MLP to obtain a unified condi-tioning vector. This conditioning vector, together with the time embedding, is injected into the transformer blocks via adaLN-Zero modulation. The model consists of 12 DiT blocks with 6-head at-tention, followed by a final adaLN and linear layer to predict the flow field. An overview of the architecture is presented in Fig. 3. 
+
+Some useful tricks. 1. Parameter-free RMSNorm. We apply RMS normalization [38] without learnable parameters throughout the DiT network. Given the high sparsity and large dynamic range of gene expression data, this design provides stable feature scaling across spots and genes without introducing additional parameters. It is inserted after the input embedding, before each attention and MLP block, and before the final prediction head, ensuring stable fea-ture scaling with zero parameter overhead. 2. ReLU 2 activation. We replace GELU with a squared ReLU activation [40] in MLP blocks, i.e., F.relu(x).square() . This activation better matches the non-negative and sparse nature of gene expression signals, promoting sparse responses without sacrificing representational capacity. 3. QK normalization. Although RoPE does not provide noticeable gains in our setting, we retain query–key normalization and ap-ply it directly as 𝑞, 𝑘 = norm (𝑞 ), norm (𝑘 ). This stabilizes attention computation and removes the need for additional techniques. 
+
+## 3.3 The generalized manifold perspective of our formulation 
+
+Boundary cases. When 𝑡 → 0, the interpolated state approaches the prior sample, i.e., x𝑡 → x0, and the predicted endpoint ˆ x1 =
+
+net 𝜃 (x𝑡 , 𝑡, c𝐼 ) provides an explicit target on the gene-expression data manifold. The resulting velocity v𝜃 = ( ˆx1 −x𝑡 )/( 1−𝑡 ) therefore points from the prior toward a predicted clean expression profile. When 𝑡 → 1, both x𝑡 and the ideally predicted ˆ x1 approach the clean data x1, so the displacement ˆ x1 − x𝑡 connects two states close to the data manifold. Meanwhile, the direction of the predicted ve-locity is still anchored by an explicit terminal expression estimate rather than an unconstrained velocity output. 
+
+General case. For 𝑡 ∈ ( 0, 1), the interpolated state x𝑡 may lie outside the low-dimensional and highly non-uniform manifold of observed gene-expression profiles. GeneFlow first maps this intermediate state and its histology condition to a clean endpoint estimate ˆ x1, which is directly supervised by real expression profiles, and then constructs the velocity from the displacement between x𝑡 
+
+and ˆ x1. This endpoint-oriented parameterization encourages the predicted flow to point toward biologically plausible regions of the expression space, whereas direct velocity prediction does not explicitly associate its output with a point on the data manifold. Our empirical results suggest that it provides a useful manifold-anchored inductive bias for sparse, heavy-tailed, and technically noisy ST data. 
+
+## 4 Experiment 
+
+In this section, we evaluate GeneFlow on spatial gene expression prediction and conduct ablation studies across four datasets, com-paring it against six representative baselines. To make the analysis explicit, we gradually answer the following research questions: 
+
+• RQ1: Is GeneFlow truly effective in ST benchmarks? 
+
+• RQ2: Are GeneFlow predictions biologically meaningful? 
+
+• RQ3: Is GeneFlow sufficiently efficient and scalable? 
+
+• RQ4: What drives the performance of GeneFlow? 
+
+## 4.1 Training Details 
+
+Datasets . We evaluated our method on four ST datasets from the HEST-1k database [16], covering multiple organs, species, and disease conditions [1, 9, 20, 31]. All datasets were generated using spot-based ST platforms and provide paired histology images and spatially resolved gene expression profiles, as summarized in Tab. 6. Following the slide-level holdout protocol [41], we reserve one pre-defined slide from each dataset for evaluation and use all remaining slides for training. 
+
+Experiment setup. We compare our method with several state-of-the-art approaches for spatial gene expression prediction, in-cluding StNet [12], EGN [35], BLEEP [34], TRIPLEX [8], Stem [41], and STFlow [13]. All baselines are implemented using their official codebases and original training configurations. To maintain train-ing stability, we clip the gradient norm to 1.0 at each iteration. The learning rate is selected from the range {1e-3 , 5e-4 , 1e-4 }, and we set the default value to 1e-4. All training and inference are performed in the original gene-count space, ensuring that the ground-truth expression and the ZINB prior lie in the same numerical space. In Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Zhang et al. 
+
+Table 1: The results of gene expression prediction across spatial omics datasets. Bold indicates the best performance, underlined indicates the second-best performance. 
+
+Dataset Metric StNet EGN BLEEP TRIPLEX Stem STFlow GeneFlow Δ(↑)      
+
+> (Nat. BE, 2020) (CVPR, 2023) (NeurIPS, 2023) (CVPR, 2024) (ICLR, 2025) (ICML, 2025)
+
+Kidney 
+
+PCC-10 0.4337 0.3039 0.2779 0.4641 0.4662 0.3301 0.5837 ±0.0012 +25.21% 
+
+PCC-50 0.3680 0.1807 0.2165 0.3823 0.4121 0.2544 0.5345 ±0.0023 +29.71% 
+
+PCC-200 0.2936 0.1562 0.1632 0.2769 0.3200 0.1824 0.4545 ±0.0013 +42.03% 
+
+PCC-1000 0.1604 0.1473 0.0532 0.1923 0.1752 0.0800 0.3159 ±0.0013 +64.27% 
+
+Mouse Brain 
+
+PCC-10 0.5412 0.4687 0.3800 0.5373 0.5393 0.4757 0.5886 ±0.0005 +8.76% 
+
+PCC-50 0.4850 0.2400 0.3010 0.4708 0.4644 0.4187 0.5281 ±0.0001 +8.88% 
+
+PCC-200 0.3976 0.2413 0.2091 0.3778 0.3693 0.3355 0.4426 ±0.0003 +11.33% 
+
+PCC-1000 0.2369 0.2442 0.0798 0.2827 0.2147 0.1935 0.2882 ±0.0005 +1.95% 
+
+HER2ST 
+
+PCC-10 0.8136 0.8203 0.4792 0.7722 0.8418 0.8591 0.8664 ±0.0012 +0.84% 
+
+PCC-50 0.7792 0.7089 0.4056 0.7208 0.7934 0.8210 0.8323 ±0.0012 +1.37% 
+
+PCC-200 0.7407 0.6652 0.2875 0.6346 0.7388 0.7850 0.7957 ±0.0013 +1.36% 
+
+PCC-1000 0.5842 0.6419 0.0347 0.5520 0.5654 0.6564 0.6738 ±0.0010 +2.66% 
+
+PRAD Visium 
+
+PCC-10 0.6943 0.5357 0.4603 0.6703 0.6780 0.5844 0.7269 ±0.0047 +4.69% 
+
+PCC-50 0.6472 0.3538 0.4000 0.6113 0.6342 0.5259 0.6756 ±0.0125 +4.39% 
+
+PCC-200 0.5517 0.3762 0.3341 0.5049 0.5477 0.4522 0.5895 ±0.0145 +6.86% 
+
+PCC-1000 0.3895 0.3430 0.2199 0.3787 0.3910 0.3340 0.4307 ±0.0009 +10.16% 
+
+addition, all parameters of the pre-trained pathology foundation models are frozen during training. A 224×224 image patch centered at each spatial spot is cropped as input. Following the common gene selection protocol [12], we select the top 1000 genes on all training slides from the intersection of highly expressed and highly variant genes. We employ the AdamW optimizer in our experiments for GeneFlow [23]. All experiments in this work are conducted on a Linux server equipped with an AMD EPYC 7H12 64-Core Processor. The server is configured with NVIDIA RTX A6000 GPUs for model training and inference. 
+
+Evaluation metrics. We evaluate prediction performance using both correlation-based and error-based metrics. Specifically, PCC-𝑘 
+
+denotes the average Pearson correlation coefficient over the top-𝑘 
+
+best-predicted genes, reflecting gene-wise prediction quality ( 𝑘 =
+
+10 , 50 , 200 , 1000). It is computed as PCC -𝑘 = 1
+
+𝑘 ∑︁ 𝑔 ∈Top-k 
+
+Cov (x𝑔 , ˆx𝑔 )√︁ 
+
+Var (x𝑔 ) · Var ( ˆx𝑔 ) , (10) where x𝑔 and ˆ x𝑔 are the true and predicted expression values of gene 𝑔 , and Cov (·) and Var (·) denote covariance and variance. Ad-ditionally, MSE and MAE measure global prediction error across all genes and spatial spots. 
+
+## 4.2 RQ1: Robust prediction across diverse ST datasets 
+
+We first examine whether GeneFlow can accurately predict spatial gene expression across diverse tissues and disease contexts. The re-sults in Tab. 1 show that GeneFlow consistently achieves the highest PCC scores across all datasets, indicating more accurate modeling of spatial gene expression patterns. On both cancer datasets (HER2ST and PRAD), GeneFlow improves PCC-200 by 1.4% and 9.8% over the best baselines, reflecting its ability to capture cell state variations across spatial contexts. Notably, the improvements on PCC-1000 are even more pronounced, reaching up to 2.7% on HER2ST and 17.1% on PRAD. This result demonstrates that the advantage of GeneFlow is maintained as the gene panel grows, supporting the effectiveness of the gene tokenizer in modeling cross-gene dependencies within large expression panels. GeneFlow also surpasses all competing methods in terms of PCC on the Kidney and Mouse Brain datasets, demonstrating that its predictive performance generalizes beyond cancer tissues to both pathological and normal biological settings. We provide a more detailed discussion in Sec. 4.5 of the relation-ship between PCC and absolute-error metrics ( e.g. , MAE and MSE), including their potentially differing performance trends [2]. More detailed ablation studies are shown in Tab. 3. These improvements are primarily attributed to the genetic flow matching mechanism of GeneFlow, which explicitly aligns predicted and observed gene expression distributions in a spatially coherent manner. 
+
+## 4.3 RQ2: Preservation of biologically meaningful spatial patterns 
+
+One of the important applications of spatial gene expression predic-tion is to understand tissue-specific biological patterns in relation to morphology. To assess these properties, we visualize the slide-level spatial expression maps predicted by GeneFlow and the competing methods, using the corresponding measured expression maps as ground truth. Specifically, we select two representative biomarker genes, Rab5a and Atp1a2 , from the Mouse Brain dataset. As shown in Figs. 4 and 9, GeneFlow produces predictions that closely align with the observed spatial distribution of these genes, preserving both high-expression regions and spatial boundaries. In contrast, competing methods exhibit clear limitations: BLEEP and EGN generate nearly uniform maps with negligible dynamic More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+Figure 4: Visualization of biomarker gene expression with the corresponding PCC values. The color scale ranges from blue (low expression) to red (high expression). Predicted expression of Rab5a and Atp1a2 on the Mouse Brain tissue slide NCBI667. Table 2: Computational efficiency comparison using 
+
+torch.profiler .
+
+Model Param (M) GFLOPs Time (s) StNet 8.0 5.57 3.52 EGN 231 17.66 20.42 BLEEP 12.5 3.63 48.3 TRIPLEX 85.1 33.56 4.35 STFlow 8.1 53.35 1.02 Stem 35.0 42.79 554 GeneFlow 7.3 0.31 0.61 
+
+Figure 5: Results of the ablation study on the scalability of GeneFlow to large gene sets. Here, gene num represents the number of predicted genes provided to the model. 
+
+range, failing to capture spatial heterogeneity; and Stem still suffers from mild oversmoothing, reducing contrast between expression domains. These qualitative observations are consistent with the quantitative results and further demonstrate that GeneFlow does not merely improve numerical prediction accuracy: it also preserves biologically meaningful spatial expression patterns that reflect the underlying tissue organization. 
+
+## 4.4 RQ3: Efficiency and scalability 
+
+Computational efficiency of GeneFlow . We assess the com-putational efficiency of GeneFlow relative to other baselines by measuring Floating Point Operations (GFLOPs per sample) and sampling time using torch.profiler . As shown in Tab. 2, Gene-Flow achieves the lowest computational cost (0.31 GFLOPs) for the trainable prediction module among all methods, and also the shortest sampling time (0.61 s per sample). Compared with STFlow (53.35 GFLOPs) and Stem (42.79 GFLOPs), GeneFlow reduces com-putational cost by more than one order of magnitude while also being significantly faster in inference. GeneFlow offers a favorable balance between prediction quality, inference speed, and compu-tational cost, making it suitable for time-sensitive spatial omics analysis and downstream clinical decision support. 
+
+Scaling to larger gene sets . In this ablation experiment, we evaluate the scalability of GeneFlow by testing on a large gene set. We select 3000 Differentially Expressed Genes (DEGs) from the PRAD dataset. The evaluation result is shown in Fig. 5. Despite scaling to 3000 gene-level targets, GeneFlow maintains relatively strong prediction quality across correlation-based metrics, indicat-ing that performance does not sharply degrade as the predicted gene panel grows. Notably, GeneFlow still maintains competitive PCC-𝑘 scores in this setting, suggesting that it continues to capture complex spatial heterogeneity when jointly predicting many genes. 
+
+Effect of training and sampling steps. As shown in Fig. 6, training steps are positively correlated with PCC across all scales. The most significant PCC gains occur from 2.5k to 7.5k steps, after which improvement saturates as the model converges. The best performance is achieved at 15k steps. Unlike training steps, sam-pling steps show a distinct pattern: PCC jumps sharply from 1 to 2 steps. As 1 step fails to capture spot expression, while 2 steps re-duce sampling randomness. Performance stabilizes beyond 2 steps, indicating 2–5 steps are sufficient to balance prediction accuracy and computational efficiency. 
+
+## 4.5 RQ4: Further Analysis 
+
+Correlation vs. error metrics analysis. We further analyze the relationship between PCC and error-based metrics (MSE, MAE) using the scatter plots presented in Fig. 7. Our analysis reveals that PCC exhibits only a weak negative correlation with both MSE and MAE, with correlation coefficients of 𝑟 = −0.13 and 𝑟 = −0.11, respectively. This weak linear relationship suggests that minimizing reconstruction error does not guarantee maximized correlation, highlighting the distinct nature of these metrics. Furthermore, we Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Zhang et al. 
+
+Figure 6: Effect of Training and Sampling Steps. Table 3: Ablation study of GeneFlow. 
+
+PCC-10 PCC-50 PCC-200 PCC-1000 GeneFlow 0.5888 0.5277 0.4424 0.2874 
+
+w/o gene tokenizer 0.5070 0.4521 0.3880 0.1997 w/o CONCH 0.3024 0.2379 0.1686 0.0645 w/o UNI 0.2478 0.1865 0.1312 0.0374 w/ v-pred / x-loss 0.5342 0.4731 0.3848 0.2642 w/ v-pred / v-loss 0.5214 0.4608 0.3824 0.2498 w/ x-pred / x-loss 0.5707 0.5069 0.4096 0.2613 
+
+Figure 7: Correlation between PCC and MSE/MAE Table 4: Performance under different token dim and gene num ratios 𝐷 /𝐺 
+
+.Ratio 𝐷 /𝐺 PCC-10 PCC-50 PCC-200 PCC-1000 1:5 0.5789 0.5128 0.4217 0.2604 1:10 0.5888 0.5277 0.4424 0.2874 1:20 0.5563 0.4897 0.3899 0.2105 1:50 0.5755 0.5182 0.4306 0.2708 1:100 0.5746 0.5169 0.4233 0.2678 observe substantial vertical dispersion in Fig. 7, particularly within the low-error regime. Specifically, predictions achieving comparable error values often display significantly divergent PCC scores. This pronounced variability indicates that model performance in terms of reconstruction error does not linearly translate to predictive correlation. Consequently, optimizing solely for lower MSE or MAE may not reliably enhance the biological relevance. 
+
+Effect of Gene Tokenizer Dimensions. Tabs. 4 and 8 examine how hidden dimension and gene-token compression ratio affect per-formance and model complexity. Increasing the hidden dimension from 12 to 24 consistently improves PCC, with the best results at 24. Further increases add parameters but bring no stable gains and 
+
+Table 5: Performance under different prior types and ZINB parameter settings 
+
+Prior Type PCC-10 PCC-50 PCC-200 PCC-1000 Zero 0.5108 0.4417 0.3411 0.1763 Gaussian 0.5641 0.5023 0.4137 0.2625 ZINB (0.1, 1) 0.5743 0.5121 0.4252 0.2739 (0.1, 2) 0.5666 0.5043 0.4144 0.2674 (0.1, 4) 0.5432 0.4848 0.3936 0.2374 (0.2, 1) 0.5535 0.4938 0.4056 0.2582 (0.2, 2) 0.5551 0.4976 0.4110 0.2552 (0.2, 4) 0.5512 0.4925 0.4008 0.2491 (0.4, 1) 0.5632 0.4966 0.4061 0.2563 (0.4, 2) 0.5461 0.4845 0.4006 0.2525 (0.4, 4) 0.5397 0.4813 0.3921 0.2385 may slightly hurt performance. The gene-token dimension shows a trade-off between accuracy and efficiency: lower compression preserves more information, while higher compression reduces parameters and computation. However, excessive compression (e.g., 
+
+𝐷 /𝐺 = 1:20) creates an information bottleneck and degrades per-formance. Thus, the compression ratio can be chosen based on application needs. 
+
+Effect of prior distribution. Tab. 5 evaluates different prior distributions. ZINB consistently outperforms the Zero prior, es-pecially on larger gene sets (e.g., PCC-1000: 0.2739 vs. 0.1763), by better capturing sparse gene expression patterns. Compared with the Gaussian prior, ZINB achieves comparable performance on highly correlated genes and stronger performance on broader gene sets, suggesting that modeling zero inflation improves the recovery of weak gene signals. These results indicate that ZINB provides a more suitable prior for ST data by preserving sparse expression characteristics and gene-level variation. 
+
+## 5 Conclusion 
+
+In this work, we propose GeneFlow, a novel framework for spatially resolved gene expression inference from H&E-stained histology images. By combining flow-based generative modeling with struc-tured multi-modal fusion, GeneFlow provides a simple yet effective way to capture both morphological cues and cross-gene depen-dencies in a unified representation space. As a result, GeneFlow generates highly accurate and biologically meaningful predictions for unseen histology images at test time and achieves state-of-the-art performance across multiple datasets and evaluation metrics. Its strong accuracy, efficiency, and scalability suggest that simple generative designs can serve as practical and competitive solutions for large-scale spatial gene expression prediction. 
+
+## 6 Limitations and Ethical Considerations 
+
+Our results are bounded by several limitations. First, its prediction accuracy is constrained by the quality and representation capacity of the pathology foundation model. Second, GeneFlow relies pri-marily on paired H&E and ST data for supervision and does not ex-plicitly incorporate external biological knowledge, which may limit its generalizability in settings where paired training data are scarce. More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+For future work, it would be interesting to extend GeneFlow by incorporating additional modalities, such as language information. We conduct secondary analysis of publicly available, de-identified human and animal datasets without collecting new specimens or ac-cessing personally identifiable information. We position this work for research use and recommend that any deployment follow insti-tutional biosafety review and applicable regulations. 
+
+## 7 Generative AI Usage 
+
+We used generative AI tools to assist with drafting and refactor-ing code and polishing the manuscript for readability. The authors reviewed all AI-assisted content. All scientific claims, experimen-tal design, and results reported in the paper were generated and validated by the authors 
+
+## References 
+
+[1] Alma Andersson, Ludvig Larsson, Linnea Stenbeck, Fredrik Salmén, Anna Ehinger, Sunny Z Wu, Ghamdan Al-Eryani, Daniel Roden, Alex Swarbrick, Åke Borg, et al. 2021. Spatial deconvolution of HER2-positive breast cancer delineates tumor-associated cell type interactions. Nature communications 12, 1 (2021), 6012. [2] ARC Institute. 2025. Virtual Cell Challenge 2025 Wrap-Up. Accessed: 2026-03-30. [3] Chiara Baccin, Jude Al-Sabah, Lars Velten, Patrick M Helbling, Florian Grün-schläger, Pablo Hernández-Malmierca, César Nombela-Arrieta, Lars M Stein-metz, Andreas Trumpp, and Simon Haas. 2020. Combined single-cell and spatial transcriptomics reveal the molecular, cellular and spatial bone marrow niche organization. Nature cell biology 22, 1 (2020), 38–48. [4] Loïc Chadoutaud, Marvin Lerousseau, Daniel Herrero-Saboya, Julian Ostermaier, Jacqueline Fontugne, Emmanuel Barillot, and Thomas Walter. 2026. sCellST predicts single-cell gene expression from H& E images. Nature Communications 
+
+17, 1 (2026), 1194. [5] Richard J Chen, Tong Ding, Ming Y Lu, Drew FK Williamson, Guillaume Jaume, Andrew H Song, Bowen Chen, Andrew Zhang, Daniel Shao, Muhammad Shaban, et al. 2024. Towards a general-purpose foundation model for computational pathology. Nature Medicine 30, 3 (2024), 850–862. [6] Weiqing Chen, Pengzhi Zhang, Tu N Tran, Yiwei Xiao, Shengyu Li, Vrutant V Shah, Hao Cheng, Kristopher W Brannan, Keith Youker, Li Lai, et al. 2025. A visual–omics foundation model to bridge histopathology with spatial transcrip-tomics. Nature Methods 22, 7 (2025), 1568–1582. [7] Wei-Ting Chen, Ashley Lu, Katleen Craessaerts, Benjamin Pavie, Carlo Sala Frigerio, Nikky Corthout, Xiaoyan Qian, Jana Laláková, Malte Kühnemund, Iryna Voytyuk, et al. 2020. Spatial transcriptomics and in situ sequencing to study Alzheimer’s disease. Cell 182, 4 (2020), 976–991. [8] Youngmin Chung, Ji Hun Ha, Kyeong Chan Im, and Joo Sang Lee. 2024. Accurate spatial gene expression prediction by integrating multi-resolution features. In 
+
+Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition .11591–11600. [9] Andrew Erickson, Mengxiao He, Emelie Berglund, Maja Marklund, Reza Mirza-zadeh, Niklas Schultz, Linda Kvastad, Alma Andersson, Ludvig Bergenstråhle, Joseph Bergenstråhle, et al. 2022. Spatially resolved clonal copy number alter-ations in benign and malignant tissue. Nature 608, 7922 (2022), 360–367. [10] Xiaohang Fu, Yue Cao, Beilei Bian, Chuhan Wang, Dinny Graham, Nirmala Pathmanathan, Ellis Patrick, Jinman Kim, and Jean Yee Hwa Yang. 2025. Spatial gene expression at single-cell resolution from histology using deep learning with GHIST. Nature methods 22, 9 (2025), 1900–1910. [11] Minghao Han, Dingkang Yang, Linhao Qu, Zizhi Chen, Gang Li, Han Wang, Jiacong Wang, and Lihua Zhang. 2026. Fusing Pixels and Genes: Spatially-Aware Learning in Computational Pathology. In The Fourteenth International Conference on Learning Representations .[12] Bryan He, Ludvig Bergenstråhle, Linnea Stenbeck, Abubakar Abid, Alma An-dersson, Åke Borg, Jonas Maaskola, Joakim Lundeberg, and James Zou. 2020. Integrating spatial gene expression and breast tumour morphology via deep learning. Nature biomedical engineering 4, 8 (2020), 827–834. [13] Tinglin Huang, Tianyu Liu, Mehrtash Babadi, Wengong Jin, and Zhitao Ying. 2025. Scalable Generation of Spatial Transcriptomics from Histology Images via Whole-Slide Flow Matching. In International Conference on Machine Learning .PMLR, 25550–25565. [14] Zhi Huang, Federico Bianchi, Mert Yuksekgonul, Thomas J Montine, and James Zou. 2023. A visual–language foundation model for pathology image analysis using medical twitter. Nature medicine 29, 9 (2023), 2307–2316. [15] Amanda Janesick, Robert Shelansky, Andrew D Gottscho, Florian Wagner, Stephen R Williams, Morgane Rouault, Ghezal Beliakoff, Carolyn A Morrison, Michelli F Oliveira, Jordan T Sicherman, et al. 2023. High resolution mapping of the tumor microenvironment using integrated single-cell, spatial and in situ analysis. Nature communications 14, 1 (2023), 8353. [16] Guillaume Jaume, Paul Doucet, Andrew H. Song, Ming Y. Lu, Cristina Almagro-Perez, Sophia J. Wagner, Anurag J. Vaidya, Richard J. Chen, Drew F. K. Williamson, Ahrong Kim, and Faisal Mahmood. 2024. HEST-1k: A Dataset for Spatial Tran-scriptomics and Histology Image Analysis. In Advances in Neural Information Processing Systems .[17] Tao Jiang, Songming Zhang, Xiaofeng Chen, Xiongtao Xiao, Wenming Cao, Weikai Li, Tong Zhao, Bing Li, Xinyue Xu, and Zhongshan Li. 2026. STWave: Fine-Scale Spatial Structure Discovery in Microscopic-Resolution Spatial Tran-scriptomics via Patchwise Wavelet Graphs. Advanced Science (Aug. 2026), e77240. doi:10.1002/advs.77240 [18] Yang Jin, Zhicheng Sun, Ningyuan Li, Kun Xu, Kun Xu, Hao Jiang, Nan Zhuang, Quzhe Huang, Yang Song, Yadong MU, and Zhouchen Lin. 2025. Pyramidal Flow Matching for Efficient Video Generative Modeling. In The Thirteenth International Conference on Learning Representations .[19] Bowen Jing, Bonnie Berger, and Tommi Jaakkola. 2024. AlphaFold Meets Flow Matching for Generating Protein Ensembles. In Forty-first International Conference on Machine Learning .[20] Blue B Lake, Rajasree Menon, Seth Winfree, Qiwen Hu, Ricardo Melo Ferreira, Kian Kalhor, Daria Barwinska, Edgar A Otto, Michael Ferkowicz, Dinh Diep, et al. 2023. An atlas of healthy and injured cell states and niches in the human kidney. 
+
+Nature 619, 7970 (2023), 585–594. [21] Tianhong Li and Kaiming He. 2025. Back to Basics: Let Denoising Generative Models Denoise. arXiv preprint arXiv:2511.13720 (2025). [22] Yonghao Liu, Chuyao Wang, Zhikang Wang, Liang Chen, Zhi Li, Jiangning Song, Qi Zou, Rui Gao, Bin-Zhi Qian, Xiaoyue Feng, et al. 2025. High-parameter spatial multi-omics through histology-anchored integration. Nature Methods (2025), 1–14. [23] Ilya Loshchilov and Frank Hutter. 2019. Decoupled Weight Decay Regularization. In International Conference on Learning Representations .[24] Yiyang Lu, Susie Lu, Qiao Sun, Hanhong Zhao, Zhicheng Jiang, Xianbang Wang, Tianhong Li, Zhengyang Geng, and Kaiming He. 2026. One-step Latent-free Image Generation with Pixel Mean Flows. arXiv preprint arXiv:2601.22158 (2026). [25] Minxing Pang, Kenong Su, and Mingyao Li. 2021. Leveraging information in spatial transcriptomics to predict super-resolution gene expression from histology images in tumors. BioRxiv (2021), 2021–11. [26] William Peebles and Saining Xie. 2023. Scalable Diffusion Models with Trans-formers. In ICCV .[27] Benoît Schmauch, Loïc Herpin, Antoine Olivier, Thomas Duboudin, Rémy Dubois, Lucie Gillet, Alexandre Filiot, Jean-Baptiste Schiratti, Valentina Di Proietto, Del-phine Le Corre, et al. 2025. A deep learning-based multiscale integration of spatial omics with tumor morphology. Nature Communications (2025). [28] Amelia Schroeder, Melanie L Loth, Chunyu Luo, Sicong Yao, Hanying Yan, Daiwei Zhang, Sarbottam Piya, Edward Plowey, Wenxing Hu, Jean R Clemenceau, et al. 2025. Scaling up spatial transcriptomics for large-sized tissues: uncovering cellular-level tissue architecture beyond conventional platforms with iSCALE. 
+
+Nature methods 22, 9 (2025), 1911–1922. [29] Weixi Song, Zhetao Chen, Tao Xu, Xianchao Zeng, Xinyu Zhou, Lixin Yang, Donglin Wang, Cewu Lu, and Yong-Lu Li. 2025. L1 Sample Flow for Efficient Visuomotor Learning. arXiv preprint arXiv:2511.17898 (2025). [30] Patrik L Ståhl, Fredrik Salmén, Sanja Vickovic, Anna Lundmark, José Fernández Navarro, Jens Magnusson, Stefania Giacomello, Michaela Asp, Jakub O Westholm, Mikael Huss, et al. 2016. Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. Science 353, 6294 (2016), 78–82. [31] Marco Vicari, Reza Mirzazadeh, Anna Nilsson, Reza Shariatgorji, Patrik Bjärterot, Ludvig Larsson, Hower Lee, Mats Nilsson, Julia Foyer, Markus Ekvall, et al. 2024. Spatial multimodal analysis of transcriptomes and metabolomes in tissues. Nature Biotechnology 42, 7 (2024), 1046–1050. [32] Hongyi Wang, Xiuju Du, Jing Liu, Shuyi Ouyang, Yen-Wei Chen, and Lanfen Lin. 2024. M2ORT: many-to-one regression transformer for spatial transcriptomics prediction from histopathology images. arXiv preprint arXiv:2401.10608 (2024). [33] Xihua Wang, Xin Cheng, Yuyue Wang, Ruihua Song, and Yunfeng Wang. 2025. VAFlow: Video-to-Audio Generation with Cross-Modality Flow Matching. In 
+
+Proceedings of the IEEE/CVF International Conference on Computer Vision . 11777– 11786. [34] Ronald Xie, Kuan Pang, Sai Chung, Catia Perciani, Sonya MacParland, Bo Wang, and Gary Bader. 2023. Spatially resolved gene expression prediction from histol-ogy images via bi-modal contrastive learning. Advances in Neural Information Processing Systems 36 (2023), 70626–70637. [35] Yan Yang, Md Zakir Hossain, Eric A Stone, and Shafin Rahman. 2023. Exemplar guided deep neural network for spatial transcriptomics analysis of gene expres-sion prediction. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision . 5039–5048. Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Zhang et al.        
+
+> [36] Chenglei Yu, Chuanrui Wang, Bangyan Liao, and Tailin Wu. 2026. scDFM: Dis-tributional Flow Matching Model for Robust Single-Cell Perturbation Prediction. In The Fourteenth International Conference on Learning Representations .[37] Yuansong Zeng, Zhuoyi Wei, Weijiang Yu, Rui Yin, Yuchen Yuan, Bingling Li, Zhonghui Tang, Yutong Lu, and Yuedong Yang. 2022. Spatial transcriptomics prediction from histology jointly through transformer and graph neural networks.
+> Briefings in Bioinformatics 23, 5 (2022), bbac297. [38] Biao Zhang and Rico Sennrich. 2019. Root mean square layer normalization.
+> Advances in neural information processing systems 32 (2019). [39] Qinglun Zhang, Zhen Liu, Haoqiang Fan, Guanghui Liu, Bing Zeng, and Shuaicheng Liu. 2025. FlowPolicy: Enabling Fast and Robust 3D Flow-Based Policy via Consistency Flow Matching for Robot Manipulation. In Proceedings of the AAAI Conference on Artificial Intelligence , Vol. 39. 14754–14762. [40] Zhengyan Zhang, Yixin Song, Guanghui Yu, Xu Han, Yankai Lin, Chaojun Xiao, Chenyang Song, Zhiyuan Liu, Zeyu Mi, and Maosong Sun. 2024. ReLU 2Wins: Dis-covering Efficient Activation Functions for Sparse LLMs. arXiv:2402.03804 [cs.LG] [41] Sichen Zhu, Yuchen Zhu, Molei Tao, and Peng Qiu. 2025. Diffusion Genera-tive Modeling for Spatially Resolved Gene Expression Inference from Histology Images. In The Thirteenth International Conference on Learning Representations .
+
+## A Method Details 
+
+Hyperparameter Tuning Details . We also conduct comprehen-sive hyperparameter tuning for our GeneFlow: the dropout rate is chosen from {0, 0.2, 0.5}, the number of attention heads is searched in {1, 3, 6, 9}, the DiT depth is set to {3, 6, 9, 12 }, and the sampling steps are selected from {1, 2, 5, 10 }. We further evaluate the influ-ence of different prior distributions, including ZINB, Gaussian, and Zero distribution, together with multiple parameter configurations of the ZINB distribution. All models adopt an early stopping strat-egy, where training is halted if no performance improvement is observed for 25 epochs. Early stopping is determined solely by the convergence of the training objective, while the held-out slide is not used during training or early stopping. 
+
+## B Datasets 
+
+Table 6: Dataset statistics of spatially resolved transcrip-tomics dataset.                     
+
+> Oncotree Num. of Slides Tech. Slide ID Test Slide PRAD 23 Visium MEND139-162 MEND145 Kidney 23 Visium NCBI692-715 NCBI697 Mouse Brain 14 Visium NCBI658-672 NCBI667 HER2ST 37 Visium SPA119-155 SPA148
+
+We evaluated our method on four ST datasets from the HEST-1k database [16], covering multiple organs, species, and disease condi-tions. All datasets were generated using spot-based ST platforms and provide paired histology images and spatially resolved gene expression profiles. For each dataset, we adopted a slide-level split, where one slide was held out as the test set and all remaining slides were used for training. The detailed statistics of each dataset are summarized in Tab. 6. 
+
+HER2ST dataset [1] consists of breast cancer tissue sections with spatial spots of 100 𝜇 m diameter. The dataset contains multi-ple histopathology slides with a total of 13,594 spatial spots, each associated with gene expression measurements. The tissue regions include both normal breast tissue and malignant areas. We used the SPA148 slide as the test set and trained the model on all remaining slides. 
+
+Table 7: Performance metrics under different DiT depths. 
+
+DiT depth PCC-10 PCC-50 PCC-200 PCC-1000 3 0.5761 0.5109 0.4192 0.2616 6 0.5716 0.5122 0.4208 0.2545 9 0.5743 0.5180 0.4243 0.2633 12 0.5743 0.5121 0.4252 0.2739 
+
+Kidney Visium dataset [20] contains 23 human kidney tis-sue slides covering three pathological conditions: healthy controls, chronic kidney disease, and acute kidney injury. The data were generated using Visium technology with a spot diameter of 55 𝜇 m, and each slide contains between 315 and 4,159 spatial spots. The samples span both cortical and medullary anatomical regions. We used the NCBI697 slide as the test set and trained on the remaining slides. 
+
+Healthy Mouse Brain dataset [31] consists of 14 Visium slides from healthy adult mouse brain tissue, with spot sizes of 55 𝜇 m and between 2,675 and 3,617 spots per slide. This dataset provides spatial gene expression across multiple brain structures. We selected the NCBI667 slide as the test slide and used the rest of the slides for training. 
+
+Human Prostate Cancer (PRAD) Visium dataset [9] includes 23 prostate cancer tissue slides sequenced using the 10x Genomics Visium platform, with a spatial resolution of 55 𝜇 m. The number of spots per slide ranges from 1,418 to 4,079. We selected the MEND145 slide as the held-out test slide and used the other slides for training. 
+
+## C Baselines 
+
+We compare our method with several state-of-the-art approaches for spatial gene expression prediction, including StNet [12], EGN [35], BLEEP [34], TRIPLEX [8], Stem [41], and STFlow [13]. 
+
+• StNet adopts a convolutional neural network as the image en-coder to extract visual features from spot images. It maps the learned visual features to gene expression profiles through a simple linear projection head. 
+
+• EGN introduces an exemplar-guided network structure for ac-curate ST analysis. It achieves effective prediction by learning from representative and informative samples. 
+
+• BLEEP learns joint representations of histology images and gene expressions via contrastive learning. It predicts gene expressions by retrieving and averaging expressions of similar reference spots. 
+
+• TRIPLEX designs a multi-branch encoder architecture to capture target, local, and global information. It fuses multi-scale spatial features to achieve comprehensive transcriptomics prediction from histology images. 
+
+• Stem integrates histology image features and gene embeddings as conditions within a DiT-based generative architecture. It gener-ates accurate spatial gene expressions by conditioning on image patches through a transformer-based diffusion model. 
+
+• STFlow constructs a flow-based generative framework for ST prediction. It leverages conditional flow matching to model the distribution of gene expressions from histology images. More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology Conference acronym ’XX, June 03–05, 2018, Woodstock, NY 
+
+Figure 8: The distribution of PCC scores across all predicted genes for each model on MEND145 and NCBI667. 
+
+## D Additional Experimental Analysis 
+
+Ridge Plot Analysis . As shown in Fig. 8, GeneFlow maintains a clear lead in overall gene expression prediction performance: its distribution (blue curve) is significantly right-shifted compared to all competing models, with the highest density peak concen-trated in the high-PCC range (centered above 0.5). This indicates that GeneFlow achieves stronger correlation between predicted and ground-truth expression values for the majority of genes, with performance tightly clustered in the optimal range. In contrast, the distributions of Stem, TRIPLEX, StNet, EGN, and BLEEP are progressively left-shifted, with lower peak positions and wider spreads, reflecting weaker predictive accuracy and greater vari-ability across genes. Notably, BLEEP and EGN exhibit extended tails toward lower PCC values, further highlighting their inferior global performance relative to GeneFlow. Collectively, these pat-terns confirm GeneFlow’s superior and consistent ability to capture the global distribution of spatial gene expression. 
+
+Effectiveness of Gene Tokenizer . We perform Gene Ontology (GO) Biological Process enrichment analysis to examine the func-tional structure captured by the learned gene module tokens. For each token 𝑗 , we calculate the importance score of gene 𝑔 as the 
+
+ℓ2 norm of its corresponding projection weights across the token dimension, i.e., 𝑠 𝑔,𝑗 = ∥𝑊 𝑔,𝑗 ∥2, and select the five genes with the highest scores. Enrichment analysis is conducted using the GSEApy 
+
+Python package with its default enrichment configuration, mouse-specific GO Biological Process annotations, and default background gene universe. We use the multiple-testing-adjusted 𝑝 -values re-turned by GSEApy , considering terms with an adjusted 𝑝 -value below 0 .05 to be statistically significant. The heatmap in Fig. 10 reports the corresponding − log 10 -transformed adjusted 𝑝 -values. The enrichment patterns suggest that the gene tokenizer learns biologically meaningful and functionally distinct gene representa-tions. Each token is associated with a largely non-overlapping set of enriched GO Biological Process terms, indicating that different tokens capture relatively coherent functional gene modules. In ad-dition, the enrichment matrix is highly sparse, with most (token, pathway) pairs not reaching statistical significance. This suggests 
+
+Table 8: Performance under different hidden dimensions of gene tokenizer 
+
+Dim. 𝐻 PCC-10 PCC-50 PCC-200 PCC-1000 12 0.5502 0.4872 0.3919 0.2299 24 0.5888 0.5277 0.4424 0.2874 36 0.5851 0.5254 0.4369 0.2834 48 0.5856 0.5238 0.4287 0.2723 96 0.5741 0.5123 0.4237 0.2725 that individual tokens tend to focus on specific biological functions rather than indiscriminately mixing multiple processes. Overall, these results provide evidence that the gene tokenizer captures structured and interpretable gene programs suitable for ST model-ing. 
+
+Figure 10: GO Biological Process Enrichment heatmap for learned gene tokens in GeneFlow. 
+
+Effect of DiT Depth . Tab. 7 shows the effect of DiT depth on performance. Increasing the depth generally improves the PCC metrics, particularly PCC-200 and PCC-1000, indicating that deeper architectures better capture long-range dependencies across genes. Although increasing the depth from 9 to 12 provides only mar-ginal gains and causes slight fluctuations in PCC-10 and PCC-50, it achieves the best performance on the larger gene panels. There-fore, we select a depth of 12 to prioritize large-panel prediction performance despite its limited marginal benefit. 
+
+Effect of ZINB Distribution Hyperparameters . We use a zero-inflated negative binomial distribution Z( 𝜇, 𝜙, 𝜋 ) to model the spar-sity and overdispersion of ST expression counts. During training, the initial expression x0 is sampled directly from Z( 𝜇, 𝜙, 𝜋 ) and in-terpolated with the ground-truth expression x1 as x𝑡 = (1−𝑡 )x0+𝑡 x1.Conference acronym ’XX, June 03–05, 2018, Woodstock, NY Zhang et al. 
+
+Figure 9: Visualization of biomarker genes. Predicted expression of KLK3 and MSMB in PRAD tissue slide MEND145. 
+
+Figure 11: Training loss curves across different hidden di-mensions of the gene tokenizer. 
+
+During inference, a sample drawn from the same prior serves as the initial expression estimate and is iteratively refined by GeneFlow. We fix the zero-inflation probability at 𝜋 = 0.5, since an ex-cessively large value would make the prior approach a near-zero distribution. We vary the mean 𝜇 ∈ { 0.1, 0.2, 0.4} and dispersion 
+
+𝜙 ∈ { 1, 2, 4} to evaluate the sensitivity of GeneFlow to the ZINB parameterization. As shown in Tab. 5, the results are relatively stable for PCC-10 and PCC-50, while larger gene panels exhibit greater sensitivity to the prior parameters. Overall, a smaller mean combined with moderate dispersion provides better performance, with (𝜇, 𝜙 ) = (0.1, 1) achieving the best PCC-1000 score. 
+
+## D.1 Loss Space Analysis 
+
+As shown in Fig. 11, increasing the hidden dimension monotonically reduces the converged training loss, indicating that larger models can better fit the FM objective in the velocity space. However, the best predictive accuracy is achieved at a moderate dimension (24), while further increasing capacity degrades performance, suggesting that minimizing LFM is not well aligned with the downstream metric and cannot reliably reflect generalization. It indicates the need for more effective training-time evaluation protocols that are better correlated with downstream prediction quality, rather than relying solely on the FM loss as a proxy.
