@@ -1,0 +1,1489 @@
+Title: PerturbJEPA: Joint-Embedding Predictive Learning of Cellular Perturbation Responses
+
+URL Source: https://arxiv.org/pdf/2611.20575v1
+
+Published Time: Tue, 17 Nov 2026 04:38:27 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# PerturbJEPA: Joint-Embedding Predictive Learning of Cellular Perturbation Responses 
+
+## Jiangshuan Pang 1,2 , Youzhe He 2, Yiting Deng 1,2 , Wangyang Tang 2
+
+## Huinan Xu 2, Qi Lu 3, Shiping Liu 2,* , Zhenkun Zhuang 2,* 
+
+> 1
+
+School of Artificial Intelligence, University of Chinese Academy of Sciences, Beijing 100049, China 
+
+> 2
+
+Key Laboratory of Brain Cell Mapping of Zhejiang Province, BGI Research, Hangzhou 310030, China. 
+
+> 3
+
+Center for Excellence in Brain Science and Intelligence Technology (Institute of Neuroscience), Chinese Academy of Sciences 
+
+> *Corresponding authors: liushiping@genomics.cn, zhuangzhenkun@genomics.cn
+
+# Abstract 
+
+Identifying the drug and dose that produced a cellular response requires preserving treat-ment effects within each cellular background. A joint-embedding predictor can match its targets while ignoring the intervention if its encoder preserves differences across back-grounds but erases differences between treated and control populations within each one. We call this failure interventional contrast collapse . PerturbJEPA encodes the difference in mean gene expression between treated and control populations as an effect vector. It aligns the displacement between their latent centroids with this vector and regularizes the vectors to preserve variation across population pairs. We show that the measured displacements can-not all coincide within a batch when effect-vector variation exceeds the root-mean-square alignment error. Trained with separate drug and dose ranking objectives, the model predicts candidate responses from a common control population and matches them to the observed response without cell pairing or expression reconstruction. We evaluate 3,592 Tahoe-100M queries on held-out combinations of known interventions and cellular backgrounds, each with over 700 drug–dose candidates in a fixed, background-specific catalog. PerturbJEPA achieves 91.46% macro joint drug–dose Recall@1, exceeding STATE by 3.40 percentage points (95% drug-cluster bootstrap interval of 1.72 to 5.07 points). Controlled diagnostics show that treatment–control differences can shrink even when representations remain glob-ally dispersed. With the drug ranking objective fixed, adding effect-vector regularization to alignment raises joint Recall@1 from 18.57% to 87.47%.  
+
+> Code: https://github.com/BGI-Hangzhou-OmicsAI/PerturbJEPA
+
+1arXiv:2611.20575v1 [cs.CV] 16 Nov 2026 1 Introduction 
+
+Recovering the drug and dose responsible for an observed cellular response requires distinguishing intervention ef-fects within the same cellular background. We study 
+
+source-intervention retrieval : a forward model predicts each candidate response from a common control population and retrieves the closest match to an observed target from a catalog containing the true intervention. This extends transcriptional signature matching [11, 16] by conditioning predictions on the observed control cells. Destructive single-cell measurements preclude tracking indi-vidual cells before and after treatment, requiring prediction between unpaired populations. Joint-embedding predictive architectures (JEPAs) learn to predict target representa-tions without reconstructing observations [2]. Yet accurate prediction can become uninformative for retrieval if the representation discards treatment effects while preserving larger background variation. 
+
+Global representation diversity is insufficient. 
+
+Marginal regularizers discourage a constant representation by maintaining variation across examples [3, 14]. Yet an encoder can preserve differences between cellular backgrounds while assigning the same representation distribution to control and treated populations within each background. We call this failure interventional contrast collapse (ICC; Fig. 1). Under ICC, returning the control representation can match the target distribution. If the predictor does so for two doses of the same drug, their scores tie. The cellular background is identical for both candidates. 
+
+Effect preservation in retrieval geometry. Although each cell is measured only once, the treated and control means provide a measurable expression contrast without cell pairing. Pseudobulk-to-latent effect alignment (PEA) uses this contrast to supervise retrieval geometry (Fig. 2(b)). It aligns the scaled displacement between the two latent cen-troids with a learned embedding of the expression contrast. An auxiliary head could amplify a small displacement to predict the same target, even if the centroids remain close. Direct alignment ties the target to the displacement itself. Regularizing the effect target is essential: alignment alone allows the target and displacement to shrink together. A finite-batch bound relates effect-target variation and alignment error to measured displacement variation across population pairs. Controlled diagnostics assess treatment– control contrast during training, and separate drug and dose ranking losses train candidate discrimination. Population energy discrepancy (PED) additionally matches distributional structure and scores candidates at inference, when the effect branch is removed. We evaluate on 3,592 Tahoe-100M queries [21] with held-out combinations of known interventions and cellular backgrounds, each ranking over 700 drug–dose candidates. PerturbJEPA reaches 91.46% macro joint Recall@1, exceed-ing STATE by 3.40 percentage points. With the drug-ranking objective unchanged, adding effect-target regularization to alignment raises joint Recall@1 from 18.57% to 87.47%. A.  Global Representation Collapse  
+
+> B. Interventional Contrast Collapse
+> 1. Well-Structured Start
+> Latent dimension 1
+> Latent dimension 2  2. Progressive Degradation
+> Latent dimension 1
+> Latent dimension 2  3. Collapsed State
+> Latent dimension 1
+> Latent dimension 2
+> 1. Well-Structured Start
+> Latent dimension 1
+> Latent dimension 2  2. Progressive Degradation
+> Latent dimension 1
+> Latent dimension 2  3. Collapsed State
+> Latent dimension 1
+> Latent dimension 2
+> Biological population
+> (cellular context)
+> Population 1
+> Population 2
+> Population 3
+> Intervention status
+> Control
+> Perturbed
+> Training Progress
+
+Figure 1. Global collapse and interventional contrast collapse are different failure modes. Colors denote cellular backgrounds; circles and triangles denote control and treated cells. (A) Global col-lapse erases both background variation and intervention contrasts. (B) ICC removes treatment–control separation within each back-ground while retaining global dispersion. These are conceptual tra-jectories; Fig. 3 reports measured training dynamics. 
+
+We make three contributions. • We characterize ICC as a failure of conditional re-sponse retention despite global diversity, and diagnose contrast contraction under controlled training. • We introduce a fixed population-displacement con-straint with regularized effect targets and establish a finite-batch bound on measured displacement variation. • We show that retaining intervention contrasts and learning candidate orderings provide complementary retrieval gains on held-out combinations of known factors. 
+
+# 2 Related work 
+
+Predictive representations and selective feature loss. V-JEPA 2 learns predictive representations without observation reconstruction and supports action-conditioned prediction and planning [2]. LeJEPA [3] introduces SIGReg to en-courage an isotropic Gaussian embedding distribution, while LeWorldModel [14] combines distributional regularization with end-to-end latent dynamics learning. These objec-tives address global representation collapse, but preserving marginal diversity does not ensure that every relevant factor survives. Sobal et al. [15] show that predictive embeddings can favor persistent backgrounds over changing features. Our ICC formulation examines this distinction for conditional population responses: background variation can remain while matched treatment–control contrasts disappear. 
+
+Learning change through difference targets. Concurrent work MotionJEPA [9] learns temporal visual dynamics from consecutive images and evaluates downstream planning. Its DISReg objective predicts temporal-difference image embed-dings from paired state embeddings, regularizing both to pe-nalize constant targets. PerturbJEPA instead models cellular perturbation responses under destructive single-cell measure-ment, with unpaired control and treated populations, and re-trieves the source drug–dose intervention from an observed 2(a) Population prediction (b) Effect preservation Training only 
+
+(c) Intervention-discriminative ranking Training only               
+
+> Control Treated
+> Set encoder Set encoder Shared weights
+> Drug Dose
+> Intervention encoder
+> Predictor
+> PED
+> Population Energy Discrepancy
+> Training only
+> State-Marginal Isotropy (SMI) Training only Control (r = 0) Treated (r = 1)
+> slot index i slot index i
+> 1111222233334444Population pairs b
+> Across population pairs, separately for each slot and state.
+> : SIGReg
+> Fixed displacement operator
+> Effect target (pseudobulk)
+> Effect encoder
+> PEA
+> Pseudobulk-to-latent Effect Alignment
+> Effect-Space Isotropy (ESI) Training only
+> Effect targets
+> 123BPopulation pairs b
+> Across unscaled effect targets. : SIGReg
+> Drug candidates Dose candidates
+> Intervention encoder
+> Predictor
+> Same control Candidate predictions
+> Population Energy Discrepancy
+> Same treated population
+> Separate softmaxes
+> Drug Dose
+
+Training objective Figure 2. PerturbJEPA learns cell population responses for source-intervention retrieval. (a) Population prediction. A shared set encoder embeds unpaired control and treated cell populations. An intervention-conditioned predictor minimizes population energy discrep-ancy (PED); state-marginal isotropy (SMI) regularizes each slot across population pairs, separately for each state. (b) Effect preservation. 
+
+Pseudobulk-to-latent effect alignment (PEA) aligns the scaled, fixed centroid displacement ∆zb/α with the expression-contrast embedding 
+
+vb = g(∆ xb). Effect-space isotropy (ESI) regularizes these unscaled effect targets. (c) Intervention-discriminative ranking (IDR). Candi-date predictions share the same control and are compared with the same treated population, using separate drug and dose softmax losses. Point clouds and matrices are schematic. The effect branch and loss terms are training-only; retrieval scores candidates by PED. 
+
+response. Our difference target uses mean-expression con-trasts without cell correspondence, and PEA aligns it with a fixed scaled centroid displacement rather than a learned dif-ference predictor. Thus, whereas MotionJEPA makes tempo-ral change recoverable from paired visual states, PEA speci-fies where population response must appear in the geometry used for retrieval. Our finite-batch analysis relates retained effect-target variation and alignment error to measured cen-troid displacements. 
+
+Population response prediction. scGen represents pertur-bation effects through differences between latent population means [12]; CPA composes basal states, perturbations, and covariates [13]; and CellOT learns mappings between unpaired populations using optimal transport [4]. STATE combines cell-state representations with conditional transi-tions and decodes predicted states into expression [1]. We shape the predicted embedding space for direct response matching, comparing candidate predictions with the observed target in that space. 
+
+Cellular JEPA models. Cell-JEPA combines masked-view latent prediction with expression reconstruction, then uses perturbation-label embeddings and a perturbed-state JEPA objective for response prediction [6]. Its distinction between absolute-state prediction and effect-size estimation motivates assessing response information separately from state quality. BioJEPA-AC also conditions latent prediction on genetic and chemical interventions [8]. JEPA-Anything predicts latent treatment–control residuals through fac-torized pathways and evaluates decoded expression [5]. Building on intervention-conditioned latent prediction, we focus on explicit population-displacement constraints and response-based candidate ranking. 
+
+Response-based intervention retrieval. The Connectivity Map and L1000 connect interventions through observed ex-pression signatures [11, 16]. GeneSpeak-FP learns compound and target retrieval from observed cell-level responses relative to control, using a closed candidate library and held-out drug– cell-line groups [18]. PerturbJEPA instead predicts each can-3didate response from a common control population and com-pares these predictions with an observed target. This forward-model interface supports a shared retrieval task across sys-tems with different output spaces. Complementing Systema’s emphasis on perturbation-specific effects beyond systematic variation [19], our evaluation tests whether predictions distin-guish competing interventions within a common context. 
+
+# 3 Method 
+
+PerturbJEPA learns cell population responses for source-intervention retrieval : given a control population and an observed target response, it ranks a catalog of drug–dose actions to recover the recorded source. Figure 2 summarizes the model. Population prediction, effect preservation, and action discrimination impose complementary requirements on its learned representation. 
+
+## 3.1 Population prediction and intervention retrieval 
+
+A training example contains unpaired control and treated cell populations X0 
+
+> b
+
+, X 1 
+
+> b
+
+∈ Rn×G and action ab = ( db, s b). Con-trols match the treated population’s plate and cellular back-ground. As shown in Fig. 2(a), a shared encoder Eθ , inter-vention encoder eη , and predictor Pφ produce 
+
+Zrb = Eθ (Xrb ), bZb(a) = Pφ(Z0 
+
+> b
+
+, e η (a)) , (1) where r ∈ { 0, 1} and Zrb ∈ Rn×D . Expression counts are library-normalized to 10 4, log-transformed, and restricted to 
+
+G = 2 ,000 highly variable genes. Each cell starts from the token t(x) = P 
+
+> g
+
+xg Eg /∥x∥2, with a learned token for zero expression. The denominator normalizes expression weights, not the resulting embedding. An eight-layer set transformer (D = 512 , eight heads, feed-forward width 2,048 ) uses RM-SNorm and SwiGLU without positional encoding; attention operates only within each population. The action encoder constructs a learned drug token and a dose token from a 1 → 512 → 512 SiLU MLP applied to 
+
+log(1 + s/s +min ), where s+min is the smallest positive vocab-ulary dose. Both receive type embeddings and RMSNorm. Their mean conditions four predictor blocks through adap-tive RMSNorm shifts, scales, and residual gates, initialized to zero; a final affine RMSNorm produces the output. Drug identities use a lookup table, restricting prediction to known compounds. 
+
+Population Energy Discrepancy (PED). Unpaired cells require distributional prediction. For populations 
+
+U = {ui}mi=1 , V = {vj }nj=1 and ρ(u, v ) = ∥u − v∥2/√D,define 
+
+DE (U, V ) = 1
+
+mn 
+
+X
+
+> i,j
+
+ρ(ui, v j ) − 12m2
+
+X
+
+> i,i ′
+
+ρ(ui, u i′ )
+
+− 12n2
+
+X
+
+> j,j ′
+
+ρ(vj , v j′ ).
+
+(2) This empirical V-statistic includes diagonal terms and equals half the conventional energy distance [17]. Its within-population terms retain sensitivity beyond mean matching. We minimize LPED = B−1 P 
+
+> b
+
+DE ( bZb(ab), Z 1 
+
+> b
+
+) over a synchronized batch of B pairs. Both state branches receive gradients; there is no momentum teacher or stopped target gradient. The discrepancy compares realized empirical measures and requires no independence among encoded slots. At inference, encode the query once as Z0 = Eθ (X0)
+
+and Z⋆ = Eθ (X⋆). Each candidate predicts from the same control: 
+
+ba = arg min 
+
+> a∈A
+
+DE
+
+ Pφ(Z0, e η (a)) , Z ⋆ . (3) The catalog contains the source action. Full populations are scored in raw latent coordinates; drug-level retrieval selects each drug’s best-scoring dose. The effect branch described below is used only during training. 
+
+## 3.2 Interventional contrast collapse 
+
+PED admits an all-constant solution. State-Marginal Isotropy (SMI) discourages this global collapse using sample-count-normalized SIGReg [3]. Write I(U ) for its discrepancy between projected empirical characteristic functions and a standard Gaussian. We use 
+
+RSMI = 12n
+
+X
+
+> r∈{ 0,1}
+> n
+
+X
+
+> i=1
+
+I {zrbi }Bb=1 
+
+ . (4) Each slot is a sampled position, not a correspondence between cells. Statistics are aggregated across workers, separately for control and treated states. We use 256 random unit projections and 17 frequencies in [0 , 3] , without centering or standardiz-ing inputs. Global dispersion does not ensure preservation of inter-vention responses. Fix a background, an intervention, and a population-sampling protocol. Interventional Contrast Col-lapse (ICC) occurs when control and treated expression pop-ulations have distinct laws but their encoded empirical mea-sures have the same law, while representations remain glob-ally nondegenerate. The definition concerns distributions of sampled populations, including dependencies induced by set encoding. An illustrative construction exposes the gap. For input populations containing n repeated observations (H, R r ), let the encoder map every slot to 
+
+zrs = p1 − s2H + sR r , 0 ≤ s ≤ 1, (5) where H ∼ N (0 , I D ) is shared by the pair, each Rr is marginally standard Gaussian, and H is independent of 
+
+(R0, R 1). Every state marginal remains standard Gaussian. Yet a predictor copying the control incurs expected PED 
+
+s E∥R1 − R0∥2/√D: within-population distances vanish and all cross-distances scale with s. Shrinking s reduces prediction error while preserving state marginals. For a 4genuine conditional response, take R0 = U, R 1 = A with independent Gaussian H, U, A , and condition on background 
+
+H and action A. The input laws differ, but at s = 0 both encoded empirical measures equal δH . This construction demonstrates that ICC can coexist with nondegenerate state marginals; Figure 3 examines contrast contraction during training. 
+
+## 3.3 Preserving effects in population geometry 
+
+Pseudobulk-to-latent Effect Alignment (PEA) constrains the measured population change (Fig. 2(b)). Let ¯xrb and ¯zrb be population means, ∆xb = ¯ x1 
+
+> b
+
+− ¯x0 
+
+> b
+
+, and ∆zb = ¯ z1 
+
+> b
+
+− ¯z0 
+
+> b
+
+. An independent effect encoder g yields 
+
+vb = g(∆ xb), LPEA = 1
+
+BD 
+
+X
+
+> b
+
+∆zb
+
+α − vb
+
+> 22
+
+. (6) We set α = 0.2 and use the bias-free network g(x) =
+
+W2 tanh( W1(16 x)) with widths 2,000 → 128 → 512 ,without output normalization. It satisfies g(0) = 0 and 
+
+g(−x) = −g(x). Gradients update both state branches and the effect encoder. The fixed displacement operator directly places the learned effect in the centroid geometry of unpaired populations. Alignment alone permits ∆zb = vb = 0. We there-fore add Effect-Space Isotropy (ESI) , RESI = I({vb}Bb=1 ),across unscaled effect targets. A constant batch incurs at least SIGReg’s positive all-zero penalty: for each projected fre-quency, |eiu − ϕ|2 ≥ (1 − ϕ)2 with Gaussian characteristic value ϕ > 0. The bottleneck limits effects to at most 128 di-mensions, so ESI regularizes projected variation rather than attaining full 512 -dimensional isotropy. 
+
+Proposition 1 (Finite-batch contrast transfer) . Let V, ∆Z ∈
+
+RB×D stack the effect targets and latent displacements, and let HB = IB − 11 ⊤/B . Define Sv = ∥HB V ∥F /√BD ,
+
+S∆ = ∥HB ∆Z∥F /√BD , and ϵ = LPEA . Then 
+
+S∆ ≥ α Sv − √ϵ
+
+> +
+
+. (7) 
+
+Proof. Equation (6) gives ∥∆Z/α − V ∥F = √BDϵ . Since 
+
+HB is an orthogonal projection, centering cannot increase this norm. Applying the reverse triangle inequality to the centered matrices and dividing by √BD proves the bound. Proposition 1 shows that when variation in the effect targets exceeds the root-mean-square alignment error, the measured centroid displacements cannot all be equal within a batch. These displacements could still vary across cellular backgrounds while remaining identical for every intervention within each background. To distinguish candidates within the same background, we use IDR to train the predictor to rank the source drug above other drugs at the same dose and the source dose above other doses of the same drug. 
+
+## 3.4 Intervention-discriminative ranking 
+
+Intervention-Discriminative Ranking (IDR) compares all candidate predictions for a query against the same encoded treated population (Fig. 2(c)). After encoding each full pop-ulation, take its first R = 32 slots, denoted Zr, [R] 
+
+> b
+
+, and rerun the predictor on the reduced control for every candidate, in-cluding the positive: 
+
+qb(a) = −D E
+
+
+
+Pφ(Z0,[R] 
+
+> b
+
+, e η (a)) , Z 1,[R]
+
+> b
+
+
+
+/τ, ℓb(C) = − log exp qb(ab)
+
+P 
+
+> a∈C
+
+exp qb(a) ,
+
+(8) with τ = 0 .01 . Subsets are compared as distributions, with-out cell matching. The drug candidate set contains the source and eight different drugs sharing its dose identifier, selected by highest cosine similarity between normalized mean ac-tion tokens. Mining is detached, then selected actions are re-encoded with gradients. The dose candidate set contains the source and the other two observed dose identifiers for that drug. Numerical dose encoding is continuous, but candidate eligibility uses vocabulary identifiers. Averaging ℓb over these sets gives Ldrug IDR and Ldose IDR . They share the positive score but use separate nine-way and three-way softmaxes; no monotonic dose response is imposed. Gra-dients traverse the action encoder, predictor, and both state branches. The full objective is 
+
+L = LPED + RSMI + 0 .25 LPEA + RESI 
+
++ 10 −3Ldrug IDR + 10 −3Ldose IDR . (9) 
+
+# 4 Intervention retrieval experiments 
+
+Evaluation protocol. We evaluate source-intervention recovery on Tahoe-100M [21] using 3,592 held-out drug– dose–background queries spanning five cell lines. Each query contains 256 distinct treated cells and 256 matched control cells with the same plate composition. We exclude 
+
+81 test groups with fewer than 256 treated cells; their actions can remain candidates. Each query ranks its complete background-specific catalog of 734 or 735 drug–dose actions from 268 drugs. The split holds out combinations of known interventions and cellular backgrounds; it does not test unseen drugs or unseen cell lines. All methods receive the same frozen cells and candidate catalogs, with no test-time parameter updates. Joint R@1 measures recovery of the exact source drug– dose action. Drug R@1 ranks each drug by its best-scoring available dose. Conditional dose accuracy selects among the true drug’s doses for every query, regardless of drug-ranking accuracy. We use a hierarchical macro average: doses within drugs, drugs within backgrounds, and then the five backgrounds with equal weight. Recall and accuracy are percentages; MRR is multiplied by 100 . This weighting differs from pooling all requests: the full model’s joint R@1 is 91 .46% macro versus 91 .31% request-weighted. 5Table 1. Overall intervention retrieval. All eight systems use the same 3,592 queries and hierarchical macro aggregation. R@1 and dose accuracy are percentages; MRR is ×100 . Dose accuracy sup-plies the true drug. Joint Drug Dose Model R@1 MRR R@1 Acc. Mean 4.47 9.24 5.90 61.52 Linear 75.57 82.94 78.16 95.99 CPA 0.10 0.88 0.30 36.58 PerturbDiff (scratch) 1.92 4.17 2.90 49.38 PerturbDiff (fine-tuned) 2.93 5.96 3.42 48.70 STATE 88.06 91.39 89.44 97.36 CellFlow 4.63 11.78 5.86 76.94     
+
+> PerturbJEPA 91.46 94.43 91.74 99.31
+
+Systems, selection, and uncertainty. We compare Mean, additive ridge Linear, CPA [13], the official STATE check-point [1], both official PerturbDiff Tahoe releases [20], and a CellFlow adaptation [10]. Mean and Linear predict training-derived expression means; CPA is adapted from the official implementation. CellFlow retains the official flow-matching model and solver, with a training-only 100-dimensional PCA projection and a fixed training budget. Energy discrepancy scores every system in its own prediction space: expression for the first six rows of Table 1, PCA for CellFlow, and learned 512-dimensional populations for PerturbJEPA. For each PerturbJEPA configuration, validation joint R@1 selects a checkpoint on a common 263 -query panel, with joint MRR breaking ties, before test evaluation. Checkpoint selection uses a common catalog of 379 drugs at three positive doses ( 1,137 actions per background). We evaluate saved checkpoints every 10 k updates. Each configuration uses one training seed ( 42 ). Paired 95% confidence intervals (CIs) use 4,000 target-drug-cluster bootstrap replicates, retaining linked doses and backgrounds. They condition on the fitted checkpoints and frozen cells, and do not estimate variation across training seeds or cell resampling. 
+
+Implementation. The shared-encoder recipe uses 240 pop-ulation pairs per update, 256 cells per population, AdamW with peak learning rate 5 × 10 −5 and weight decay 10 −3, gra-dient clipping at 1, and BF16. The training budget is 200 ,000 
+
+updates, with 10 ,000 warmup updates followed by cosine de-cay. 
+
+Overall retrieval. PerturbJEPA achieves 91 .46% joint R@1 and 94 .43 MRR, compared with STATE’s 88 .06% and 
+
+91 .39 . The paired gains are 3.40 percentage points in joint R@1 (CI [1 .72 , 5.07] ) and 3.04 MRR units ( [1 .80 , 4.29] ). Drug R@1 improves by 2.29 points ( [0 .62 , 3.90] ), and condi-tional dose accuracy reaches 99 .31% . Linear attains 75 .57% 
+
+joint R@1, showing that additive training-set responses already contain substantial retrieval information. 
+
+## 4.1 Controlled contrast diagnostics 
+
+Figure 3 isolates representation behavior before ranking supervision. The state-only controls apply SIGReg across population pairs at each cell slot, across pooled population– cell slots, or separately within each population. With 60 
+
+population pairs and 256 cells, their respective sample counts are 60 , 15 ,360 , and 256 ; all use the same sample-count-normalized penalty. This comparison tests whether changing the axis of state regularization preserves intervention con-trasts while PED remains fixed. The alignment-only and complete-PEA configurations instead retain population-axis SMI, isolating the added effect constraints. PED alone collapses globally, whereas all three state-regularization axes retain scale near one while treatment–control contrasts contract. Alignment alone also leaves much smaller contrasts than complete PEA. Over updates 9,001–10,000, complete PEA gives mean energy and centroid contrasts of 0.0202 
+
+and 0.1599 , compared with 0.00402 and 0.0562 for SMI alone, at comparable global scales ( 0.9697 and 0.9737 ). These trajectories measure treatment–control separation. Two interventions can induce equally large shifts, so held-out retrieval tests whether the representation also distinguishes their responses. 
+
+## 4.2 Effect preservation and candidate discrimination 
+
+Preserving intervention effects. With drug IDR fixed (Table 2A), joint R@1 is 1.02% without the effect branch. PEA alignment raises it to 18 .57% , a gain of 17 .55 points ([15 .83 , 19 .28] ). Adding ESI completes PEA and raises retrieval to 87 .47% , a further 68 .90 points ( [66 .75 , 71 .02] ). Joint MRR follows the same progression, from 2.36 to 29 .79 
+
+to 92 .07 . The larger gain from ESI shows the value of maintaining variation in the effect targets. 
+
+Discriminating drugs and doses. With complete PEA fixed, the configuration without either IDR term reaches 
+
+82 .45% joint R@1. Adding drug IDR improves this by 5.01 
+
+points ( [3 .84 , 6.19] ), and drug R@1 rises from 85 .12% to 
+
+89 .83% . Adding dose IDR then improves joint R@1 by 4.00 
+
+points ( [3 .01 , 5.02] ) to 91 .46% . Conditional dose accuracy rises from 96 .47% to 99 .31% , while mean absolute log 10 
+
+dose error falls from 0.0495 to 0.0093 . Both configurations receive numerical doses, isolating the gain from within-drug ranking supervision. Joint R@50 changes only from 99 .15% 
+
+without IDR to 99 .71% with both terms. 
+
+Momentum targets. We also test effect preservation within an online/EMA-target JEPA recipe that omits SMI and re-tains both IDR terms. Adding complete PEA increases joint R@1 from 4.53% to 77 .00% , a paired gain of 72 .46 points ([70 .28 , 74 .54] ). PEA computes both centroids with the on-line encoder, while prediction and ranking use stop-gradient EMA targets. 6Table 2. Effect preservation and intervention discrimination. Panels A and B share reference (d). Panel C tests PEA with momentum targets. Panel D replaces only the PEA alignment in the full model (e). All rows report test results at validation-selected checkpoints. Row Configuration Enabled training objectives Joint Drug Dose PED SMI PEA ESI Drug IDR Dose IDR R@1 MRR R@1 Acc. 
+
+A. Preserve intervention effects Shared encoder; drug IDR fixed 
+
+(a) No effect branch ✓ ✓ × × ✓ × 1.02 2.36 1.92 37.89 (b) + PEA alignment ✓ ✓ δ × ✓ × 18.57 29.79 20.72 84.18 (d) + ESI (reference) ✓ ✓ δ ✓ ✓ × 87.47 92.07 89.83 96.47 
+
+B. Discriminate drugs and doses Shared encoder; complete PEA fixed 
+
+(c) No ranking losses ✓ ✓ δ ✓ × × 82.45 88.49 85.12 95.97 (d) + Drug IDR (reference) ✓ ✓ δ ✓ ✓ × 87.47 92.07 89.83 96.47 (e) + Dose IDR (full) ✓ ✓ δ ✓ ✓ ✓ 91.46 94.43 91.74 99.31 C. Effect preservation with momentum targets Both IDR terms fixed 
+
+(f) EMA, no effect branch ✓ × × × ✓ ✓ 4.53 9.90 7.33 55.00 (g) EMA + complete PEA ✓ × δ ✓ ✓ ✓ 77.00 84.26 79.55 95.55 
+
+D. Direct versus learned effect alignment Full model (e) as reference 
+
+(h) Learned endpoints ✓ ✓ hE ✓ ✓ ✓ 81.73 87.84 82.23 98.24 (i) Learned displacement ✓ ✓ h∆ ✓ ✓ ✓ 58.18 70.76 60.18 95.05 
+
+✓ and × denote active and inactive losses. PEA uses direct displacement ( δ), an endpoint head ( hE ), or a displacement head ( h∆). Weights are 1 for PED, SMI, and ESI, 0.25 for PEA, and 10 −3 for each IDR term. Metric units follow Table 1. 0 2k 4k 6k 8k 10k              
+
+> Optimizer step
+> 0.00 0.25 0.50 0.75 1.00
+> Global Latent Scale
+> aGlobal Latent Dispersion
+> 02k 4k 6k 8k 10k
+> Optimizer step
+> 0.000 0.015 0.030 0.045 0.060
+> Distributional Contrast
+> bDistributional Intervention Contrast
+> Complete PEA
+> 02k 4k 6k 8k 10k
+> Optimizer step
+> 0.00 0.08 0.16 0.24 0.32
+> Centroid Contrast
+> cCentroid Intervention Contrast
+> Complete PEA
+
+Training Dynamics of Latent Dispersion and Intervention Contrast 
+
+> Predictive Energy Population-Local Isotropy State-Marginal Isotropy PEA (Alignment only) Joint Population-Cell Isotropy
+> Complete PEA
+
+Figure 3. Global diversity and intervention contrast require distinct constraints. Six controlled runs share common initial weights and actual sampled training batches. (a) Global centered latent scale; (b) energy discrepancy between encoded treated and control populations; (c) their dimension-normalized centroid distance. State regularization sustains global scale but permits contrast contraction; complete PEA sustains larger contrasts than alignment alone. Both IDR terms are disabled for all 10,000 warmup updates. Curves are centered 101-step moving means from one training seed, with no uncertainty bands. Diagnostics use observed training populations, include sampling variation, and are not prediction errors. 
+
+Direct versus learned effect alignment. In concurrent work, MotionJEPA [9] predicts an encoded frame difference from two consecutive frame embeddings. To test this design for intervention retrieval, row (h) predicts the pseudobulk effect from the control and treated centroids of unpaired populations. Row (i) gives the head their scaled difference, isolating the effect of adding a learned map to direct PEA (e). With all six losses active, joint R@1 is 91 .46% for direct PEA, 81 .73% for the endpoint head, and 58 .18% for the displacement head. The gap for the endpoint head is already evident in drug R@1 ( 91 .74% to 82 .23% ), while conditional dose accuracy changes by only 1.07 points. 
+
+## 4.3 Design choices and input coverage 
+
+With drug IDR as the sole ranking objective, we vary how expression weights are normalized, how the intervention con-ditions the predictor, and how population discrepancy is mea-sured during training and retrieval. We then compare the full model trained on 2,000 highly variable genes with its all-gene counterpart. 7Table 3. Expression-weight normalization. For x̸ = 0 , cell tokens are t(x) = P                                                      
+
+> gxgEg/d (x).Other settings follow the drug-IDR reference in Table 2(d). Denominator d(x)Joint Drug Dose R@1 MRR R@1 Acc.
+> ∥x∥287.47 92.07 89.83 96.47
+> 187.55 91.99 89.99 96.43
+> ∥x∥138.72 52.29 42.47 86.96
+> Table 4. Intervention conditioning. Depth, width, and intervention encodings are matched. Both variants retain the reference input nor-malization and training objective from Table 2(d). Conditioning Joint Drug Dose R@1 MRR R@1 Acc. AdaLN 87.47 92.07 89.83 96.47 Prefix tokens 73.64 81.80 78.17 92.50
+> Table 5. Retrieval-distance sensitivity. The two independently validation-selected checkpoints are fixed while changing the test scorer. Both use complete PEA and drug IDR, with dose IDR dis-abled, and retain their original energy-based validation selection. Energy scoring Sinkhorn scoring Training R@1 MRR R@1 MRR Energy 87.47 92.07 86.74 91.51 Sinkhorn 62.89 73.39 63.07 73.50 Joint R@1 is a percentage; joint MRR is ×100 .
+
+Expression-weight normalization. In Table 3, removing 
+
+ℓ2 normalization changes joint R@1 by only +0 .09 points ([−1.18 , 1.38] ), whereas ℓ1 normalization reaches 38 .72% .Each denominator rescales the same weighted gene sum, pre-serving relative gene weights within a cell. The drop under 
+
+ℓ1 points to sensitivity to input scale, while the unnormalized sum performs comparably to the ℓ2 reference. 
+
+Intervention conditioning. Replacing AdaLN with prefix tokens lowers joint R@1 to 73 .64% (Table 4). Both predic-tors receive the same intervention encodings: AdaLN modu-lates every block, while the prefix model incorporates them through full self-attention over intervention and cell tokens. The stronger AdaLN result supports adaptive modulation for converting intervention information into predicted responses in PerturbJEPA. 
+
+Training and retrieval discrepancy. Replacing energy dis-crepancy with Sinkhorn divergence in both population predic-tion and drug ranking yields 62 .89% joint R@1 under energy scoring, with auxiliary weights and ranking temperature re-tained. Rescoring the fixed checkpoints with Sinkhorn gives 
+
+86 .74% for energy training and 63 .07% for Sinkhorn training (Table 5). Energy training retains its advantage under both                   
+
+> Table 6. Input-gene coverage. Both models use all six objectives and their own validation-selected checkpoints. Hidden width, depth, and optimization settings are matched; expanded input matrices in-crease parameter count. Units follow Table 1. Joint Drug Dose Input Genes R@1 MRR R@1 Acc. HVG2000 2,000 91.46 94.43 91.74 99.31 All genes 62,710 94.50 96.81 96.30 97.72
+
+scorers. The much smaller changes from rescoring show that the training recipe has a larger effect than the test discrepancy in this comparison. 
+
+Input coverage. Table 6 expands the complete model from 2,000 HVGs to all 62 ,710 genes and raises joint R@1 to 94 .50% , a paired gain of 3.04 points ( [1 .57 , 4.56] ), and joint MRR to 96 .81 . Drug R@1 reaches 96 .30% , whereas conditional dose accuracy decreases to 97 .72% . The ex-panded gene-embedding and effect-input matrices add both expression coverage and input-layer capacity, with hidden width, depth, and optimization settings held fixed. The gain favors drug identification, while the decline in conditional dose accuracy shows that greater input coverage does not automatically sharpen within-drug dose resolution. The supplementary material provides complete theoretical analysis and proofs, detailed ablation settings, baseline con-figurations, checkpoint selection, and additional aggregate re-trieval metrics. 
+
+# 5 Conclusion and limitations 
+
+The controlled trajectories show that an encoder can retain global diversity as the distance between treated and control populations shrinks. PerturbJEPA uses the change in mean expression to supervise the displacement between population centroids. The finite-batch bound relates variation in the ef-fect targets to variation in these displacements when align-ment error is small. Both learned heads predict the same type of effect target, yet joint recall is highest when the loss acts directly on the centroid displacement in the space used for retrieval. Drug and dose ranking train the predictor to dis-tinguish candidate responses from a common control. To-gether these objectives yield 91 .46% macro joint Recall@1 on Tahoe-100M, compared with 88 .06% for STATE. Two treatments can produce the same mean shift with dif-ferent mixtures of responding cells. They then supply the same target to PEA. Distinguishing them depends on whether the full population embeddings retain the distributional differ-ence scored by PED. Evaluation holds out combinations of known drugs and cellular backgrounds. Extending retrieval to unseen com-pounds would require replacing the drug lookup, for example with a chemical-structure encoder. Transfer to unseen cell lines remains open. 8References 
+
+[1] Abhinav K. Adduri, Dhruv Gautam, Beatrice Bevilacqua, Mohsen Naghipourfar, Alishba Imran, Rohan Shah, Noam Teyssier, Rishi Verma, Christopher Carpenter, Basak Eraslan, Francis Chalissery, Rajesh Ilango, Vishvak Subramanyam, Chiara Ricci-Tam, Sanjay Nagaraj, Aidan Winters, Mingze Dong, Stefanie Fellinger, Adam Krejci, Tilmann Burckstum-mer, Sravya Tirukkovular, Jeremy Sullivan, Brian S. Plosky, Nicholas D. Youngblut, Jure Leskovec, Luke A. Gilbert, Sil-vana Konermann, Patrick D. Hsu, Alexander Dobin, Dave P. Burke, Hani Goodarzi, and Yusuf H. Roohani. Predicting cellu-lar responses to perturbation across diverse contexts with State. 
+
+Cell , 189(19):5914–5931.e20, 2026. [2] Mahmoud Assran, Adrien Bardes, David Fan, Quentin Gar-rido, Russell Howes, Mojtaba Komeili, Matthew Muckley, Ammar Rizvi, Claire Roberts, Koustuv Sinha, Artem Zho-lus, Sergio Arnaud, Abha Gejji, Ada Martin, Francois Robert Hogan, Daniel Dugas, Piotr Bojanowski, Vasil Khalidov, Patrick Labatut, Francisco Massa, Marc Szafraniec, Kapil Krishnakumar, Yong Li, Xiaodong Ma, Sarath Chandar, Franziska Meier, Yann LeCun, Michael Rabbat, and Nico-las Ballas. V-JEPA 2: Self-supervised video models en-able understanding, prediction and planning. arXiv preprint arXiv:2506.09985 , 2025. [3] Randall Balestriero and Yann LeCun. LeJEPA: Provable and scalable self-supervised learning without the heuristics. arXiv preprint arXiv:2511.08544 , 2025. [4] Charlotte Bunne, Stefan G. Stark, Gabriele Gut, Jacobo Sara-bia del Castillo, Mitch Levesque, Kjong-Van Lehmann, Lu-cas Pelkmans, Andreas Krause, and Gunnar Rätsch. Learning single-cell perturbation responses using neural optimal trans-port. Nature Methods , 20(11):1759–1768, 2023. [5] Taoyong Cui, Zhongyao Wang, Xinyue Xu, Weiyang Liu, Zhaochen Yu, Yuying Zhang, Qiang Gao, Mengyue Yang, Wanli Ouyang, Pheng Ann Heng, Yingcheng Wu, Zhenfei Yin, and Ling Yang. JEPA-Anything: Learning predictive mod-els across different worlds. arXiv preprint arXiv:2609.20800 ,2026. [6] Ali ElSheikh, Rui-Xi Wang, Weimin Wu, Yibo Wen, Payam Dibaeinia, Jennifer Yuntong Zhang, Jerry Yao-Chieh Hu, Mei Knudson, Sudarshan Babu, Shao-Hua Sun, Aly A. Khan, and Han Liu. Cell-JEPA: Latent representation learning for single-cell transcriptomics. arXiv preprint arXiv:2602.02093 , 2026. [7] Jean Feydy, Thibault Séjourné, François-Xavier Vialard, Shun-ichi Amari, Alain Trouve, and Gabriel Peyré. Interpolating between optimal transport and MMD using Sinkhorn diver-gences. In Proceedings of the Twenty-Second International Conference on Artificial Intelligence and Statistics , pages 2681–2690. PMLR, 2019. [8] Domen Jemec and Bianca Lauro. BioJEPA-AC. GPTomics software release 1.0.0, 2026. [9] Markus Karmann, Shile Li, Christian Internò, Bruno Andreis, David Klindt, Randall Balestriero, Jindong Gu, Philip Torr, Qi Zhang, Peng-Tao Jiang, Hao Zhang, Bo Li, and Onay Ur-falioglu. MotionJEPA: Preventing temporal feature collapse by capturing visual changes in latent space. arXiv preprint arXiv:2609.23881 , 2026. [10] Dominik Klein, Jonas Simon Fleck, Daniil Bobrovskiy, Lea Zimmermann, Sören Becker, Alessandro Palma, Leander Dony, Alejandro Tejada-Lapuerta, Guillaume Huguet, Hsiu-Chuan Lin, Nadezhda Azbukina, Fátima Sanchís-Calleja, Theo Uscidda, Artur Szalata, Manuel Gander, Aviv Regev, Barbara Treutlein, J. Gray Camp, and Fabian J. Theis. CellFlow enables generative single-cell phenotype modeling with flow matching. 
+
+bioRxiv , art. 2025.04.11.648220, 2025. [11] Justin Lamb, Emily D. Crawford, David Peck, Joshua W. Modell, Irene C. Blat, Matthew J. Wrobel, Jim Lerner, Jean-Philippe Brunet, Aravind Subramanian, Kenneth N. Ross, Michael Reich, Haley Hieronymus, Guo Wei, Scott A. Arm-strong, Stephen J. Haggarty, Paul A. Clemons, Ru Wei, Steven A. Carr, Eric S. Lander, and Todd R. Golub. The Connectivity Map: Using gene-expression signatures to con-nect small molecules, genes, and disease. Science , 313(5795): 1929–1935, 2006. [12] Mohammad Lotfollahi, F. Alexander Wolf, and Fabian J. Theis. scGen predicts single-cell perturbation responses. Nature Methods , 16(8):715–721, 2019. [13] Mohammad Lotfollahi, Anna Klimovskaia Susmelj, Carlo De Donno, Leon Hetzel, Yuge Ji, Ignacio L. Ibarra, Sanjay R. Srivatsan, Mohsen Naghipourfar, Riza M. Daza, Beth Mar-tin, Jay Shendure, Jose L. McFaline-Figueroa, Pierre Boyeau, F. Alexander Wolf, Nafissa Yakubova, Stephan Günnemann, Cole Trapnell, David Lopez-Paz, and Fabian J. Theis. Pre-dicting cellular responses to complex perturbations in high-throughput screens. Molecular Systems Biology , 19(6):e11517, 2023. [14] Lucas Maes, Quentin Le Lidec, Damien Scieur, Yann LeCun, and Randall Balestriero. LeWorldModel: Stable end-to-end joint-embedding predictive architecture from pixels. In Ad-vances in Neural Information Processing Systems , 2026. [15] Vlad Sobal, Jyothir S V, Siddhartha Jalagam, Nicolas Car-ion, Kyunghyun Cho, and Yann LeCun. Joint embedding pre-dictive architectures focus on slow features. arXiv preprint arXiv:2211.10831 , 2022. Presented at the NeurIPS 2022 Work-shop on Self-Supervised Learning – Theory and Practice. [16] Aravind Subramanian, Rajiv Narayan, Steven M. Corsello, David D. Peck, Ted E. Natoli, Xiaodong Lu, Joshua Gould, John F. Davis, Andrew A. Tubelli, Jacob K. Asiedu, David L. Lahr, Jodi E. Hirschman, Zihan Liu, Melanie Donahue, Bina Julian, Mariya Khan, David Wadden, Ian C. Smith, Daniel Lam, Arthur Liberzon, Courtney Toder, Mukta Bagul, Marek Orzechowski, Oana M. Enache, Federica Piccioni, Sarah A. Johnson, Nicholas J. Lyons, Alice H. Berger, Alykhan F. Shamji, Angela N. Brooks, Anita Vrcic, Corey Flynn, Jacque-line Rosains, David Y. Takeda, Roger Hu, Desiree Davison, Justin Lamb, Kristin Ardlie, Larson Hogstrom, Peyton Green-side, Nathanael S. Gray, Paul A. Clemons, Serena Silver, Xi-aoyun Wu, Wen-Ning Zhao, Willis Read-Button, Xiaohua Wu, Stephen J. Haggarty, Lucienne V. Ronco, Jesse S. Boehm, Stu-art L. Schreiber, John G. Doench, Joshua A. Bittker, David E. Root, Bang Wong, and Todd R. Golub. A next generation Con-nectivity Map: L1000 platform and the first 1,000,000 profiles. 
+
+Cell , 171(6):1437–1452.e17, 2017. [17] Gábor J. Székely and Maria L. Rizzo. Energy statistics: A class of statistics based on distances. Journal of Statistical Planning and Inference , 143(8):1249–1272, 2013. [18] Kseniia Vaniushkina, Jeongmin Lim, and Jinyong Park. GeneSpeak-FP: Target and compound retrieval from ob-
+
+9served cell-level perturbation signatures. arXiv preprint arXiv:2607.17671 , 2026. [19] Ramon Viñas Torné, Maciej Wiatrak, Zoe Piran, Shuyang Fan, Liangze Jiang, Sarah A. Teichmann, Mor Nitzan, and Maria Brbi´ c. Systema: a framework for evaluating genetic perturba-tion response prediction beyond systematic variation. Nature Biotechnology , 44(6):1050–1059, 2026. [20] Xinyu Yuan, Xixian Liu, Ya Shi Zhang, Zuobai Zhang, Hongyu Guo, and Jian Tang. PerturbDiff: Functional diffusion for single-cell perturbation modeling. In Proceedings of the 43rd International Conference on Machine Learning , pages 151890–151937. PMLR, 2026. [21] Jesse Zhang, Airol A. Ubas, Valentine Svensson, Nicole Thomas, Vishvak Subramanyam, Christopher Carpenter, Aidan Winters, Richard de Borja, Noam Teyssier, Neha Thakar, Umair Khan, Pooja V. Akella, Harper J. Green, John D. Thompson, Vuong Tran, Joseph Pangallo, Efthymia Papalexi, Ajay Sapre, Hoai Nguyen, Oliver Sanderson, Maria Nigos, Olivia Kaplan, Sarah Schroeder, Bryan Hariadi, Simone Mar-rujo, Crina Curca, Alec Salvino, Guillermo Gallareta Olivares, Ryan Koehler, Alexander Rosenberg, Charles Roco, Chiara Ricci-Tam, Matthew G. Jones, Alexander Dobin, Brian S. Plosky, Danielle E. Lyons, Daniele Merico, Nima Alidoust, Hani Goodarzi, and Johnny Yu. Tahoe-100M: Mapping drug-induced molecular phenotypes at single-cell resolution. Cell ,189(19):5945–5961.e8, 2026. 
+
+10 Supplementary Material A Implementation and controlled diagnostics 
+
+Input and architecture. For raw counts cg , we compute 
+
+xg = log(1 + 10 4cg / P 
+
+> g′
+
+cg′ ) over the full library before retaining the fixed 2,000 highly variable genes (HVGs). The all-gene comparison instead retains 62,710 genes. The expression-weighted token P 
+
+> g
+
+xg Eg /∥x∥2 uses a learned empty-cell token when the denominator is zero. This normal-izes expression weights, not the resulting embedding vector. The population encoder has eight layers, eight heads, width 512, feed-forward width 2,048, RMSNorm, and SwiGLU. There is no positional encoding, causal mask, or attention between observed control and treated populations. Drug identity uses a learned lookup embedding and a learned type embedding followed by RMSNorm. Dose uses a 
+
+1 → 512 → 512 SiLU MLP on log(1 + s/s +min ), followed by a dose-type embedding and RMSNorm; s+min is the smallest positive vocabulary dose. The mean of these two tokens controls shifts, scales, and residual gates in a four-layer pre-dictor. Adaptive blocks use non-affine RMSNorm and a final affine RMSNorm; modulation and gates are zero-initialized. The effect encoder is g(∆ x) = W2 tanh( W1(16∆ x)) ,without biases or output normalization, with widths 
+
+2000 → 128 → 512 in the primary model; the all-gene model changes the first width to 62,710. Thus g(0) = 0 
+
+and g(−∆x) = −g(∆ x). Its output lies in a subspace of dimension at most 128, and ESI regularizes its projected variation. 
+
+Exact regularizer. For vectors U = {um}Mm=1 , draw K =256 unit Gaussian directions ak and use L = 17 frequencies 
+
+tℓ = ℓh , h = 3 /16 . Let ϕℓ = exp( −t2 
+
+> ℓ
+
+/2) , with weights 
+
+q0 = q16 = h and qℓ = 2 h otherwise. The implemented sample-count-normalized SIGReg [3] is 
+
+I(U ) = 1
+
+K
+
+X
+
+> k,ℓ
+
+qℓϕℓ
+
+1
+
+M
+
+X
+
+> m
+
+eit ℓa⊤  
+
+> kum
+
+− ϕℓ
+
+> 2
+
+. (10) Inputs are not centered or standardized. The quadrature weights include negative frequencies, and there is no ad-ditional sample-count factor. Directions are synchronized across workers and refreshed across calls; characteristic functions are aggregated over all workers. SMI applies this penalty separately to each state and cell slot across population pairs. ESI applies it across population-level effect embeddings. Section C.5 gives the corresponding finite-batch analysis. 
+
+Training and ranking. The main-paper PerturbJEPA recipes use training seed 42, 256 cells per population, 15 population pairs per worker, AdamW with peak learning rate 5 × 10 −5, weight decay 10 −3, gradient clipping at 1, and BF16 without gradient accumulation. The Pertur-bJEPA retrieval runs use a 200,000-update schedule with 10,000 warmup updates followed by cosine decay. The shared-encoder retrieval suite uses 16 workers (240 pairs per update); the EMA suite and controlled diagnostics use four workers (60 pairs). After encoding full populations, ranking selects the first 32 slots and reruns the predictor on that reduced control set for every candidate, including the positive. With both IDR terms enabled, one positive, eight same-dose alternative drugs, and two same-drug alternative doses are scored together, then partitioned into separate nine-way and three-way cross-entropies at temperature 0.01. Hard drug neighbors are chosen without gradients by cosine similarity of normalized mean intervention tokens, then re-encoded with gradients. The two positive-dose alternatives are required by the Tahoe training vocabulary; vehicle controls are not negative candidates. For energy-based training, PED and ranking use float32 tensorized GeomLoss [7] computations with pairwise distances pmax( ∥u − v∥22/D, 10 −8). At inference, full 256-cell populations are scored in raw coordinates, distances have the same numerical floor, and the final discrepancy is clamped at zero. For the ideal energy discrepancy without the numerical floor, omitting the common dimension factor preserves ranking in exact arithmetic. 
+
+Mechanism experiment. Six independently trained con-figurations share common initial tensors, actual sampled batches, preprocessing, and optimization settings. They run for the first 10,000 warmup updates with both IDR terms disabled. Besides PED alone, they use state SIGReg across the population axis, across the joint population–cell axis, or within each population; the latter sample counts are 60, 15,360, and 256. The remaining two configurations add alignment alone or complete PEA to population-axis SMI. Enabled SMI and ESI weights are 1 and alignment weight is 0.25. Diagnostics encode the actual training batch before update 0 and after each subsequent update, without predictor calls or random-state changes. For all N = 2 Bn observed embeddings, global scale is 
+
+qP 
+
+> j
+
+∥zj − ¯z∥2/(N D ). The other measures average matched treated–control energy discrepancy and ∥∆zb∥2/√D over pairs. They include population-sampling variation and are not prediction errors. The figure shows centered 101-step moving means with truncated boundary windows, from one training seed without uncertainty bands. Late-window means use unsmoothed updates 9,001–10,000: SMI gives global scale 0.9737, energy contrast 0.00402, and centroid contrast 0.0562; complete PEA gives 0.9697, 0.0202, and 0.1599. 
+
+Ablation configurations. The EMA tokenizer and encoder track online weights with decay increasing from 0.996 to 1 over the scheduled 200k updates. Prediction and ranking use stop-gradient target embeddings. Complete PEA adds a third encoder forward on treated cells through the online 11 branch so that the displacement uses one coordinate system. The prefix-token predictor has the same depth and width as AdaLN but uses affine RMSNorm and LayerScale initialized to 0.1; its parameter count is 16,785,920 versus 23,081,472 for AdaLN. The Sinkhorn recipe changes both prediction and ranking discrepancies, using debiased GeomLoss with 
+
+p = 2 , blur 0.50, scaling 0.9, and inputs divided by √512 ,while retaining auxiliary weights and ranking temperature. Its primary checkpoint selection still uses energy-based retrieval. Fixed-checkpoint rescoring changes only the test discrepancy. 
+
+# B Evaluation protocol and baseline configurations 
+
+Queries, split, and scoring. The condition–background split follows PerturbDiff’s Tahoe setting [20, 21]. Of 3,673 test drug–dose–background groups, 81 have fewer than 256 treated cells and are excluded as queries. The remaining 3,592 queries each freeze one sample of distinct target and control cells; target sampling balances source-pool quotas, and controls reproduce the target’s plate composition within the same background. Cells are unpaired and controls can recur across queries. The background-specific test catalogs contain 734 or 735 actions from 268 drugs, using observed test conditions; an action from an excluded query group may remain a candidate. Positive doses are 0.05, 0.5, and 
+
+5 μM, with two or three eligible doses per drug. The protocol requires 2,638,682 query–candidate scores per model and includes the true source action. Every method scores the same candidates against the ob-served target. Methods that condition on controls receive the same frozen control cells for every candidate. Candidate pre-dictions use no test responses. The primary comparison uses the same empirical energy formula in each method’s native output space. A frozen candidate-specific index breaks ex-act ties identically across methods. Drug scores take the best available dose. Dose accuracy supplies the true drug for ev-ery query: 690 queries offer two source-drug doses and 2,902 offer three. All methods are evaluated on the complete set of 3,592 queries. 
+
+Aggregation and uncertainty. For a per-query metric v,let C, Dc, and Scd denote backgrounds, drugs with retained queries, and their retained doses. There is one query per group, and the score is 
+
+Macro( v) = 1
+
+|C| 
+
+X
+
+> c
+
+1
+
+|D c|
+
+X
+
+> d
+
+1
+
+|S cd |
+
+X
+
+> s
+
+vcds . (11) Joint Recall@ K uses 1[rJ ≤ K], and MRR averages 1/r J;drug ranks are computed after dose aggregation. Four thousand paired bootstrap replicates resample 268 target-drug clusters with replacement, retaining linked doses and backgrounds and sharing sampled weights across compared methods. Percentile 2.5/97.5 bounds define the 95% intervals. All paired differences are computed from unrounded metrics. The intervals quantify variation across target drugs at fixed checkpoints and query cells. 
+
+Selection. Of 270 validation groups, 263 meet the 256-treated-cell threshold and cover 19 target drugs across five backgrounds. We freeze 256 treated and 256 plate-matched control cells per query, as on test. Each background uses the same validation catalog of 379 drugs at three positive doses (1,137 candidates). For each PerturbJEPA retrieval configuration, we use a 200,000-update training budget and select the checkpoint with the highest validation macro joint Recall@1 for test evaluation. Checkpoints are saved every 10,000 updates. For Recall@1 differences below 10 −12 , we break ties by joint MRR and then by earliest update. Table 8 gives the selected updates and validation scores. 
+
+Mean and Linear. Mean predicts the cell-weighted training mean for each drug–dose action, pooled across training backgrounds and including implicit zero expression. Linear fits training pseudobulk response differences using an unpenalized intercept, a background effect, and a cate-gorical action effect, with no interaction term. Responses subtract same-plate controls and average plates equally. Validation response MSE selects ridge coefficient 1 from 
+
+{0.01 , 0.1, 1, 10 , 100 } without refitting on validation. Predic-tion adds the fitted response to the query-control mean. Both use CP10K log-expression on the fixed, ordered set of 2,000 genes and return singleton distributions. 
+
+Released checkpoints. STATE [1] uses the official ST-HVG-Tahoe few-shot checkpoint and its native transition inference path with ordered HVGs. All 3,592 query condi-tions map to its declared test split, with none in its training condition list. The two PerturbDiff releases [20] use the official DDIM path with start time 100, η = 0 , guidance 1, clipping, and float32. Inputs are CP10K log-expression divided by 10; predictions are multiplied by 10 for scoring. The adapter divides controls by plate, deterministically pads each slice to 256 cells with replacement, generates predic-tions, discards padding, and restores query order. Initial noise is shared across candidates within a query and plate. 
+
+CPA. Official CPA [13] trains with its native objective on a fixed cache sampling at most 64 treated cells per plate–background–action group and 256 controls per plate– background group. The cache has 3,720,515 treated cells, 170,948 controls, and 18,255 validation cells. Training is configured for 20 epochs, with minimum validation nega-tive log-likelihood selecting the checkpoint. Native drug, continuous-dose, and background encoders are retained. Inference decodes conditional means for the same 256 controls, without added observation noise. 
+
+CellFlow. The adaptation retains the official conditional velocity model, optimal-transport flow-matching solver, 12 Table 7. Additional overall joint-retrieval metrics. All rows use the same 3,592 queries, fixed candidate catalogs, and hierarchical macro aggregation as the main comparison. Recall is a percentage and MRR is ×100 .Model R@1 R@5 R@10 MRR Mean 4.47 11.93 16.67 9.24 Linear 75.57 92.27 94.98 82.94 CPA 0.10 0.61 0.97 0.88 PerturbDiff (scratch) 1.92 5.08 7.64 4.17 PerturbDiff (fine-tuned) 2.93 7.86 11.20 5.96 STATE 88.06 95.28 96.76 91.39 CellFlow 4.63 16.84 26.42 11.78     
+
+> PerturbJEPA 91.46 98.04 98.77 94.43
+
+and probability path [10]. A centered non-whitened 100-component PCA fits 50,000 distinct training cells on the same ordered HVGs, retaining 45.08% of fit-sample variance; its parameters remain frozen. Conditioning uses a 1,024-slot radius-4 Morgan count fingerprint, log 10 dose in nM, and a 50-dimensional background one-hot vector. The condition encoder uses attention pooling and two 1,024-unit layers; its post-pooling output dropout is 0.9. The time branch uses three 2,048-unit layers; state and velocity branches each use three 4,096-unit layers, with SiLU activations. The model has 118,223,396 parameters. Training draws 256 controls and treated cells per group, with matched backgrounds and plate-local sampling; balanced OT uses squared Euclidean cost, mean cost scaling, ϵ = 1 , and tolerance 10 −3. The path is zt = (1 − t)z0 + tz 1 + ξ, ξ ∼ N (0 , I ), with target velocity 
+
+z1 − z0 and no condition regularization. Adam uses learning rate 5 × 10 −5 and accumulation over 20 population steps; 500,000 population steps give 25,000 updates on one A100 40GB. Evaluation uses final fixed-budget weights, without temporal averaging. Tsit5 transports query controls from time 0 to 1 with relative/absolute tolerances 10 −5, dropout disabled, and no added inference noise. Predictions are compared in native PCA space. Baseline comparisons assess system-level retrieval, while controlled ablations evaluate individual PerturbJEPA compo-nents. 
+
+# C Why interventional contrast collapses and how effect alignment helps 
+
+We analyze PED, SMI, PEA, and ESI under the ranking-free setting of the controlled mechanism experiment in the main paper. A response-contraction construction is followed by finite-batch results for the PEA and SIGReg losses. Section C.8 then reports an additional three-seed, 30k-update validation of these mechanisms. 
+
+## C.1 Scope and notation 
+
+Let c denote a matched biological and experimental context and a an intervention. Fix a population size n and a sampling protocol shared by the compared conditions. For a sampled expression population X, define the encoded empirical mea-sure 
+
+bμθ (X) = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+δ[Eθ (X)] i ,Qrθ,c = Law( bμθ (Xrc ) | c, r ) , r ∈ { 0, a }.
+
+(12) Thus Qrθ,c is a probability law over empirical measures. It includes population-sampling randomness and permits each slot’s embedding to depend on all cells in its own popula-tion. The definition accommodates dependent encoded slots and unpaired control and treated populations. Define the cor-responding expression-population laws by replacing bμθ (X)
+
+with n−1 P 
+
+> i
+
+δxi in Equation (12). Exact population-level ICC at (c, a ) occurs when these expression-population laws differ but Qaθ,c = Q0
+
+> θ,c
+
+, while the pooled state representation remains globally nondegenerate. Global nondegeneracy sep-arates this conditional failure from the all-constant represen-tation. The marginal law of a uniformly sampled encoded cell is the mean measure μrθ,c = E[bμθ (Xrc ) | c, r ]. Equality of the full laws Qaθ,c = Q0 
+
+> θ,c
+
+implies equality of these mean mea-sures, but the converse fails. For example, with n = 2 and 
+
+u̸ = 0 , let a control set be {u, u } or {− u, −u} with equal probability, whereas a treated set is always {u, −u}. Both random-slot marginals equal (δu + δ−u)/2, yet the control has zero within-set variance and the treated set does not. Their empirical-measure laws remain distinguishable, so this is not population-level ICC under Equation (12). When first moments exist, equality of Qaθ,c and Q0 
+
+> θ,c
+
+im-plies zero expected centroid contrast, 
+
+δθ (c, a ) = E
+
+"
+
+1
+
+n
+
+X
+
+> i
+
+[Eθ (Xac )] i | c, a 
+
+#
+
+− E
+
+"
+
+1
+
+n
+
+X
+
+> i
+
+[Eθ (X0 
+
+> c
+
+)] i | c, 0
+
+#
+
+= 0 .
+
+(13) The converse need not hold, and equality of these laws does not force two separately sampled populations to have iden-tical realized centroids. Likewise, PED compares a pair of realized empirical measures, not Qaθ,c and Q0 
+
+> θ,c
+
+directly. Its finite-sample value can be positive under equal population laws. Dependence between encoded slots does not invali-date the empirical discrepancy, but rules out importing an independent-cell null calibration without further assumptions. For a realized batch of B matched population pairs, define 
+
+∆xb = ¯ x1 
+
+> b
+
+− ¯x0 
+
+> b
+
+and ∆zb = ¯ z1 
+
+> b
+
+− ¯z0 
+
+> b
+
+, where bars denote means over the n cells and zrbi = [ Eθ (Xrb )] i. Let vb = g(∆ xb)
+
+be the learned effect target. Let ∆Z, V ∈ RB×D have rows 13 ∆z⊤ 
+
+> b
+
+, v ⊤ 
+
+> b
+
+, respectively, and define 
+
+R∆ = ∥∆Z∥F
+
+√BD , Rv = ∥V ∥F
+
+√BD ,S∆ = ∥HB ∆Z∥F
+
+√BD , Sv = ∥HB V ∥F
+
+√BD .
+
+(14) where HB = IB − 11 ⊤/B centers rows. R measures root-mean-square magnitude, whereas S measures variation across effects after removing their mean. These finite-batch quantities are distinct from the main-paper diagnostic 
+
+Cmean = B−1 P 
+
+> b
+
+∥∆zb∥2/√D, which averages norms rather than squared norms. They describe measured con-trasts; finite sampling can create nonzero measured contrasts even when population means agree. 
+
+## C.2 Objective definitions 
+
+For completeness, we state the objectives used in the analysis. For finite populations U = {ui}mi=1 and V = {vj }nj=1 , let 
+
+ρD (u, v ) = ∥u − v∥2/√D and define the exact empirical energy discrepancy 
+
+DE (U, V ) = 1
+
+mn 
+
+X
+
+> i,j
+
+ρD (ui, v j )
+
+− 12m2
+
+X
+
+> i,i ′
+
+ρD (ui, u i′ )
+
+− 12n2
+
+X
+
+> j,j ′
+
+ρD (vj , v j′ ).
+
+(15) The V-statistic includes diagonal terms. With Zrb =
+
+Eθ (Xrb ) and bZb = Pφ(Z0 
+
+> b
+
+, e η (ab)) , PED is LPED =
+
+B−1 P 
+
+> b
+
+DE ( bZb, Z 1 
+
+> b
+
+). The encoder is shared and both state branches receive gradients. Translation and scaling identities below concern this exact discrepancy before the numerical distance floor. The PEA objective is 
+
+LPEA (∆ Z, V ) = 1
+
+BD 
+
+∆Zα − V
+
+> 2
+> F
+
+, α > 0. (16) The implemented value is α = 0 .2. Its independently param-eterized effect encoder is 
+
+g(∆ x) = W2 tanh( W1(16∆ x)) , (17) with no biases or output normalization. For a collection U = {um}Mm=1 , let ak = ξk/∥ξk∥2 with 
+
+ξk ∼ N (0 , I D ). Use K = 256 unit directions, L = 17 
+
+frequencies tℓ = ℓh for ℓ = 0 , . . . , L − 1, and h = 3 /(L − 1) .Set ϕℓ = e−t2 
+
+> ℓ/2
+
+, q0 = qL−1 = h, and qℓ = 2 h otherwise. The sample-count-normalized SIGReg penalty is 
+
+bϕkℓ (U ) = 1
+
+M
+
+X
+
+> m
+
+eit ℓa⊤  
+
+> kum
+
+,
+
+I(U ) = 1
+
+K
+
+> K
+
+X
+
+> k=1
+> L−1
+
+X
+
+> ℓ=0
+
+qℓϕℓ bϕkℓ (U ) − ϕℓ
+
+> 2
+
+.
+
+(18) The weights incorporate the symmetric negative-frequency contribution; there is no additional factor of M . Inputs are not centered or standardized. Directions are synchronized across workers and refreshed across calls. SMI and ESI use this same penalty with different sample collections: 
+
+RSMI = 12n
+
+X
+
+> r∈{ 0,1}
+> n
+
+X
+
+> i=1
+
+I {zrbi }Bb=1 
+
+ ,
+
+RESI = I {vb}Bb=1 
+
+ .
+
+(19) Thus state regularization is across the synchronized batch for each state and cell slot, while effect regularization is across population-level effect targets. 
+
+## C.3 A predictive objective can suppress responses without losing state dispersion 
+
+First consider the exact energy discrepancy in Equation (15), before the numerical distance floor. For any two finite popu-lations U, V , common translation h ∈ RD , and scalar s ≥ 0,
+
+DE (h + sU, h + sV ) = s DE (U, V ). (20) Every Euclidean distance in the cross- and within-population terms is multiplied by s, which proves the identity. Conse-quently, if a state representation decomposes into a shared context component and a response component, contracting the response component also contracts any residual prediction discrepancy in that component. Because the target encoder is jointly trained, this can reduce PED without improving the predictor’s estimate of the original expression response. 
+
+Proposition 2 (Response contraction with unchanged state marginals) . Consider an illustrative representation family in which each encoded population consists of n repeated copies of 
+
+zrs = p1 − s2 H + sR r , 0 ≤ s ≤ 1, (21) 
+
+Here r ∈ { 0, 1}, H ∼ N (0 , I D ) is a background shared by the matched pair, each Rr has marginal law N (0 , I D ), and 
+
+H is independent of (R0, R 1). Suppose the predictor copies the encoded control population and ignores the action. Then each state marginal is N (0 , I D ) for every s, while 
+
+ELPED (s) = s
+
+√D E∥R1 − R0∥2,
+
+∆zs = s(R1 − R0).
+
+(22) 
+
+Thus, whenever P(R1̸ = R0) > 0, decreasing s strictly reduces the expected prediction loss while leaving state marginals unchanged. At s = 0 , the prediction loss is zero and the representation contains only background. Proof. For each r, the independent Gaussian terms in Equa-tion (21) have covariances (1 − s2)ID and s2ID , so their sum is standard Gaussian. All within-population distances vanish because slots are repeated. Every cross-population distance is 
+
+∥z1 
+
+> s
+
+− z0 
+
+> s
+
+∥2/√D = s∥R1 − R0∥2/√D. Substitution in Equa-tion (15) gives Equation (22). The expectation is finite by Gaussian first moments and positive when the two residuals differ with positive probability. 14 The construction can contain a genuine conditional intervention response despite identical unconditional state marginals. For example, take input populations consisting of repeated observations (H, R r ), with R0 = U and R1 = A,where U and a continuous intervention A are independent standard Gaussians, also independent of H. With context 
+
+c = H and action a = A, the control residual is random while the treated residual is fixed at A; the conditional input empirical-measure laws differ. At s = 0, both encoded populations have empirical measure δH , so both conditional laws in Equation (12) are the same point mass at δH . This construction establishes a response-suppressing descent path in a representation class admitting the stated encoders and copy predictor. The controlled training experiment in the main paper examines the corresponding contrast diagnostics in the implemented transformer. The unchanged-marginal argument also applies to the ex-pectation of the finite-sample SMI penalty, rather than only an ideal distribution constraint. If batch pairs are indepen-dent, each fixed state and slot supplies B independent stan-dard Gaussian vectors. For any unit projection and frequency 
+
+tℓ, the empirical characteristic function bϕℓ satisfies 
+
+E| bϕℓ − ϕℓ|2 = 1 − ϕ2
+
+> ℓ
+
+B ,
+
+ERSMI = 1
+
+B
+
+> L−1
+
+X
+
+> ℓ=0
+
+qℓϕℓ(1 − ϕ2 
+
+> ℓ
+
+).
+
+(23) The first equality follows from the variance of an average of independent complex variables of unit modulus and mean 
+
+ϕℓ; averaging Equation (18) gives the second. The nonzero sampling baseline is independent of s. Control–treated de-pendence does not change this calculation because their state penalties are computed separately. SMI can therefore pre-serve its expected value while within-context response infor-mation disappears. This calculation applies to the across-population SMI used by the main model. 
+
+## C.4 Alignment to a learned effect target still permits joint contraction 
+
+PEA introduces a matched contrast, but vb is not a fixed su-pervisory label. In particular, ∆Z = V = 0 gives LPEA = 0 
+
+even when the observed ∆xb are nonzero. More generally, simultaneous contraction of the two aligned quantities gives 
+
+LPEA (s∆Z, sV ) = s2LPEA (∆ Z, V ). (24) This follows by factoring s out of the squared residual in Equation (16). For an already aligned pair, the loss remains zero along the contraction; for an imperfectly aligned pair it decreases. The effect-branch part of this contraction is directly realizable by replacing its final matrix W2 with sW 2
+
+in Equation (17). The equality describes a contraction in representation-output space. It explains why alignment alone does not fix the zero-contrast solution admitted by PED and SMI. The output gradients show how alignment becomes infor-mative when its effect target is retained: 
+
+∂LPEA 
+
+∂∆zb
+
+= 2
+
+BDα 
+
+ ∆zb
+
+α − vb
+
+
+
+,∂LPEA 
+
+∂v b
+
+= − 2
+
+BD 
+
+ ∆zb
+
+α − vb
+
+
+
+.
+
+(25) At ∆zb = 0 and vb̸ = 0 , gradient descent on the state dis-placement moves it toward αv b. Since ∆zb = ¯ z1 
+
+> b
+
+− ¯z0 
+
+> b
+
+, the two population centroids receive opposite output gradients. At the same time, the effect-branch gradient tends to reduce an un-supported target, so a separate effect constraint is needed. Pa-rameter updates additionally depend on both encoders’ Jaco-bians. 
+
+## C.5 What the implemented effect regularizer rules out 
+
+The following statement applies directly to the finite direc-tions, frequencies, and positive quadrature weights of Equa-tion (18), for any effect-encoder rank. Define the penalty of the all-zero effect batch by 
+
+I0 =
+
+> L−1
+
+X
+
+> ℓ=0
+
+qℓϕℓ(1 − ϕℓ)2 > 0. (26) It is positive because the frequency grid includes nonzero fre-quencies with positive weights. 
+
+Proposition 3 (Constant effect targets incur a nonzero ESI penalty) . If vb = v◦ for every b, then I(V ) ≥ I 0, with equal-ity at v◦ = 0 . Hence I(V ) < I0 certifies that the realized batch contains nonconstant effect targets. Proof. For a constant batch, the empirical characteristic func-tion at direction ak and frequency tℓ is exp( it ℓa⊤ 
+
+> k
+
+v◦). For any real u and ϕℓ > 0,
+
+|eiu − ϕℓ|2 = 1 + ϕ2 
+
+> ℓ
+
+− 2ϕℓ cos u ≥ (1 − ϕℓ)2.
+
+Multiply by qℓϕℓ, sum over frequencies, and average over di-rections to obtain the claim. At v◦ = 0 , every term attains equality. ESI also has directions of decreasing penalty away from the all-zero effect batch. For fixed vectors wb with P 
+
+> b
+
+wb =0, let W stack the rows w⊤ 
+
+> b
+
+, set vb = sw b, and define 
+
+AESI = X
+
+> ℓ
+
+qℓϕℓ(1 − ϕℓ)t2 
+
+> ℓ
+
+> 0,MW = 1
+
+KB 
+
+X
+
+> k,b
+
+(a⊤ 
+
+> k
+
+wb)2.
+
+Taylor expansion of the finite sums in Equation (18) gives, as 
+
+s → 0,
+
+I(sW ) = I0 − s2AESI MW + O(s4). (27) 15 Indeed, the projected cosine mean is 
+
+1 − s2t2 
+
+> ℓ
+
+B−1 X
+
+> b
+
+(a⊤ 
+
+> k
+
+wb)2/2 + O(s4).
+
+The projected sine mean is O(s3) because the first moment is zero, so its square contributes only O(s6). Expanding the squared cosine residual yields Equation (27). For MW > 0, a sufficiently small nonzero s lowers ESI. ESI therefore favors effect variation along these output directions. The full pa-rameter update also depends on PEA, PED, and the network Jacobians. At the exact zero configuration, both ESI and PEA have zero first derivatives; escape from that stationary point requires more than the negative curvature of ESI in output space. 
+
+## C.6 Effect variation is transferred to latent intervention contrasts 
+
+Proposition 4 (Finite-batch contrast transfer) . For any real-ized state and effect embeddings with α > 0, let ϵ be the direct PEA loss in Equation (16) . Then 
+
+R∆
+
+α − Rv ≤ √ϵ, 
+
+S∆
+
+α − Sv ≤ √ϵ. 
+
+(28) 
+
+In particular, R∆ ≥ α(Rv − √ϵ)+ and S∆ ≥ α(Sv − √ϵ)+,where (u)+ = max {u, 0}.Proof. By Equation (16), ∥∆Z/α − V ∥F = √BDϵ . The reverse triangle inequality for the Frobenius norm gives 
+
+|∥ ∆Z/α ∥F − ∥ V ∥F | ≤ √BDϵ . Divide by √BD to obtain the first inequality. The matrix HB is an orthogonal projec-tion, so ∥HB (∆ Z/α − V )∥F ≤ ∥ ∆Z/α − V ∥F . Apply the same reverse triangle inequality to the centered matrices to obtain the second. Nonnegativity of the norms gives the stated one-sided forms. The two propositions identify the complementary roles of the complete PEA branch. ESI penalizes constant effect targets, and direct PEA couples their magnitude and varia-tion to the state-encoder displacement. For exact alignment, 
+
+∆Z = αV , so I(V ) < I0 excludes a batch of identical dis-placements, including an all-zero displacement batch. For ap-proximate alignment, Sv > √ϵ suffices to guarantee positive displacement variation, and Rv > √ϵ suffices to guarantee positive displacement magnitude. Section C.8 measures these quantities during training. 
+
+## C.7 Interpretation of the finite-batch results 
+
+The guarantees concern measured first-order contrasts and their variation over a realized batch. A nonzero expected centroid contrast δθ (c, a ) rules out equality of the corre-sponding population laws. Sampling can produce a nonzero realized ∆zb even under equal laws. Two responses with the same mean-expression shift supply the same target g(∆ x) to PEA. Differences in variance or cell-state mixtures can affect PED when the population embeddings retain them. The batch-level constraint also permits zero effects for individual interventions and shared effects across actions. For example, all actions within a context could share a nonzero shift h(c)
+
+while these shifts vary across contexts. Such displacements can exhibit batch-level variation and accurate PEA alignment yet carry no within-context drug identity. IDR supplies the separate source-label objective for within-context candidate discrimination. The effect encoder in Equation (17) has a 128 -dimensional hidden layer and a 512 -dimensional output. Thus every effect embedding lies in the image of W2, a subspace of dimension at most 128 , and its covariance cannot equal I512 . The finite projected ESI penalty regularizes the available subspace through its sampled directions. Propositions 3 and 4 remain valid under this bottleneck. The estimated expression difference ∆xb contains sam-pling variation and may contain residual experimental con-founding. The learned map g can compress these differences, so biological fidelity requires evidence about which directions it retains. The analysis establishes the geometric role of effect regularization and alignment; the retrieval experiments assess their utility for source discrimination. 
+
+## C.8 Additional 30k validation 
+
+We extend the 10,000-update contrast diagnostics in main-paper Figure 3 to 30,000 updates for three configurations and three training seeds (42–44). 
+
+Training and statistical protocol. All three configurations retain PED and population-axis SMI, with both IDR losses disabled. Here SB denotes SMI only, ALIGN adds direct PEA alignment, and FULL adds both alignment and ESI. Enabled SMI and ESI weights are 1, the alignment weight is 0.25, and 
+
+α = 0 .2. Within each seed, the configurations share initial tensors and actual sampled training batches. Four workers supply B = 60 matched population pairs per update, with 256 cells per population and D = 512 . We retain the 200k learning-rate schedule, including 10k warmup updates, and stop each run at 30k. Diagnostics are measured before update 0 and after ev-ery 50 updates, giving 601 records per run. Curves first ap-ply an 11-observation centered moving mean within each seed (a 500-update span, shortened at boundaries), then show the across-seed mean and sample standard deviation (SD). Unless stated otherwise, late-window values below are means of the three within-seed medians of the 20 raw observations in up-dates 29,001–30,000. Margins, bounds and normalized quan-tities are computed per raw batch before any aggregation. 
+
+Global dispersion and measured contrasts. All three vari-ants retain similar global scale in Figure 4. Late-window sz is 0.97895 for SMI only, 0.93905 for alignment, and 0.98042 for complete PEA. Complete PEA gives energy contrast 0.01673 and centroid contrast 0.18495, compared with 0.002484 and 16 0 10k 20k 30k 
+
+> Training updates
+> 0.0 0.5 1.0
+> Global state scale  sz
+
+(a)    
+
+> 010k 20k 30k
+> Training updates
+> 0.00 0.01 0.02 0.03 0.04
+> Energy contrast  CE
+
+(b)    
+
+> 010k 20k 30k
+> Training updates
+> 0.00 0.05 0.10 0.15 0.20
+> Centroid contrast  Cmean
+
+(c)   
+
+> SMI only SMI + alignment SMI + complete PEA
+
+Figure 4. Additional 30k validation of global dispersion and intervention contrast. All variants retain PED and population-axis SMI; alignment adds the PEA loss, and complete PEA also adds ESI. Both IDR losses are disabled. (a) Pooled, centered global state scale sz . (b) Matched observed treated–control energy contrast CE = B−1 P 
+
+> b
+
+DE (Z0 
+
+> b
+
+, Z 1 
+
+> b
+
+), using the implemented numerical distance floor. (c) Mean dimension-normalized centroid distance Cmean = B−1 P 
+
+> b
+
+∥∆zb∥2/√D. These are encoder diagnostics, not predictor errors; Cmean differs from R∆ and S∆ in Equation (14). Lines and bands show the mean and sample SD across three seeds after within-seed smoothing. The gray interval marks the 10k warmup. 
+
+0.01348 for SMI only, and 0.0002465 and 0.002354 for align-ment. Thus sustained global dispersion is compatible with much smaller treatment–control contrasts, while adding ESI to alignment retains larger measured responses. 
+
+When the transfer bound is positive. Figure 5 directly measures the quantities in Propositions 3 and 4. The fixed-projection diagnostic ESI uses I0 = 0.4020475797 .Its late-window ratio is 0.999805 for ALIGN and 0.06524 for FULL. ALIGN’s late-window penalty is close to the constant-batch threshold. Its target variation ( Sv = 0 .00712 )is smaller than its alignment error ( √ϵ = 0 .01729 ), where 
+
+ϵ is the unweighted loss in Equation (16). FULL retains 
+
+Sv = 0.96587 with √ϵ = 0.16309 . The corresponding late-window margins, computed before summarizing, are 
+
+−0.00998 and 0.79352 .In each FULL seed, all 20 late-window batches have a positive lower bound; no ALIGN batch in that window does. FULL’s observed S∆ is 0.18702 ± 0.00298 and its lower bound LS is 0.15870 ± 0.00406 , where ± denotes the sample SD of the three seed medians. The mean of the within-seed median ratios LS /S ∆ is 84 .95% (SD 0.31 percentage points). 
+
+Finite-pool response checks. Figure 6(a) divides each batch’s S∆ by its contemporaneous sz . The late-window ratios are 0.01414, 0.003394 and 0.19079 for SB, ALIGN and FULL, respectively, so a uniform rescaling of all state embeddings cannot explain the difference. At the prespec-ified 30k checkpoint, we evaluate the encoders on a frozen panel of 60 validation treatment conditions from five cell lines. For each condition, R = 20 draws sample 256 cells per population from the observed finite pools and re-encode complete populations. If dr is the treated-minus-control centroid difference in draw r, define the additional diagnostic 
+
+Uz = 1
+
+R(R − 1) D
+
+X 
+
+> r̸=s
+
+d⊤ 
+
+> r
+
+ds. (29) Under independent and identically distributed draws condi-tional on the pools, Uz estimates ∥E[dr | pools] ∥22/D without the squared sampling-error term in a single-draw norm. The matched null applies the same estimator to two independently drawn control populations. To remove a shift shared by drugs within a context, group conditions by plate, cell line and dose. For each eligible con-text with J ≥ 3 drugs and one condition per drug, let 
+
+edjr = djr − 1
+
+J
+
+> J
+
+X
+
+> k=1
+
+dkr ,Udrug ,z = 1
+
+JR (R − 1) D
+
+> J
+
+X
+
+> j=1
+
+X 
+
+> r̸=s
+
+ed⊤ 
+
+> jr
+
+edjs .
+
+(30) There are 17 eligible contexts. The null undergoes the same within-context centering. Condition summaries weight cell lines equally, then drugs, then conditions; context summaries weight cell lines equally, then contexts. Both statistics are divided by the checkpoint’s pooled true T/C panel variance 
+
+s2
+
+> z, panel
+
+, using the same denominator for response and null. This denominator differs from the training-batch scale in panel (a); the normalized statistics are descriptive ratios rather than unbiased estimates. At 30k, the three-seed means of normalized Uz are 
+
+1.344 ×10 −4, 3.603 ×10 −6 and 3.274 ×10 −2 for SB, ALIGN and FULL. The corresponding within-context cross-drug values are 4.296 × 10 −5, 1.262 × 10 −6 and 7.543 × 10 −3.FULL’s matched null means are −4.240 × 10 −6 and 17 0 10k 20k 30k 
+
+Training updates 
+
+> 0.0 0.5 1.0
+> Diagnostic ESI  (V)/ I0
+
+(a)    
+
+> Constant-batch lower limit = 1
+> 010k 20k 30k
+
+Training updates 
+
+> 0.0 0.3 0.6 0.9 1.2
+> Per-coordinate RMS
+
+(b)      
+
+> Effect variation Sv
+> Alignment error √ ε
+> 010k 20k 30k
+
+Training updates 
+
+> −0.4 0.0 0.4 0.8
+> Transfer margin  Sv − √  ε
+
+(c)    
+
+> 010k 20k 30k
+
+Training updates 
+
+> 0.00 0.06 0.12 0.18 0.24
+> Displacement variation
+
+(d)        
+
+> Observed SΔ
+> Bound α[Sv− √ ε]+
+> SMI + alignment SMI + complete PEA
+
+Figure 5. Effect-target variation and finite-batch transfer in the additional 30k runs. PED and SMI are common to both variants; complete PEA adds ESI to alignment. (a) Diagnostic I(V )/I0 using 256 fixed unit projections and the 17-point frequency grid of Equation (18); training ESI refreshes projections across calls. The reference line is the constant-batch lower limit; a raw value below 1 certifies nonconstant targets by Proposition 3. (b) Target variation Sv (solid) and unweighted alignment error √ϵ (dashed), with color identifying the variant. (c) Signed transfer margin mS = Sv − √ϵ. (d) FULL’s measured S∆ and lower bound LS = 0 .2[ mS ]+ from Proposition 4. SB has no effect branch and is omitted. Quantities are computed per batch before the smoothing and three-seed aggregation used in Figure 4. 
+
+−5.491 × 10 −6, respectively; finite-sample cross-draw esti-mates may be negative and are not clipped or square-rooted. Complete PEA retains mean-response variation across draws above the matched null, including after centering by plate, cell line and dose. These estimates condition on the observed pools, where cells may recur across draws and matched controls may overlap training. 
+
+Diagnostic reproducibility. Both finite-batch bounds held at every recorded step for ALIGN and FULL, the two vari-ants with effect targets. In a separate 100-update comparison with matched training cells and random-generator states, en-abling diagnostics produced a maximum parameter difference of 3.8091 × 10 −7 and failed the prespecified equality check (absolute tolerance 10 −7, relative tolerance 10 −6). Diagnos-tics were enabled in all nine reported runs. 
+
+# D Retrieval ablation settings and complete results 
+
+## D.1 Objectives and comparison design 
+
+The retrieval ablations comprise thirteen configurations using 2,000 highly variable genes (HVG2000) and one configura-tion using all 62,710 available genes. Each configuration is trained independently from scratch. The tokenizer, condition-ing, and discrepancy comparisons use the five-term drug-IDR reference. The learned alignment heads use the full six-term model as their reference. For the shared-encoder configurations, define 
+
+Lshared = LPED + RSMI ,
+
+Lcomplete = Lshared + 0 .25 LPEA + RESI . (31) Here PED matches predicted and observed populations, SMI regularizes state marginals, PEA aligns pseudobulk effects with latent displacements, and ESI regularizes the learned ef-fect targets. Complete PEA includes both the alignment loss and ESI. 18 0 10k 20k 30k 
+
+Training updates 
+
+> 0.00 0.06 0.12 0.18 0.24
+> Normalized variation  SΔ/sz
+
+(a)   
+
+> SMI + align. + full PEA
+
+30k checkpoint 
+
+> −10 −5
+> 010 −5
+> 10 −3
+> 10 −1
+> Response  Uz/s2
+> z, panel
+
+(b)   
+
+> SMI + align. + full PEA
+
+30k checkpoint 
+
+> −10 −5
+> 010 −5
+> 10 −3
+> 10 −1
+> Cross-drug  Udrug,  z/s2
+> z, panel
+
+(c)      
+
+> Seed 42: circle 43: square 44: triangle
+> SMI only SMI + alignment SMI + complete PEA
+> T-C response C-C null
+
+Figure 6. Additional checks for scale, sampling variation and shared context shifts. All three training variants retain PED and population-axis SMI with both IDR terms disabled. (a) Training-batch variation S∆/s z , with the same three-seed mean, SD and smoothing as Figure 4. (b) Cross-draw response Uz /s 2 
+
+> z, panel
+
+from Equation (29) and its matched control–control null at 30k. (c) Within-context cross-drug variation 
+
+Udrug ,z /s 2 
+
+> z, panel
+
+from Equation (30), with its corresponding null. Filled and hollow markers show response and null; each connecting line pairs one training seed, with circles, squares and triangles identifying seeds 42, 43 and 44. Panels (b,c) use identical symmetric-log limits, linear for absolute values at most 10 −6; negative estimates are retained. The frozen panel comprises 60 conditions, five cell lines, 17 eligible contexts and 20 draws per condition. 
+
+Effect preservation with drug ranking fixed. The no-effect configuration optimizes Lshared + 10 −3Ldrug IDR . The alignment-only configuration adds 0.25 LPEA . Adding RESI 
+
+gives the reference objective Lcomplete + 10 −3Ldrug IDR .
+
+Ranking with complete PEA fixed. The no-IDR config-uration optimizes Lcomplete while retaining both drug and numerical-dose encoders and the intervention-conditioned predictor. Adding 10 −3Ldrug IDR recovers the same reference used above. The full model further adds 10 −3Ldose IDR . Candi-date mining, subset sizes, temperature, gradient paths, and the separate drug/dose softmax normalizers are unchanged from Section A. 
+
+Regularization and alignment scale. The shared-encoder configurations apply sample-count-normalized SMI sepa-rately to each state and cell slot across population pairs, as specified in Section A. ESI acts on population-level effect embeddings. Direct PEA uses the alignment loss 
+
+LPEA = 1
+
+BDα 2
+
+> B
+
+X
+
+> b=1
+
+∥∆zb − αg (∆ xb)∥22, α = 0 .2.
+
+(32) Here B is the synchronized population-pair count, D = 512 ,and ∆zb and ∆xb are the treated–control centroid and expres-sion differences. The factor α−2 = 25 retains the alignment loss scale when it is written in displacement units. The en-coder architecture and input preprocessing follow Section A. 
+
+Learned effect alignment. Let δb = ∆zb/α and 
+
+vb = g(∆ xb). The direct loss above compares δb with 
+
+vb. We replace δb in this loss with either hE ([¯ z0 
+
+> b
+
+; ¯ z1 
+
+> b
+
+]) , using the concatenated observed control and treated centroids, or 
+
+h∆(δb), using their scaled difference. Each head has two 512-unit hidden layers with LayerNorm and GELU and a linear 512-dimensional output. Gradients update the head, both state branches, and g. All six loss weights and the test-time energy scorer are the same as in the full model. The paired joint R@1 gains for direct alignment are 9.74 
+
+points over hE (95% CI [7 .98 , 11 .43] ) and 33 .29 over h∆
+
+([31 .00 , 35 .57] ). 
+
+## D.2 Controlled changes to the model and discrepancy 
+
+Momentum-target JEPA. The two EMA configurations replace the shared target path with separate online and target encoders and omit SMI. Both optimize PED with drug and dose IDR; the effect-preserving configuration additionally includes 0.25 LPEA + RESI . PED and both IDR terms compare predictor outputs with stop-gradient EMA target embeddings. For PEA, treated populations are also encoded online, so their displacement from online controls is measured in a common coordinate system. PEA gradients update both online state branches and the expression-effect encoder; ESI regularizes the effect embeddings. The EMA decay increases from 0.996 to 1 over the scheduled 200,000 updates. Both EMA configurations use four workers with 15 population pairs per worker, or 60 pairs per update, whereas the shared-encoder suite uses 240 pairs. Adding complete PEA increases the population-encoder forward passes from two to three. The within-EMA comparison keeps the target 19 architecture and batch size fixed; comparisons with the shared-encoder family additionally change target updates, batch size, and regularization. 
+
+Expression-weight normalization. For a nonzero expres-sion vector x, the three cell-token constructions are 
+
+tℓ2 (x) = 
+
+P 
+
+> g
+
+xg Eg
+
+qP 
+
+> g
+
+x2
+
+> g
+
+, tℓ1 (x) = 
+
+P 
+
+> g
+
+xg Eg
+
+P 
+
+> g
+
+|xg | ,tnone (x) = X
+
+> g
+
+xg Eg .
+
+(33) The reference uses ℓ2 normalization; the unnormalized al-ternative removes only its denominator. Because expression is nonnegative, the ℓ1 rule forms an expression-weighted mean of gene embeddings. These choices change expression weights while retaining gene embeddings and population attention; they do not normalize the resulting token vector. Normalized modes use the learned empty-cell token when their denominator is nonpositive. The unnormalized mode uses that token when the sparse expression input contains no entries. 
+
+Intervention conditioning. The prefix-token alternative retains the ℓ2 tokenizer and drug-IDR objective, but passes 
+
+[ud; us; Z0] through a four-layer set transformer with full self-attention. Only the cell-token outputs form the predicted population; the two intervention-token outputs are discarded. Both predictors have width 512, eight attention heads, feed-forward width 2,048, and the same drug and dose encoders. The prefix-token blocks use affine RMSNorm and residual LayerScale initialized to 0.1, whereas the AdaLN reference uses zero-initialized adaptive modulation. The prefix predictor contains 16,785,920 parameters, compared with 23,081,472 for AdaLN. 
+
+Population-matching discrepancy. The reference uses energy discrepancy in both PED and the drug-IDR candidate scores. The alternative uses debiased GeomLoss Sinkhorn divergence [7] with p = 2, blur 0.50 , scaling 0.9, no unbalanced-mass relaxation, and the tensorized backend. Both input populations are converted to float32 and divided by √512 before either training discrepancy is evaluated. Writing the resulting divergence as DS , the Sinkhorn objective is 
+
+LS = 1
+
+B
+
+X
+
+> b
+
+DS ( bZb(ab), Z 1 
+
+> b
+
+) + RSMI 
+
++ 0 .25 LPEA + RESI + 10 −3Ldrug IDR ,S .
+
+(34) The subscript S denotes using Sinkhorn candidate distances in the drug-ranking cross-entropy. Ranking temperature, can-didate mining, subset size, and auxiliary weights are retained. The substitution changes the form and scale of both predic-tive and ranking supervision. Checkpoint selection and the primary comparison use the common energy-based retrieval scorer for both models. Section D.6 changes only the test scorer at these already selected checkpoints. 
+
+## D.3 Training, validation selection, and test uncertainty 
+
+Table 8 reports selection on the common validation panel from Section B. The full model uses the same checkpoint in the overall comparison and the ablation. Table 9 gives marginal 95% intervals on the common 3,592 test queries using the target-drug bootstrap from Section B. 
+
+## D.4 Full input-gene-universe comparison 
+
+Matched recipe and input dimensions. The complete HVG2000 and all-gene models use the same six loss weights, model width 512, encoder depth eight, predictor depth four, 
+
+ℓ2 pooling, and training settings from Section A. Both use 16 workers and 15 population pairs per worker, giving 240 pairs per update. The input gene universe expands from 2,000 HVGs to all 62,710 genes. Both use the full-library CP10K log-expression preprocessing in Section A; the all-gene model omits HVG selection. The effect-input projection grows from 128 × 2,000 to 128 × 62 ,710 , and the gene-embedding vocabulary expands to the same input universe. These matrices increase parameter count, so the comparison varies gene coverage and input-layer capacity together while keeping hidden dimensions and layer counts fixed. Prediction and retrieval continue to operate in embedding space. 
+
+Retrieval gains and dose trade-off. Table 10 reports all paired differences and intervals from this comparison. All-gene input improves joint Recall@1 by 3.04 percentage points, joint MRR by 2.38 units, and drug Recall@1 by 4.56 points, while reducing conditional dose accuracy by 1.60 points. Mean absolute log 10 dose error increases by 0.0207 ,with paired interval [0 .0109 , 0.0311] . The two models reach nearly identical joint Recall@50 (99 .69% for all genes and 99 .71% for HVG2000). The results support improved source-drug recovery and front-of-list joint retrieval for this configuration, with weaker conditional dose discrimination. 
+
+## D.5 Complete aggregate retrieval metrics 
+
+Tables 11 and 12 report all 14 metrics for each configura-tion. For source-action rank rJ 
+
+> q
+
+among Cq candidates, the additional per-query measures are 
+
+nDCG@10 q = 1[rJ 
+
+> q
+
+≤ 10] log 2(1 + rJ 
+
+> q
+
+) ,
+
+NR q = rJ 
+
+> q
+
+− 1
+
+Cq − 1 ,
+
+DoseErr q = | log 10 bsq − log 10 s⋆q |.
+
+(35) There is one relevant source action per query, so nDCG has unit ideal gain. Drug MRR averages reciprocal source-drug rank after best-dose aggregation. Dose error supplies the true 20 Table 8. Selected checkpoints and validation performance. Each configuration maximizes hierarchical macro joint Recall@1 on the common validation panel, with joint MRR and then the earliest update breaking ties. Recall is a percentage; MRR is multiplied by 100 .Configuration Selected (k updates) Val. joint R@1 Val. joint MRR Complete PEA, no IDR 180 77.89 85.35 Drug IDR, no effect 10 0.00 0.48 Drug IDR, alignment only 20 12.46 22.41 Complete PEA + drug IDR 120 86.67 91.45 Full HVG2000 model 160 91.58 94.92 Learned endpoints 70 79.65 87.07 Learned displacement 160 59.12 70.82 EMA, no effect 10 4.91 10.60 EMA + complete PEA 90 75.44 82.97 Unnormalized weights 180 87.54 91.07 
+
+ℓ1 weights 30 35.09 49.48 Intervention prefix tokens 140 72.63 80.55 Sinkhorn recipe 30 61.40 72.22 Full model, all genes 120 98.60 99.01 
+
+Table 9. 95% target-drug cluster bootstrap intervals for the selected checkpoints. Joint Recall@1 and dose accuracy use percentage units; MRR is ×100 . These intervals condition on the trained models and frozen query cells. Configuration Joint R@1 Joint MRR Dose Acc. Complete PEA, no IDR [80.65, 84.09] [87.15, 89.69] [95.10, 96.74] Drug IDR, no effect [0.45, 1.69] [1.61, 3.20] [36.81, 38.96] Drug IDR, alignment only [16.86, 20.30] [28.06, 31.51] [82.49, 85.81] Complete PEA + drug IDR [85.86, 88.92] [90.97, 93.09] [95.69, 97.18] Full HVG2000 model [90.01, 92.82] [93.33, 95.43] [98.98, 99.60] Learned endpoints [79.64, 83.77] [86.21, 89.40] [97.44, 98.92] Learned displacement [55.73, 60.61] [68.84, 72.75] [94.05, 95.97] EMA, no effect [3.53, 5.59] [8.66, 11.18] [52.91, 57.08] EMA + complete PEA [74.93, 78.96] [82.73, 85.72] [94.71, 96.30] Unnormalized weights [85.84, 89.11] [90.78, 93.10] [95.68, 97.12] 
+
+ℓ1 weights [36.40, 41.02] [50.22, 54.37] [85.37, 88.45] Intervention prefix tokens [71.44, 75.68] [80.03, 83.43] [91.25, 93.63] Sinkhorn recipe [60.36, 65.36] [71.29, 75.47] [90.23, 92.58] Full model, all genes [93.27, 95.59] [95.81, 97.58] [97.06, 98.31] 
+
+Table 10. Paired full-gene versus HVG2000 comparison. Both models use the complete six-term objective and their independently validation-selected checkpoints. Differences are full-gene minus HVG2000, computed before rounding. Intervals are paired 95% target-drug cluster bootstrap intervals. Recall and accuracy use percentage units; MRR is multiplied by 100 . Both dose metrics supply the true drug. Metric HVG2000 All genes Difference Paired 95% interval Joint Recall@1 91.46 94.50 +3 .04 [1 .57 , 4.56] 
+
+Joint MRR 94.43 96.81 +2 .38 [1 .38 , 3.42] 
+
+Drug Recall@1 91.74 96.30 +4 .56 [3 .16 , 6.09] 
+
+Conditional dose accuracy 99.31 97.72 −1.60 [−2.31 , −0.92] 
+
+Log-dose MAE ↓ 0.0093 0.0300 +0 .0207 [0 .0109 , 0.0311] 
+
+drug for every query and selects its best-scoring positive dose, including queries with an incorrect highest-ranked drug. All metrics follow the same hierarchical macro weighting; nor-malized rank and dose error are lower-is-better. Recall and ac-curacy are percentages, MRR is multiplied by 100, and nDCG remains on [0 , 1] .The extended metrics locate the ranking gains near the front of the candidate list. Adding both IDR terms to complete PEA raises joint Recall@1 from 82 .45% to 91 .46% , whereas Recall@50 changes from 99 .15% to 99 .71% . Thus ranking supervision improves the position of the source intervention, which the no-IDR model often already places among its first 50 predictions. 21 Table 11. Complete joint retrieval metrics. Recall values are percentages, MRR is ×100 , and nDCG@10 is on [0 , 1] . Normalized rank (NR) is lower-is-better; all other columns are higher-is-better. Definitions follow Appendix D.5. Configuration R@1 R@5 R@10 R@20 R@50 Joint MRR nDCG@10 NR ↓
+
+Complete PEA, no IDR 82.45 95.80 97.78 98.63 99.15 88.49 0.9073 0.002452 Drug IDR, no effect 1.02 2.55 3.56 5.53 10.74 2.36 0.0213 0.463000 Drug IDR, alignment only 18.57 41.53 51.54 62.62 77.99 29.79 0.3383 0.055814 Complete PEA + drug IDR 87.47 97.32 98.43 98.84 99.44 92.07 0.9362 0.001660 Full HVG2000 model 91.46 98.04 98.77 99.13 99.71 94.43 0.9547 0.000965 Learned endpoints 81.73 95.76 97.37 98.47 99.10 87.84 0.9012 0.003120 Learned displacement 58.18 86.98 93.27 96.75 98.90 70.76 0.7600 0.004716 EMA, no effect 4.53 13.59 19.90 27.82 42.65 9.90 0.1115 0.186857 EMA + complete PEA 77.00 93.73 96.89 98.11 99.25 84.26 0.8725 0.002501 Unnormalized weights 87.55 97.44 98.50 99.03 99.31 91.99 0.9358 0.001980 
+
+ℓ1 weights 38.72 68.73 79.56 88.17 94.87 52.29 0.5814 0.013962 Intervention prefix tokens 73.64 91.84 95.17 96.82 98.37 81.80 0.8495 0.005075 Sinkhorn recipe 62.89 86.79 92.31 95.58 97.70 73.39 0.7776 0.008991 Full model, all genes 94.50 99.30 99.44 99.49 99.69 96.81 0.9748 0.001114 
+
+Table 12. Complete drug and conditional-dose metrics. Recall and accuracy are percentages; MRR is ×100 . Dose error is mean absolute error in log 10 dose and is lower-is-better. Both dose metrics supply the true drug. Configuration Drug R@1 Drug R@5 Drug R@10 Drug MRR Dose Acc. Log-dose error ↓
+
+Complete PEA, no IDR 85.12 96.72 98.42 90.28 95.97 0.0540 Drug IDR, no effect 1.92 4.41 6.61 4.22 37.89 0.8613 Drug IDR, alignment only 20.72 44.90 56.26 32.75 84.18 0.2038 Complete PEA + drug IDR 89.83 97.98 98.94 93.57 96.47 0.0495 Full HVG2000 model 91.74 98.24 98.92 94.65 99.31 0.0093 Learned endpoints 82.23 96.21 97.79 88.35 98.24 0.0228 Learned displacement 60.18 88.66 94.62 72.68 95.05 0.0696 EMA, no effect 7.33 20.80 30.26 15.14 55.00 0.5666 EMA + complete PEA 79.55 95.15 97.86 86.28 95.55 0.0587 Unnormalized weights 89.99 97.98 98.94 93.56 96.43 0.0475 
+
+ℓ1 weights 42.47 73.40 84.37 56.45 86.96 0.1670 Intervention prefix tokens 78.17 93.61 96.60 85.09 92.50 0.1030 Sinkhorn recipe 66.72 89.61 94.10 76.61 91.47 0.1120 Full model, all genes 96.30 99.44 99.61 97.84 97.72 0.0300 
+
+## D.6 Retrieval-distance sensitivity at fixed checkpoints 
+
+Comparison design. The 2 × 2 experiment crosses energy or Sinkhorn training with energy or Sinkhorn test scoring. Both training recipes retain SMI, complete PEA, and drug IDR with dose IDR disabled. For each recipe, we select a checkpoint using energy scores on the validation panel and evaluate both test scorers at that checkpoint. 
+
+Fixed scoring profiles. The energy profile is the raw-coordinate retrieval scorer in Section A. The Sinkhorn profile uses the training divergence and coordinate scaling in Section D.2, with float32 arithmetic, autocast disabled, and final divergences clamped at zero. Both profiles evaluate full 256-cell predicted and target populations with identical query cells, candidate inputs, model evaluation mode, and tie-breaking rules. All Sinkhorn scores are finite and positive, with no top-one ties. 
+
+Paired comparisons. The bootstrap uses identical sampled drug weights across all four evaluations. Table 13 separates a change of scorer at one checkpoint from comparisons between training recipes under a common scorer. At the energy-trained checkpoint, Sinkhorn scoring changes joint Recall@1 by −0.72 points (95% interval [−1.16 , −0.31] )and MRR by −0.56 ([−0.83 , −0.31] ). At the Sinkhorn-trained checkpoint, the corresponding changes are +0 .18 
+
+([−0.17 , 0.54] ) and +0 .11 ([−0.09 , 0.31] ). Under Sinkhorn scoring, the Sinkhorn-trained minus energy-trained difference remains −23 .67 Recall@1 points ( [−26 .04 , −21 .30] ) and 
+
+−18 .01 MRR units ( [−19 .93 , −16 .21] ). Matching training and test discrepancies therefore does not close the retrieval gap at these checkpoints. Table 14 reports all 14 metrics under all four training/scoring combinations. 22 Table 13. Paired contrasts of test scorers and fixed checkpoints. Differences and 95% intervals use the same 4,000 target-drug bootstrap replicates across all four training/scoring combinations. Recall differences are percentage points. Each training recipe uses its independently validation-selected checkpoint, held fixed when changing the test scorer. Comparison ∆ Joint R@1 ∆ Joint MRR 
+
+Change test scorer: Sinkhorn minus energy, checkpoint fixed 
+
+Energy-trained -0.72 [-1.16, -0.31] -0.56 [-0.83, -0.31] Sinkhorn-trained +0.18 [-0.17, 0.54] +0.11 [-0.09, 0.31] 
+
+Compare checkpoints: Sinkhorn-trained minus energy-trained 
+
+Energy scoring -24.57 [-26.89, -22.31] -18.68 [-20.61, -16.87] Sinkhorn scoring -23.67 [-26.04, -21.30] -18.01 [-19.93, -16.21] 
+
+Table 14. Complete metrics for retrieval-distance sensitivity. Eand S denote energy and Sinkhorn, respectively; columns specify training/test discrepancy. Recall and dose accuracy are percentages, MRR is ×100 , and nDCG remains on [0 , 1] . Dose metrics supply the true drug. Each training recipe uses one fixed checkpoint for both test scorers. Metric E/E E/S S/E S/S Joint R@1 87.47 86.74 62.89 63.07 Joint R@5 97.32 97.06 86.79 87.10 Joint R@10 98.43 98.19 92.31 92.43 Joint R@20 98.84 98.79 95.58 95.43 Joint R@50 99.44 99.35 97.70 97.77 Joint MRR 92.07 91.51 73.39 73.50 Joint nDCG@10 0.9362 0.9314 0.7776 0.7788 Normalized rank ↓ 0.001660 0.001910 0.008991 0.008880 Drug R@1 89.83 88.96 66.72 66.83 Drug R@5 97.98 97.78 89.61 89.77 Drug R@10 98.94 98.77 94.10 94.20 Drug MRR 93.57 92.97 76.61 76.69 Dose Acc. 96.47 96.44 91.47 91.51 Log-dose error ↓ 0.0495 0.0508 0.1120 0.1110 
+
+23

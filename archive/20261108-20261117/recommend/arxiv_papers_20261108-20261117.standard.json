@@ -1,0 +1,218 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-17T18:41:44.250503+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 2,
+    "deep_cap": 7,
+    "deep_selected": 2,
+    "quick_candidates": 3,
+    "quick_skim_target": 12,
+    "quick_selected": 3
+  },
+  "deep_dive": [
+    {
+      "id": "2611.20575v1",
+      "source": "arxiv",
+      "title": "PerturbJEPA: Joint-Embedding Predictive Learning of Cellular Perturbation Responses",
+      "abstract": "Identifying the drug and dose that produced a cellular response requires preserving treatment effects within each cellular background. A joint-embedding predictor can match its targets while ignoring the intervention if its encoder preserves differences across backgrounds but erases differences between treated and control populations within each one. We call this failure interventional contrast collapse. PerturbJEPA encodes the difference in mean gene expression between treated and control populations as an effect vector. It aligns the displacement between their latent centroids with this vector and regularizes the vectors to preserve variation across population pairs. We show that the measured displacements cannot all coincide within a batch when effect-vector variation exceeds the root-mean-square alignment error. Trained with separate drug and dose ranking objectives, the model predicts candidate responses from a common control population and matches them to the observed response without cell pairing or expression reconstruction. We evaluate 3,592 Tahoe-100M queries on held-out combinations of known interventions and cellular backgrounds, each with over 700 drug-dose candidates in a fixed, background-specific catalog. PerturbJEPA achieves 91.46% macro joint drug-dose Recall@1, exceeding STATE by 3.40 percentage points (95% drug-cluster bootstrap interval of 1.72 to 5.07 points). Controlled diagnostics show that treatment-control differences can shrink even when representations remain globally dispersed. With the drug ranking objective fixed, adding effect-vector regularization to alignment raises joint Recall@1 from 18.57% to 87.47%.",
+      "authors": [
+        "Jiangshuan Pang",
+        "Youzhe He",
+        "Yiting Deng",
+        "Wangyang Tang",
+        "Huinan Xu",
+        "Qi Lu",
+        "Shiping Liu",
+        "Zhenkun Zhuang"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-11-16T05:59:30+00:00",
+      "link": "https://arxiv.org/pdf/2611.20575v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "predicts cellular perturbation responses via joint-embedding learning",
+      "llm_evidence_cn": "通过联合嵌入学习预测细胞扰动响应",
+      "llm_evidence": "通过联合嵌入学习预测细胞扰动响应",
+      "canonical_evidence": "通过联合嵌入学习预测细胞扰动响应",
+      "llm_tldr_en": "PerturbJEPA encodes treated-versus-control mean expression differences as effect vectors and aligns latent centroid displacements to them, avoiding interventional contrast collapse in cellular perturbation response prediction.",
+      "llm_tldr_cn": "识别产生细胞响应的药物与剂量需要在各细胞背景中保留处理效应，但联合嵌入预测器容易只匹配目标而忽略干预，出现干预对比坍缩。作者提出PerturbJEPA，将处理组与对照组平均表达的差异编码为效应向量，并把潜空间质心位移与之对齐，同时正则化以保持不同群体对之间的变异。实验表明该方法能在保留背景差异的同时保留处理效应，为单细胞扰动响应建模提供了可区分干预与背景的范式。",
+      "llm_tldr": "识别产生细胞响应的药物与剂量需要在各细胞背景中保留处理效应，但联合嵌入预测器容易只匹配目标而忽略干预，出现干预对比坍缩。作者提出PerturbJEPA，将处理组与对照组平均表达的差异编码为效应向量，并把潜空间质心位移与之对齐，同时正则化以保持不同群体对之间的变异。实验表明该方法能在保留背景差异的同时保留处理效应，为单细胞扰动响应建模提供了可区分干预与背景的范式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-09-24-754259-v2",
+      "source": "biorxiv",
+      "title": "PerturbBridge: Conditional Latent Schr dinger Bridge for Single-Cell Perturbation Prediction",
+      "abstract": "\\textbf{Motivation:}Single-cell perturbation prediction seeks to recover transcriptional responses to unseen interventions from unpaired control and perturbed populations. The Schr\\\"odinger Bridge provides a principled framework for modeling these transitions as stochastic transport, but learning bridge dynamics directly from high-dimensional, sparse gene-expression profiles remains challenging. \\textbf{Results:} We present PerturbBridge, a conditional latent Schr\\\"odinger Bridge framework for single-cell perturbation response prediction. A response-anchored autoencoder constructs a compact cellular representation that preserves dominant transcriptional response directions identified from training perturbations while encoding complementary cellular variation. In this latent space, PerturbBridge models conditional stochastic transport through a tractable approximation to the Schr\\\"odinger Bridge. We introduce the Perturbation-Induced Bridge Transformer, which uses perturbation and time-dependent slots to guide interactions among latent coordinates during drift estimation. Evaluations on Norman, Sci-Plex3, and Replogle RPE1 demonstrate leading performance in differential-expression direction recovery and perturbation-effect correlation, alongside competitive gene-expression prediction accuracy. \\textbf{Availability:} The source code is available at \\url{https://github.com/echQoQ/PerturbBridge}, with an archived version at \\url{https://doi.org/10.5281/zenodo.24272128}.",
+      "authors": [
+        "Liu, Z.",
+        "Jiang, C.",
+        "Yang, C.",
+        "Wang, X.",
+        "Liu, X."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-16T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.09.24.754259v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "single-cell perturbation response prediction via conditional latent Schrodinger bridge",
+      "llm_evidence_cn": "用条件潜空间薛定谔桥进行单细胞扰动响应预测",
+      "llm_evidence": "用条件潜空间薛定谔桥进行单细胞扰动响应预测",
+      "canonical_evidence": "用条件潜空间薛定谔桥进行单细胞扰动响应预测",
+      "llm_tldr_en": "PerturbBridge casts single-cell perturbation response prediction as conditional latent Schrodinger bridge transport, using a response-anchored autoencoder to preserve dominant transcriptional response directions.",
+      "llm_tldr_cn": "单细胞扰动响应预测需要从非配对的对照与扰动群体中推断未见干预的转录响应，而高维稀疏的表达谱使桥动力学难以直接学习。作者提出PerturbBridge，将任务建模为条件潜空间薛定谔桥的随机输运，并用响应锚定的自编码器构造保留主要转录响应方向的紧凑细胞表示。结果表明该框架能更准确地预测未见扰动的表达响应。该工作为虚拟细胞式的扰动响应建模提供了新的概率生成思路。",
+      "llm_tldr": "单细胞扰动响应预测需要从非配对的对照与扰动群体中推断未见干预的转录响应，而高维稀疏的表达谱使桥动力学难以直接学习。作者提出PerturbBridge，将任务建模为条件潜空间薛定谔桥的随机输运，并用响应锚定的自编码器构造保留主要转录响应方向的紧凑细胞表示。结果表明该框架能更准确地预测未见扰动的表达响应。该工作为虚拟细胞式的扰动响应建模提供了新的概率生成思路。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2611.18756v1",
+      "source": "arxiv",
+      "title": "ST-Dist: Distilling Spatial Transcriptomics Predictions into Interpretable Gene Axes for Distant Metastasis Prediction",
+      "abstract": "Distant metastasis at diagnosis determines the treatment of prostate cancer, but predicting it from routine biopsy slides is challenging as the signs of metastasis are not clearly localized and are more subtle than in standard tumor detection and subtyping tasks. Multiple instance learning (MIL) on pathology foundation-model features has become the standard approach when labeled data are abundant, but such models remain hard to interpret. Distant metastasis is further challenging, because confirming the label requires clinical follow-up beyond the routine H&E slides. To this end, we propose ST-Dist, which distills the gene expression predicted by a spatial transcriptomics (ST) model into a linear head mapping each tile's foundation-model features onto named gene axes. The slide's projections along these interpretable gene axes are then used for distant metastasis prediction with a simple logistic regression.   On 497 prostate needle biopsies (205 patients), ST-Dist reaches an AUROC of 91.37%, above nine MIL baselines. It remains competitive on the public TCGA-COAD and TCGA-KIRC cohorts, and it has the highest mean AUROC over the three cohorts. The ablations on the prostate biopsies show that the gene axes outperform a linear probe on encoder features, dimension-matched principal components, random gene panels and the ST model's own predicted expression, and the gain over the probe holds on all 13 pathology encoder settings that we tested. ST-Dist thus offers a simple, accurate and interpretable route from H&E to distant metastasis prediction.",
+      "authors": [
+        "Sandesh Pokhrel",
+        "Hamid Manoochehri",
+        "Beatrice S. Knudsen",
+        "Tolga Tasdizen"
+      ],
+      "primary_category": "eess.IV",
+      "categories": [
+        "eess.IV"
+      ],
+      "published": "2026-11-11T19:08:20+00:00",
+      "link": "https://arxiv.org/pdf/2611.18756v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "distills spatial transcriptomics predicted gene expression for metastasis prediction from biopsy slides",
+      "llm_evidence_cn": "将空间转录组预测的基因表达蒸馏用于活检切片转移预测",
+      "llm_evidence": "将空间转录组预测的基因表达蒸馏用于活检切片转移预测",
+      "canonical_evidence": "将空间转录组预测的基因表达蒸馏用于活检切片转移预测",
+      "llm_tldr_en": "ST-Dist distills gene expression predicted by a spatial transcriptomics model into interpretable gene axes to predict distant metastasis from routine biopsy slides.",
+      "llm_tldr_cn": "该文针对前列腺癌远处转移难以从常规H&E活检切片中可靠预测、且现有多实例学习模型可解释性不足的问题，提出ST-Dist，将空间转录组模型预测的基因表达蒸馏为线性头图，用于病理切片上的转移预测。该方法把空间转录组信息转化为可解释的基因轴，在常规切片任务中提供更可读的预测依据。其贡献在于连接组织形态、预测基因表达与临床转移风险，为病理基础模型提供可解释路径。",
+      "llm_tldr": "该文针对前列腺癌远处转移难以从常规H&E活检切片中可靠预测、且现有多实例学习模型可解释性不足的问题，提出ST-Dist，将空间转录组模型预测的基因表达蒸馏为线性头图，用于病理切片上的转移预测。该方法把空间转录组信息转化为可解释的基因轴，在常规切片任务中提供更可读的预测依据。其贡献在于连接组织形态、预测基因表达与临床转移风险，为病理基础模型提供可解释路径。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-29-762727-v1",
+      "source": "biorxiv",
+      "title": "MELD: Mutation Effect Learning through Differential embeddings",
+      "abstract": "We introduce MELD (Mutation Effect Learning through Differential Embeddings), a compact model for predicting the functional consequences of single nucleotide variants (SNVs) by training directly on the wild-type (WT) versus mutant differential. Interpreting SNVs is central to clinical genomics, yet experimental characterization cannot scale to millions of observed variants. Leading sequence-to-function models (Enformer, Borzoi, AlphaGenome) are trained on absolute genomic tracks and score variants post hoc through in-silico mutagenesis (ISM), so the WT-mutant difference never enters the training loss. MELD instead places the logit difference {Delta}z = zmut - zwt inside the supervised objective. It combines a shared CNN-Transformer encoder, a mutant-specific mutation-mask boost, multiscale mutation-centered pooling, and a learned adaptive amplification factor . On ClinVar (1.57M variants), MELD (1.9M parameters) reached an AUROC of 0.986 versus 0.800 for a same-data, same-backbone ISM baseline, with ablations confirming the contribution of each component. On a shared benchmark, it outperformed frozen foundation models with 3-1,300x more parameters (AUROC 0.967 vs. 0.924 for AlphaGenome and 0.936 for Nucleotide Transformer). With only 50, 000 training variants, it exceeded the ISM baseline trained on all 1.48M (AUROC 0.903 vs. 0.796) variants. On BRCA1 saturation genome editing, frozen MELD achieved a Spearman {rho} of 0.42, above Borzoi (0.40), and ClinVar transfer raised it to 0.45. These results demonstrate that direct differential supervision is a compact, data-efficient alternative to post-hoc ISM scoring with substantially larger pretrained models.",
+      "authors": [
+        "Alajji, A.",
+        "Jashil, R.",
+        "Mall, R.",
+        "Elshrif, M."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-09T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.29.762727v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "predicts functional consequences of single nucleotide variants via wild-type versus mutant differential",
+      "llm_evidence_cn": "通过野生型与突变型差分预测单核苷酸变异的功能后果",
+      "llm_evidence": "通过野生型与突变型差分预测单核苷酸变异的功能后果",
+      "canonical_evidence": "通过野生型与突变型差分预测单核苷酸变异的功能后果",
+      "llm_tldr_en": "MELD trains directly on wild-type versus mutant differentials to predict functional consequences of single nucleotide variants, bridging mutation effect prediction and perturbation modeling.",
+      "llm_tldr_cn": "该文针对现有序列到功能模型只在绝对基因组轨迹上训练、变异效应需事后通过计算机模拟突变评分的问题，提出MELD，将野生型与突变型的对数几率差直接放入监督目标，并结合共享CNN-Transformer编码器预测单核苷酸变异的功能后果。该方法让突变扰动信号进入训练过程，为遗传变异效应预测提供更直接的建模范式，但与单细胞扰动响应和虚拟细胞模型仍有距离。",
+      "llm_tldr": "该文针对现有序列到功能模型只在绝对基因组轨迹上训练、变异效应需事后通过计算机模拟突变评分的问题，提出MELD，将野生型与突变型的对数几率差直接放入监督目标，并结合共享CNN-Transformer编码器预测单核苷酸变异的功能后果。该方法让突变扰动信号进入训练过程，为遗传变异效应预测提供更直接的建模范式，但与单细胞扰动响应和虚拟细胞模型仍有距离。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Predicting cellular response to genetic perturbations",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2611.19905v1",
+      "source": "arxiv",
+      "title": "HEmIF-Bench: Benchmarking H&E-to-mIF Models BeyondVirtual-StainFidelity",
+      "abstract": "Hematoxylin and eosin (H&E)-to-multiplex immunofluorescence (mIF) generators predict spatial protein expression from routine histology, yet pixel-level marker reconstruction does not establish downstream utility. We present HEmIF-Bench, evaluating five frozen generators across eight datasets spanning molecular, cellular, tissue, and patient scales. HEmIF-Bench decouples internal encoder features from generated outputs, benchmarking both against the pathology foundation reference UNI2. Mirroring the clinical workflow where pathologists rely on mIF to define cell phenotypes, delineate tertiary lymphoid structures (TLSs) and germinal centers (GCs), and stratify patient risk, we evaluate external CD3 recovery, single-cell classification, dense nuclear segmentation, TLS/GC segmentation, and patient survival prediction. Across the benchmark, foundation-model-based MIPHEI-ViT leads among the generators, while non-foundation models show task-specific strengths. Comparing the two routes reveals that internal encoder features generally outperform generated outputs, and larger output marker panels do not guarantee stronger downstream utility across datasets. Moreover, neither internal encoder features nor generated outputs consistently surpass frozen UNI2. These findings show that pixel-level stain fidelity does not equate to downstream utility, and that generators trained at current paired-data scales have yet to surpass large-scale pure-H&E foundation models. With the expansion of paired translation cohorts and the advancement of foundation-based generative architectures, HEmIF-Bench establishes a definitive benchmark for tracking when H&E-to-mIF generation crosses the threshold to deliver genuine value beyond routine histology for tumor microenvironment analysis and precision oncology.",
+      "authors": [
+        "Fuxian Zhao",
+        "Hyokeun Park"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV"
+      ],
+      "published": "2026-11-15T09:34:47+00:00",
+      "link": "https://arxiv.org/pdf/2611.19905v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "benchmarking H&E-to-mIF generators that predict spatial protein expression from histology",
+      "llm_evidence_cn": "评测从组织学图像预测空间蛋白表达的H&E到mIF生成模型",
+      "llm_evidence": "评测从组织学图像预测空间蛋白表达的H&E到mIF生成模型",
+      "canonical_evidence": "评测从组织学图像预测空间蛋白表达的H&E到mIF生成模型",
+      "llm_tldr_en": "HEmIF-Bench evaluates five frozen H&E-to-mIF generators across eight datasets at molecular to patient scales, decoupling encoder features from outputs and testing downstream utility beyond virtual-stain fidelity.",
+      "llm_tldr_cn": "H&E到多重免疫荧光生成模型可从常规组织学预测空间蛋白表达，但像素级重建质量并不能证明下游可用性。作者构建HEmIF-Bench，在八个数据集上评估五个冻结生成器，覆盖分子、细胞、组织与患者多个尺度，并将编码器特征与生成输出解耦，与病理基础模型UNI2对比。评测涵盖外部CD3恢复、单细胞分类与密集核分割等任务，揭示虚拟染色保真度与下游效用之间的差距。该工作为组织学图像推断空间分子表达提供了更贴近临床的评价框架。",
+      "llm_tldr": "H&E到多重免疫荧光生成模型可从常规组织学预测空间蛋白表达，但像素级重建质量并不能证明下游可用性。作者构建HEmIF-Bench，在八个数据集上评估五个冻结生成器，覆盖分子、细胞、组织与患者多个尺度，并将编码器特征与生成输出解耦，与病理基础模型UNI2对比。评测涵盖外部CD3恢复、单细胞分类与密集核分割等任务，揭示虚拟染色保真度与下游效用之间的差距。该工作为组织学图像推断空间分子表达提供了更贴近临床的评价框架。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

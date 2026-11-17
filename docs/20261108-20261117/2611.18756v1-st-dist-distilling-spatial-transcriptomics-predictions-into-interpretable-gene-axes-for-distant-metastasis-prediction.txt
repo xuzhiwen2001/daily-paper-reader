@@ -1,0 +1,188 @@
+Title: ST-Dist: Distilling Spatial Transcriptomics Predictions into Interpretable Gene Axes for Distant Metastasis Prediction
+
+URL Source: https://arxiv.org/pdf/2611.18756v1
+
+Published Time: Tue, 17 Nov 2026 01:09:22 GMT
+
+Number of Pages: 5
+
+Markdown Content:
+# ST-DIST: DISTILLING SPATIAL TRANSCRIPTOMICS PREDICTIONS INTO INTERPRETABLE GENE AXES FOR DISTANT METASTASIS PREDICTION 
+
+# Sandesh Pokhrel 1 Hamid Manoochehri 1 Beatrice S. Knudsen 2 Tolga Tasdizen 11Department of Electrical and Computer Engineering and Scientific Computing and Imaging Institute, University of Utah, Salt Lake City, UT, USA 
+
+> 2
+
+# Department of Pathology, University of Utah, Salt Lake City, UT, USA 
+
+ABSTRACT 
+
+Distant metastasis at diagnosis determines the treatment of prostate cancer, but predicting it from routine biopsy slides is chal-lenging as the signs of metastasis are not clearly localized and are more subtle than in standard tumor detection and subtyping tasks. Multiple instance learning (MIL) on pathology foundation-model features has become the standard approach when labeled data are abundant, but such models remain hard to interpret. Distant metas-tasis is further challenging, because confirming the label requires clinical follow-up beyond the routine H&E slides. To this end, we propose ST-Dist, which distills the gene expression predicted by a spatial transcriptomics (ST) model into a linear head mapping each tile’s foundation-model features onto named gene axes. The slide’s projections along these interpretable gene axes are then used for distant metastasis prediction with a simple logistic regression. On 497 prostate needle biopsies (205 patients), ST-Dist reaches an AUROC of 91.37%, above nine MIL baselines. It remains com-petitive on the public TCGA-COAD and TCGA-KIRC cohorts, and it has the highest mean AUROC over the three cohorts. The abla-tions on the prostate biopsies show that the gene axes outperform a linear probe on encoder features, dimension-matched principal com-ponents, random gene panels and the ST model’s own predicted ex-pression, and the gain over the probe holds on all 13 pathology en-coder settings that we tested. ST-Dist thus offers a simple, accurate and interpretable route from H&E to distant metastasis prediction. 
+
+Index Terms — Spatial transcriptomics, distillation, MIL 
+
+1. INTRODUCTION 
+
+A patient who already has distant metastasis when prostate cancer is diagnosed (stage M1 rather than M0) needs systemic therapy, not lo-cal treatment alone. Knowing whether metastasis is present is there-fore one of the most important questions at diagnosis, and one that the biopsy from the primary tumor alone does not yet answer. Un-like tumor detection or subtyping, which have abundant labels and a clearly localized signal, metastasis prediction relies on signs that are not confined to one region of the slide [1, 2]. Additionally, confirm-ing metastatic status requires further imaging and clinical follow-up, which makes labels expensive and cohorts small. Clinical risk groups and tissue-based genomic classifiers such as Decipher [3], the cell cycle progression score [4] and the Genomic Prostate Score [5] help to assess the aggressiveness of the cancer but cannot establish a clear metastatic status. These classifiers addition-ally need dedicated molecular assays, which are not always avail-able. In contrast, the routine hematoxylin and eosin (H&E) slide exists for every patient, but whether this slide can predict M0/M1 status at diagnosis is largely unexplored. Recently, deep learning has shown the prognostic value of biopsy histology by combining slide images with clinical variables to predict long-term distant metastasis in phase III trial cohorts [6]. Standard approaches like multiple instance learning (MIL) on pathology foundation-model features [7, 8, 9] learn attention weights that pick out the most informative tiles, which suits localized sig-nals. With few labels, however, simple pooling without attention is often as good as complex MIL [10, 11]. Further, the explanations that MIL offers, mostly attention heatmaps, are not always accepted as interpretable [12]. Gene expression offers a different language for the same slide. Clinicians already reason about metastatic risk in terms of genes, and with models now capable of predicting expression from H&E, predicted expression can be leveraged for downstream tasks. Paired spatial transcriptomics (ST) resources such as HEST-1k [13] have enabled the development of foundation models such as STPath [14], which predicts tens of thousands of genes for every tile of a WSI. Similarly, virtual proteins predicted from H&E have been shown to improve prognostic prediction in lung cancer [15], further showing that predicted expression is useful for prognosis. In this work, we propose genes as a concept bottleneck [16]. Un-like a recent concept-based MIL method [12], which predicts its con-cepts with a vision-language model, we distill the concepts (genes) from an ST foundation model, STPath. A linear head on top of a frozen pathology encoder learns to reproduce the expression that the teacher, STPath, predicts for a small, pre-specified panel of metasta-sis related genes. A logistic regression trained on the outcome labels then predicts metastasis from the slide-averaged gene values. The head can sit on any pathology encoder, independent of the teacher’s backbone. We call this model ST-Dist. Every input of downstream classifiers using ST-Dist is thus a named gene rather than an un-named image feature. On 497 prostate needle biopsies, ST-Dist outperforms nine MIL methods, and we further evaluate it on two public cohorts of The Cancer Genome Atlas (TCGA), TCGA-COAD and TCGA-KIRC. Our contributions can be summarized as: • We introduce ST-Dist, an encoder-agnostic way to read pathol-ogy features through named gene axes, distilled from an ST model without outcome labels. • We show on three metastasis cohorts that this simple model matches or exceeds nine MIL methods, and that its gain over a linear probe on encoder features holds on 13 different encoder on prostate biopsies. • We trace the gain to the choice of genes rather than to the re-duction in dimension, and validate STPath’s predictions of two of the genes with the largest M1–M0 differences, MSMB and AZGP1, on measured ST. arXiv:2611.18756v1 [eess.IV] 11 Nov 2026 Learn Gene Axis Projection         
+
+> ST-Path ti
+> Predicted ST Ridge Loss Pathology Encoder fGene Head
+> ˜xi
+> W, b zs
+> W˜xi+b
+> Downstream Predictor
+> Logistic Regression M0 M1
+
+Fig. 1 . Overview of ST-Dist. Learn Gene Axis Projection: with-out outcome labels, the gene head (W, b) is fit so that its tile values 
+
+W ˜xi + b match STPath’s predicted expression ti (ridge loss, Eq. 1). 
+
+Downstream Predictor: with the gene head fixed, a logistic regres-sion predicts M0 or M1 from the standardized, slide-averaged gene values zs. Snowflake: frozen. STPath is not used at inference. 
+
+2. METHOD Problem setting. A slide s is represented by its Ns tissue tiles, with features xi = f (tile i) ∈ Rd from a frozen pathology encoder f .The task is to predict the slide label ys ∈ { 0, 1} (M0 or M1) from a small labeled cohort. ST-Dist addresses it as shown in Fig. 1. 
+
+Tile encoder. Our primary pathology encoder ( f ) is Prov-Giga-Path [17], a vision transformer pretrained by self-supervised learn-ing on 1.3 billion tiles ( d = 1536 ). Any other pathology encoder can serve as f . The teacher, STPath, always receives GigaPath features, so a different encoder changes only the input of the gene head. 
+
+Spatial transcriptomics teacher. STPath is a generative founda-tion model that predicts the expression of 38,984 genes from his-tology. It is a geometry-aware transformer, pretrained by masked gene-expression prediction on about 1,000 public slides with paired ST profiles from 17 organs. Each tile is one token, which com-bines the tile’s GigaPath feature, an expression input, an organ to-ken and a sequencing-technology token; tile positions enter through the geometry-aware attention. At inference, all expression inputs are masked, so the prediction rests on histology alone. We use the organ token of each cohort (Prostate, Kidney or Bowel) and no technology token. For tile i, STPath produces a 512-dimensional latent ui (af-ter layer normalization). Each gene g is a fixed linear readout of it, 
+
+tig = a⊤ 
+
+> g
+
+ui + ag0. For a panel of G genes, we collect these values in ti ∈ RG.
+
+Choosing the gene panel. The gene panel is a predefined set of genes to predict from the teacher. It is fixed before any outcome is seen and is derived from the union of published gene sets for the endpoint: signatures of metastasis and aggressiveness, lineage genes and cancer drivers. Genes outside the teacher’s vocabulary are re-moved. Our selection of panels is described in Sec. 3. 
+
+Distilling the gene head. The student is a linear gene head, W ∈
+
+RG×d and b ∈ RG, that maps a tile feature to the teacher’s values. Let ˜xi denote the standardized feature of tile i. Row wg of W is the axis of gene g in feature space, and the tile’s value for gene g is its coordinate along this axis, w⊤ 
+
+> g
+
+˜xi + bg . Over the set S of training slides, the head minimizes the slide-weighted ridge objective 
+
+1
+
+|S| 
+
+X
+
+> s∈S
+
+1
+
+Ns
+
+X
+
+> i∈s
+
+ti − W ˜xi − b 22 + λ∥W ∥2 
+
+> F
+
+, (1) so that every WSI has the same total weight, whatever its size. The regularization parameter λ is chosen from ten values between 10 −4
+
+and 10 2, by the mean per-gene R2 between head and teacher on the validation slides. No outcome label enters this step, and the head is refit in every fold. 
+
+Slide gene values. For slide s with mean standardized tile feature 
+
+¯xs = 1
+
+> Ns
+
+P 
+
+> i∈s
+
+˜xi, the slide’s gene values ˆes ∈ RG are the average of the tile-level gene values, 
+
+ˆes = W ¯xs + b = 1
+
+Ns
+
+X
+
+> i∈s
+
+ W ˜xi + b. (2) Each component of ˆes is standardized with the mean and standard deviation over the training slides, which gives zs ∈ RG.
+
+Metastasis classifier. The classifier is an ℓ2-regularized logistic re-gression on zs, with inverse regularization strength C = 1 . This value was fixed in advance and never tuned, so the validation slides serve only to choose the ridge penalty. At inference, a slide needs only the encoder, the gene head and the classifier. The teacher is used only to train the head. 
+
+Why concept bottleneck. Because zs is an affine function of ¯xs,ST-Dist is a linear probe restricted to the subspace spanned by the gene axes, of dimension at most G. The genes thus act as a prior on which visual features may matter. 
+
+3. EXPERIMENTS Cohorts. Our main cohort consists of 497 pretreatment prostate nee-dle biopsies from 205 patients (98 with M1), labeled M0 or M1 for distant metastasis from clinical reports and follow-up. The main co-hort data come from a large US hospital network. To test our ap-proach on other cancers, we use two TCGA resection cohorts [18] with the same endpoint: kidney clear-cell carcinoma (TCGA-KIRC, 509 slides from 505 patients, 76 with M1) and colon adenocarci-noma (TCGA-COAD, 387 slides from 380 patients, 60 with M1). The TCGA labels use the pathologic M stage (the clinical one when it is missing). Patients with MX or no M stage are excluded. Each cohort is split into three patient-level folds, each with training, vali-dation and test sets. 
+
+Gene panels. Each cohort has its own panel. The prostate panel has 117 genes. Of these, 100 come from published signatures of metas-tasis and aggressiveness [19, 3, 4, 5]. Ten are prostate lineage genes, such as NKX3-1 and MSMB, and seven are genes often altered in metastases. The kidney (98 genes) and colon (113 genes) panels come from five and seven published sources. The panel files, with the source of every gene, will be released with the code. 
+
+A second vocabulary. To test whether the result depends on our hand-built panel, we also use a vocabulary from a single stan-dard source, fixed by name before its result was computed: the 1,236 genes of 10 Molecular Signatures Database (MSigDB) Hall-mark pathways linked to metastasis [20]. These are epithelial– mesenchymal transition, TGF-β signaling, apical junction, hypoxia, angiogenesis, inflammatory response, IL6/JAK/STAT3 signaling, TNF α signaling via NF-κB, E2F targets and the G2M checkpoint. 
+
+Encoders and baselines. Our main experiments use GigaPath fea-tures of 62.5 μm tiles, and robustness is tested on 13 settings of 9 pathology encoders (Sec. 4). The other settings use 125 μm tiles. For a 125 μm tile, the teacher’s latent is averaged over the four 62.5 μmtiles that it contains, and the gene values follow by the same linear readout. We compare ST-Dist with nine MIL methods. Seven use attention: ABMIL [7], CLAM [21], DSMIL [22], TransMIL [23], DTFD-MIL [24], ILRA [25] and RRT-MIL [8]. Two use simple pooling techniques: SiMLP [10] combines mean-pooling with MLP and Maxsoft [11] takes the highest tile score. All MIL methods share one training recipe: AdamW with a learning rate of 2 × 10 −4 and a weight decay of 10 −4, dropout of 0.25 and 20 epochs, keeping the Table 1 . Prostate biopsies (the main cohort), in percent: mean ± SD over runs. Bold : best; underline: second. Method AUROC AP Balanced acc. 
+
+ST-Dist (ours) 91.37 ±2.19 92.29 ±1.60 82.12 ±2.15 
+
+ILRA 87.63 ±2.89 88.56 ±3.29 78.98 ±4.40 ABMIL 89.13 ±2.28 90.16 ±2.90 80.28 ±4.44 RRT-MIL 89.08 ±2.37 89.88 ±2.78 76.86 ±5.82 CLAM 88.34 ±2.47 89.34 ±2.83 79.53 ±4.30 DSMIL 86.98 ±3.31 87.99 ±3.59 77.82 ±4.83 TransMIL 83.94 ±3.84 84.55 ±4.38 71.35 ±7.47 DTFD-MIL 72.63 ±8.59 72.39 ±8.94 66.52 ±8.10 SiMLP 88.54 ±1.57 89.78 ±2.40 80.56 ±2.42 Maxsoft 84.23 ±2.25 85.07 ±2.84 74.36 ±2.95 epoch with the highest validation area under the ROC curve (AU-ROC), with five random seeds per fold. Our main ablation removes the gene head: a mean-pooling linear probe applies the same logistic regression to the slide mean of all encoder features. Random gene panels test whether any genes that the teacher predicts would work as well as the chosen ones. For the curated panel and the Hallmark vocabulary alike, each of 200 random counterparts replaces every gene by one of its 100 nearest genes outside the vocabulary in pre-dicted variance, so that the random genes vary as much across tiles as the original predicted genes. 
+
+Evaluation. We report the slide-level AUROC as the mean over the three test folds, with its standard deviation (SD) over runs (three folds for logistic models, 15 fold-and-seed runs for MIL). On the main cohort we also report average precision (AP) and balanced ac-curacy at a 0.5 threshold. All metrics are given in percent. Dif-ferences between models are tested with a paired bootstrap over patients (2,000 resamples), in which predictions are averaged over seeds and over each patient’s slides, and pooled over the three test folds. We call a difference significant when its 95% bootstrap confi-dence interval excludes zero. 
+
+4. RESULTS 4.1. Accuracy, ablations and robustness Performance on the prostate biopsies. Table 1 compares ST-Dist with nine MIL methods on the main cohort. ST-Dist has the high-est AUROC (91.37%), average precision (92.29%) and balanced accuracy (82.12%), and its AUROC is 2.2 points above the best MIL method (ABMIL, 89.13%). Among the MIL methods, sim-ple mean pooling (SiMLP, 88.54%) comes within 0.6 points of the best attention-based method, in line with earlier findings for small cohorts [10, 11]. 
+
+Results on the TCGA cohorts. We refit the same recipe on each TCGA cohort, with the cohort’s own gene panel (Table 2). These resection cohorts are harder than the biopsies: M1 patients are rarer (15–16%), and every method scores lower. On TCGA-COAD, ST-Dist (67.71%) outperforms all nine MIL methods, by 2.9 points over the best one (Maxsoft), significantly so against RRT-MIL, TransMIL and DTFD-MIL. On TCGA-KIRC, it ranks second (81.19%), 0.2 points behind ILRA. Without the gene head, the linear probe reaches 78.05% on TCGA-KIRC and 69.16% on TCGA-COAD. Overall, ST-Dist has the highest mean AUROC (80.09%, against 78.68% for the probe and 77.36% for the best MIL method, CLAM). 
+
+Source of the gain. Table 3 tests three explanations of the gain. (i) Compression : if ST-Dist only compressed the 1,536 features 
+
+Table 2 . TCGA cohorts (resections; 15–16% M1 patients): AUROC in percent, mean ± SD as in Table 1. The mean is over the three co-horts, with the prostate biopsies from Table 1. Bold : best; underline: second. Method TCGA-KIRC TCGA-COAD Mean (3 cohorts) 
+
+ST-Dist (ours) 81.19 ±0.52 67.71 ±1.52 80.09 
+
+ILRA 81.38 ±4.80 62.63 ±5.04 77.21 ABMIL 79.76 ±5.04 61.35 ±6.18 76.75 RRT-MIL 80.62 ±4.56 61.39 ±4.62 77.03 CLAM 80.10 ±4.75 63.64 ±4.99 77.36 DSMIL 75.79 ±4.96 61.85 ±7.30 74.87 TransMIL 72.06 ±6.67 58.81 ±6.97 71.60 DTFD-MIL 65.66 ±7.50 51.66 ±7.05 63.32 SiMLP 78.71 ±2.97 63.62 ±6.00 76.96 Maxsoft 78.67 ±2.97 64.77 ±5.59 75.89 
+
+Table 3 . Ablations on the prostate biopsies (AUROC in percent, mean ± SD as in Table 1; for random gene panels, SD over the 200 panels). Bold : best; underline: second. Model AUROC 
+
+ST-Dist 91.37 ±2.19 Nonlinear gene head (MLP) 91.68 ±2.78 
+
+Attention-weighted ST-Dist 91.53 ±1.45 Hallmark vocabulary 90.81 ±0.35 STPath expression 89.60 ±2.73 Random gene panels 89.49 ±1.02 ST-Dist on the full latent (512) 89.03 ±0.35 ST-Dist + raw features 88.96 ±1.57 Linear probe (no gene head) 88.82 ±1.80 PCA-117 86.78 ±0.81 into 117, any 117-dimensional projection would work as well. It does not. The 117 principal components fall below the linear probe (86.78% against 88.82%), and random gene panels of the same size reach only 89.49%, with the curated panel above 97% of them. (ii) The teacher’s representation : distilling the full 512-dimensional STPath latent instead of the genes gives almost no gain over the probe (89.03%), so the teacher helps mainly through the chosen genes. (iii) Restriction : adding the raw features back to the gene val-ues (88.96%) returns the AUROC to the level of the probe, because the classifier can again use every visual feature direction. The bene-fit therefore comes from the choice of genes, not from the reduction in dimension. Two further rows test design choices. Learning tile weights with attention on top of ST-Dist’s classifier gives a similar AUROC (91.53%), and the learned weights stay close to equal (on average, they spread over 91% of the tiles), so the plain slide average suffices. A nonlinear gene head (an MLP with two hidden layers of 1,024 units) reproduces the teacher more closely than a linear layer trained in the same label-free way (validation R2 0.729 against 0.691), but its AUROC on the prostate biopsies is similar, so we keep the simpler linear head. 
+
+Robustness to the choice of vocabulary. The gain does not de-pend on our hand-built panel. Replacing it with the genes of the 10 metastasis-related Hallmark pathways (1,236 genes, of which only 41 are in the 117-panel) yields an AUROC of 90.81 ± 0.35%, above the linear probe (88.82%) and above 97% of its 200 variance-matched random counterparts. 
+
+The student outperforms its teacher. ST-Dist retains only the part of STPath’s prediction that a tile’s own features explain linearly. In Table 4 . ST-Dist on 13 settings of 9 pathology encoders (prostate biopsies, AUROC in percent, mean ± SD over 3 folds), sorted by the linear probe. R2: mean validation R2 of the gene head against the teacher. CLS + mean: the class token concatenated with the mean patch token. Encoders: GigaPath [17], UNI and UNI2-h [26], Virchow [27], Virchow2 [28], Phikon [29], Phikon-v2 [30], Hibou-B [31] and MoCo v3 [32]. Encoder R2 Linear probe ST-Dist MoCo v3 ResNet-50 (SRA) † 0.508 82.20 ±2.28 86.89 ±4.73 MoCo v3 ResNet-50 † 0.537 83.73 ±2.33 88.38 ±3.50 Virchow2 (CLS + mean) 0.636 86.95 ±3.20 91.48 ±2.24 Hibou-B 0.594 87.82 ±2.13 89.85 ±2.45 Virchow2 (CLS) 0.622 88.67 ±2.33 91.05 ±2.32 
+
+GigaPath (62.5 μm, main) 0.694 88.82 ±1.80 91.37 ±2.19 GigaPath (125 μm) 0.633 89.66 ±0.38 91.06 ±2.62 Phikon 0.582 89.68 ±1.80 90.48 ±1.72 Virchow (CLS + mean) 0.636 89.80 ±0.89 91.23 ±1.99 Virchow (CLS) 0.611 89.85 ±2.03 90.76 ±2.35 UNI 0.599 89.97 ±1.33 91.95 ±2.03 Phikon-v2 0.603 90.58 ±1.78 90.68 ±1.43 UNI2-h 0.614 91.62 ±0.71 92.06 ±1.69  
+
+> †
+
+Two in-house runs, self-supervised on about 60% of TCGA [18] slides from all organs. Both use the official MoCo v3 augmenta-tions; SRA (stain reconstruction augmentation [33]) adds one that randomizes the amounts of the H and E stains separately. all three cohorts, this part predicts metastasis better than STPath’s own prediction of the same genes (STPath expression): 91.37% against 89.60% on the prostate biopsies, 81.19% against 78.90% on TCGA-KIRC and 67.71% against 62.69% on TCGA-COAD, where the difference is significant. 
+
+Robustness across encoders. ST-Dist outperforms the linear probe on all 13 encoder settings, by 0.10 to 4.69 points (Table 4). Encoders that reproduce the teacher more closely tend to give better ST-Dist models (Spearman 0.72 between the validation R2 and the ST-Dist AUROC). The curated panel ranks at or above the 90th percentile of variance-matched random gene panels on 9 of the 13 settings. 
+
+4.2. Which genes separate M1 from M0 Genes with the largest differences. ST-Dist outperforms its teacher (Table 3). To check that its gene values still carry the teacher’s bi-ology, Fig. 2 compares the ten genes with the largest M1–M0 dif-ferences in ST-Dist with the same genes in STPath, measured by Hedges’ g (the difference in patient means, divided by the pooled SD). ST-Dist’s differences closely follow STPath’s (Pearson r = 0.99 over all 117 genes) and are larger for 8 of the 10 genes. The student thus keeps the teacher’s gene-level signal and separates M1 from M0 slightly more strongly. 
+
+Grounding in measured expression. On eight held-out prostate Vi-sium slides from HEST-Bench [13], which STPath did not see during training, STPath predicts 12 of the 115 panel genes that these slides measure with a mean correlation of at least 0.3 (0.32 to 0.52) against measured expression, computed per gene within each slide. These are mostly luminal and androgen-regulated genes (MSMB, AZGP1, SLC45A3, TMPRSS2, KLK2, KLK3, HOXB13, NKX3-1, SPDEF, ANO7, TPM2 and FOXA1). They include two of the genes with the largest M1–M0 differences in both models, MSMB and AZGP1 (Fig. 2), whose loss has been associated with aggressive prostate cancer [34, 35]. Both genes are lower in M1 patients, which agrees −1 −0.5 0 0.5 1M1 − M0 TP53 THBS2 BGN LASP1 ITGA11 PI15 AZGP1* FLNC MYBPC1 MSMB* ST-Dist STPath 
+
+Fig. 2 . The largest M1–M0 differences in ST-Dist and STPath (Hedges’ g; 98 M1, 107 M0 patients), all significant in both (Mann– Whitney test, p < 10 −3, corrected for 117 genes). ∗ marks STPath’s prediction validated on measured ST. 
+
+with these reports. 
+
+Recovery of known biology. Used alone in place of the panel, the E2F targets pathway (one of the 10 Hallmark pathways) reaches an AUROC of 91.43 ± 1.07%. This is at the 96th percentile of 200 variance-matched random gene sets of the same size (nominal p =0.05 ). E2F targets form the proliferation program that the cell cycle progression score [4] also measures, a score already used clinically to assess the aggressiveness of prostate cancer. 
+
+5. DISCUSSION AND CONCLUSION 
+
+ST-Dist shows that distant metastasis, a label-scarce target, is well served by a simple model that reads pathology features through a small set of named genes rather than unnamed image features. The genes do more than make the model interpretable, they act as a prior that selects which visual directions are worth learning from few la-bels. A task-relevant vocabulary, whether our curated panel or the metastasis-related Hallmark pathways, keeps most of this benefit. In summary, distilling an ST foundation model into named gene axes turns any pathology encoder into a simple, interpretable and com-petitive predictor of distant metastasis from routine H&E slides. 
+
+6. COMPLIANCE WITH ETHICAL STANDARDS 
+
+As an analysis of de-identified images, the study is not human sub-jects research and was exempt from IRB review. The TCGA [18] and HEST-1k [13] data are publicly available, and their use did not require separate ethical approval. 
+
+7. ACKNOWLEDGMENTS 
+
+This work was supported by U.S. Department of Defense (DoD) HT94252410186. We declare no conflicts of interest. We used Claude (Anthropic) to draft code and edit language. ChatGPT Pro(Open AI) was used to curate gene panels. 
+
+8. REFERENCES 
+
+[1] Gustavo Ayala et al., “Reactive stroma as a predictor of biochemical-free recurrence in prostate cancer,” Clin. Cancer Res. , vol. 9, no. 13, pp. 4792–4801, 2003. [2] Larisa Nonn, Vijayalakshmi Ananthanarayanan, and Peter H. Gann, “Evidence for field cancerization of the prostate,” 
+
+Prostate , vol. 69, no. 13, pp. 1470–1479, 2009. [3] Nicholas Erho et al., “Discovery and validation of a prostate cancer genomic classifier that predicts early metastasis fol-lowing radical prostatectomy,” PLoS One , vol. 8, no. 6, pp. e66855, June 2013. [4] Jack Cuzick et al., “Prognostic value of an RNA expression signature derived from cell cycle proliferation genes in patients with prostate cancer: a retrospective study,” Lancet Oncol. ,vol. 12, no. 3, pp. 245–255, Mar. 2011. [5] Eric A Klein et al., “A 17-gene assay to predict prostate cancer aggressiveness in the context of Gleason grade heterogeneity, tumor multifocality, and biopsy undersampling,” Eur. Urol. ,vol. 66, no. 3, pp. 550–560, May 2014. [6] Andre Esteva et al., “Prostate cancer therapy personalization via multi-modal deep learning on randomized phase III clinical trials,” npj Digit. Med. , vol. 5, no. 1, pp. 71, June 2022. [7] Maximilian Ilse, Jakub Tomczak, and Max Welling, “Attention-based deep multiple instance learning,” in Proc. ICML , 2018, pp. 2127–2136. [8] Wenhao Tang, Fengtao Zhou, Sheng Huang, Xiang Zhu, Yi Zhang, and Bo Liu, “Feature re-embedding: Towards foun-dation model-level performance in computational pathology,” in Proc. CVPR , 2024, pp. 11343–11352. [9] Sandesh Pokhrel, Hamid Manoochehri, Beatrice S. Knudsen, and Tolga Tasdizen, “Predicting metastatic risk from primary cancer tissue architecture via distance-aware spatial modeling,” 
+
+arXiv:2606.28676 , 2026. [10] Jiawen Li et al., “Can we simplify slide-level fine-tuning of pathology foundation models?,” arXiv:2502.20823 , 2025. [11] Hossein Jafarinia et al., “Navigating the MIL trade-off: Flex-ible pooling for whole slide image classification,” in Proc. NeurIPS , 2025, pp. 96876–96921. [12] Susu Sun et al., “Label-free concept based multiple instance learning for gigapixel histopathology,” arXiv:2501.02922 ,2025. [13] Guillaume Jaume et al., “HEST-1k: A dataset for spatial tran-scriptomics and histology image analysis,” in Proc. NeurIPS ,2024, pp. 53798–53833. [14] Tinglin Huang, Tianyu Liu, Mehrtash Babadi, Rex Ying, and Wengong Jin, “STPath: a generative foundation model for in-tegrating spatial transcriptomics and whole-slide images,” npj Digit. Med. , vol. 8, no. 1, pp. 659, Nov. 2025. [15] Zhe Li et al., “AI-enabled virtual spatial proteomics from histopathology for interpretable biomarker discovery in lung cancer,” Nat. Med. , vol. 32, no. 1, pp. 231–244, 2026. [16] Pang Wei Koh et al., “Concept bottleneck models,” in Proc. ICML , 2020, pp. 5338–5348. [17] Hanwen Xu et al., “A whole-slide foundation model for digital pathology from real-world data,” Nature , vol. 630, no. 8015, pp. 181–188, 2024. [18] John N Weinstein et al., “The Cancer Genome Atlas Pan-Cancer analysis project,” Nat. Genet. , vol. 45, no. 10, pp. 1113–1120, 2013. [19] Rohina Rubicz et al., “Gene expression panel predicts metastatic-lethal prostate cancer outcomes in men diagnosed with clinically localized prostate cancer,” Mol. Oncol. , vol. 11, no. 2, pp. 140–150, 2017. [20] Arthur Liberzon, Chet Birger, Helga Thorvaldsd´ ottir, Mah-moud Ghandi, Jill P. Mesirov, and Pablo Tamayo, “The Molec-ular Signatures Database Hallmark gene set collection,” Cell Syst. , vol. 1, no. 6, pp. 417–425, 2015. [21] Ming Y. Lu, Drew F. K. Williamson, Tiffany Y. Chen, Richard J. Chen, Matteo Barbieri, and Faisal Mahmood, “Data-efficient and weakly supervised computational pathology on whole-slide images,” Nat. Biomed. Eng. , vol. 5, no. 6, pp. 555– 570, 2021. [22] Bin Li, Yin Li, and Kevin W. Eliceiri, “Dual-stream multi-ple instance learning network for whole slide image classifica-tion with self-supervised contrastive learning,” in Proc. CVPR ,2021, pp. 14313–14323. [23] Zhuchen Shao et al., “TransMIL: Transformer based corre-lated multiple instance learning for whole slide image classifi-cation,” in Proc. NeurIPS , 2021, pp. 2136–2147. [24] Hongrun Zhang et al., “DTFD-MIL: Double-tier feature distil-lation multiple instance learning for histopathology whole slide image classification,” in Proc. CVPR , 2022, pp. 18780–18790. [25] Jinxi Xiang and Jun Zhang, “Exploring low-rank property in multiple instance learning for whole slide image classifica-tion,” in Proc. ICLR , 2023. [26] Richard J. Chen et al., “Towards a general-purpose foundation model for computational pathology,” Nat. Med. , vol. 30, no. 3, pp. 850–862, 2024. [27] Eugene Vorontsov et al., “A foundation model for clinical-grade computational pathology and rare cancers detection,” 
+
+Nat. Med. , vol. 30, no. 10, pp. 2924–2935, 2024. [28] Eric Zimmermann et al., “Virchow2: Scaling self-supervised mixed magnification models in pathology,” arXiv:2408.00738 ,2024. [29] Alexandre Filiot et al., “Scaling self-supervised learning for histopathology with masked image modeling,” medRxiv , 2023. [30] Alexandre Filiot, Paul Jacob, Alice Mac Kain, and Charlie Saillard, “Phikon-v2, a large and public feature extractor for biomarker prediction,” arXiv:2409.09173 , 2024. [31] Dmitry Nechaev, Alexey Pchelnikov, and Ekaterina Ivanova, “Hibou: A family of foundational vision transformers for pathology,” arXiv:2406.05074 , 2024. [32] Xinlei Chen, Saining Xie, and Kaiming He, “An empirical study of training self-supervised vision transformers,” in Proc. ICCV , 2021, pp. 9620–9629. [33] Hamid Manoochehri, Bodong Zhang, Beatrice S. Knudsen, and Tolga Tasdizen, “SRA: A novel method to improve fea-ture embedding in self-supervised learning for histopathologi-cal images,” arXiv:2410.17514 , 2024. [34] James D. Brooks et al., “Loss of expression of AZGP1 is as-sociated with worse clinical outcomes in a multi-institutional radical prostatectomy cohort,” Prostate , vol. 76, no. 15, pp. 1409–1419, 2016. [35] Anna Dahlman et al., “Evaluation of the prognostic signifi-cance of MSMB and CRISP3 in prostate cancer using auto-mated image analysis,” Mod. Pathol. , vol. 24, no. 5, pp. 708– 719, 2011.

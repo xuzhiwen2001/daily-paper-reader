@@ -48,17 +48,17 @@
 <section class="dpr-home-dashboard-card dpr-home-report-card">
   <div class="dpr-home-dashboard-header">
     <div>
-      <span class="dpr-home-dashboard-kicker">2026-11-07 ~ 2026-11-16</span>
+      <span class="dpr-home-dashboard-kicker">2026-11-08 ~ 2026-11-17</span>
       <h3 class="dpr-home-dashboard-title">今日汇总</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">共 3 篇</strong>
+    <strong class="dpr-home-dashboard-count">共 5 篇</strong>
   </div>
   <dl class="dpr-home-dashboard-stats">
     <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>1 次</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>3</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>0</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>2</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>3</dd></div>
   </dl>
-  <p class="dpr-home-dashboard-body">最近更新：2026-11-16 18:43:09 UTC<br>状态：成功</p>
+  <p class="dpr-home-dashboard-body">最近更新：2026-11-17 18:44:09 UTC<br>状态：成功</p>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-brief-card">
   <div class="dpr-home-dashboard-header">
@@ -69,7 +69,7 @@
     <strong class="dpr-home-dashboard-count">AI</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p>本期精读3篇，其中两篇高分论文聚焦单细胞分辨率预测与基因响应建模，最高分10.0。最值得看的是图引导流匹配如何把生物学先验带入单细胞预测（10.0），以及S1Pert面向目标特异性基因响应的可扩展预测（9.0）。普通读者可先读10.0这篇，重点看它如何用图结构约束预测，再对照S1Pert理解基因响应预测的落地思路。</p>
+<p>本期共筛选 5 篇文献，精读 2 篇、速读 3 篇，主题集中在单细胞扰动响应预测与空间转录组、病理模型评测。最值得关注的是两篇满分工作：PerturbJEPA 用联合嵌入预测学习细胞扰动响应，PerturbBridge 用条件潜空间薛定谔桥做单细胞扰动预测，代表该方向的两条新路线。建议先读这两篇的方法与实验设置，再结合 ST-Dist、HEmIF-Bench 了解空间组学与病理评测的落地边界。</p>
   </div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-deep-card">
@@ -78,12 +78,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">精读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">3 篇</strong>
+    <strong class="dpr-home-dashboard-count">2 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Graph-guided flow matching enables biologically informed prediction at single-cell resolution">Graph-guided flow matching enables biologically informed prediction at single-cell resolution</span></li><li><span class="dpr-home-dashboard-paper-title" title="S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence">S1Pert: Scalable Target-Specific Gene Response Prediction with System-One Intelligence</span></li><li><span class="dpr-home-dashboard-paper-title" title="More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology">More Genes, Faster Inference: Efficient Large-Panel Spatial Transcriptomics Prediction from Histology</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="PerturbJEPA: Joint-Embedding Predictive Learning of Cellular Perturbation Responses">PerturbJEPA: Joint-Embedding Predictive Learning of Cellular Perturbation Responses</span></li><li><span class="dpr-home-dashboard-paper-title" title="PerturbBridge: Conditional Latent Schr dinger Bridge for Single-Cell Perturbation Prediction">PerturbBridge: Conditional Latent Schr dinger Bridge for Single-Cell Perturbation Prediction</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">virtual-cell <strong>2</strong></span><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">virtual-cell <strong>2</strong></span></div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-skim-card">
   <div class="dpr-home-dashboard-header">
@@ -91,12 +91,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">速读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">0 篇</strong>
+    <strong class="dpr-home-dashboard-count">3 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p class="dpr-home-dashboard-empty">今日暂无推荐。</p>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="ST-Dist: Distilling Spatial Transcriptomics Predictions into Interpretable Gene Axes for Distant Metastasis Prediction">ST-Dist: Distilling Spatial Transcriptomics Predictions into Interpretable Gene Axes for Distant Metastasis Prediction</span></li><li><span class="dpr-home-dashboard-paper-title" title="HEmIF-Bench: Benchmarking H&amp;E-to-mIF Models BeyondVirtual-StainFidelity">HEmIF-Bench: Benchmarking H&amp;E-to-mIF Models BeyondVirtual-StainFidelity</span></li><li><span class="dpr-home-dashboard-paper-title" title="MELD: Mutation Effect Learning through Differential embeddings">MELD: Mutation Effect Learning through Differential embeddings</span></li></ul>
   </div>
-
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>2</strong></span><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
 </section>
 </div>
 
