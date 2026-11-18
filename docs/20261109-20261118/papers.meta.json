@@ -1,0 +1,24 @@
+{
+  "label": "2026-11-09 ~ 2026-11-18",
+  "date": "2026-11-09 ~ 2026-11-18",
+  "generated_at": "2026-11-18T18:45:08",
+  "count": 1,
+  "papers": [
+    {
+      "paper_id": "20261109-20261118/2611.21959v1-occam-improved-single-cell-representation-learning-and-perturbation-effect-prediction",
+      "section": "deep",
+      "title_en": "OCCAM: Improved Single-Cell Representation Learning and Perturbation Effect Prediction",
+      "authors": "Ihab Bendidi, Kian Kenyon-Dean, Alisandra K. Denton, Auguste Genovesio, Emmanuel Noutahi",
+      "date": "2026-11-16",
+      "pdf": "https://arxiv.org/pdf/2611.21959v1",
+      "score": "9.0",
+      "evidence": "用于单细胞表示学习与扰动效应预测的多层感知机框架",
+      "tldr": "遗传扰动效应预测需泛化到未见细胞情境与基因组合，现有模型仍难兼顾表征质量与跨情境推断。OCCAM以多层感知机融合去噪学习的细胞表征、基因互作、文本及蛋白序列特征，统一进行单细胞表征学习与扰动效应预测。在跨情境少样本、未见细胞系与双扰动任务中，它比多个重训竞争者及直接迁移基线更好捕捉响应模式并降低表达误差。该工作表明简单MLP即可有效整合多源特征，为跨情境和基因组合的扰动预测提供简洁框架。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "Predicting the effects of genetic perturbations requires models that generalize beyond observed cell contexts and gene combinations. We introduce Occam, a multilayer perceptron (MLP) framework for representation learning and perturbation-effect prediction. Occam combines cell representations learned through denoising with gene interaction, text, and protein-sequence features. It achieves the highest aggregate representation scores for perturbation information and cell-type preservation with batch integration. In cross-context few-shot prediction, a perturbation and a cell context are each observed during training, but never together. Occam better captures the measured response patterns for these unobserved combinations than four retrained competitors or direct transfer of the same perturbation's measured effects from other training cell lines. Without fine-tuning, Occam best distinguishes perturbations among the evaluated models and simple baselines in cell lines held out from predictor training, across seen and unseen assays. Predicting expression levels accurately in these settings remains challenging. For double perturbations, which target two genes simultaneously, Occam composes learned single-gene responses to better capture the combined response and reduce expression error compared with competing models and summed single-gene effects. These gains extend to both strongly additive and weakly additive responses. Together, these results support simple MLPs for cell representation learning and perturbation-effect prediction across contexts and gene combinations.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,233 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-18T18:42:19.538322+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 5,
+    "deep_cap": 7,
+    "deep_selected": 5,
+    "quick_candidates": 0,
+    "quick_skim_target": 12,
+    "quick_selected": 0
+  },
+  "deep_dive": [
+    {
+      "id": "2611.21959v1",
+      "source": "arxiv",
+      "title": "OCCAM: Improved Single-Cell Representation Learning and Perturbation Effect Prediction",
+      "abstract": "Predicting the effects of genetic perturbations requires models that generalize beyond observed cell contexts and gene combinations. We introduce Occam, a multilayer perceptron (MLP) framework for representation learning and perturbation-effect prediction. Occam combines cell representations learned through denoising with gene interaction, text, and protein-sequence features. It achieves the highest aggregate representation scores for perturbation information and cell-type preservation with batch integration. In cross-context few-shot prediction, a perturbation and a cell context are each observed during training, but never together. Occam better captures the measured response patterns for these unobserved combinations than four retrained competitors or direct transfer of the same perturbation's measured effects from other training cell lines. Without fine-tuning, Occam best distinguishes perturbations among the evaluated models and simple baselines in cell lines held out from predictor training, across seen and unseen assays. Predicting expression levels accurately in these settings remains challenging. For double perturbations, which target two genes simultaneously, Occam composes learned single-gene responses to better capture the combined response and reduce expression error compared with competing models and summed single-gene effects. These gains extend to both strongly additive and weakly additive responses. Together, these results support simple MLPs for cell representation learning and perturbation-effect prediction across contexts and gene combinations.",
+      "authors": [
+        "Ihab Bendidi",
+        "Kian Kenyon-Dean",
+        "Alisandra K. Denton",
+        "Auguste Genovesio",
+        "Emmanuel Noutahi"
+      ],
+      "primary_category": "q-bio.QM",
+      "categories": [
+        "q-bio.QM",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-11-16T22:40:16+00:00",
+      "link": "https://arxiv.org/pdf/2611.21959v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "MLP framework for single-cell representation learning and perturbation effect prediction",
+      "llm_evidence_cn": "用于单细胞表示学习与扰动效应预测的多层感知机框架",
+      "llm_evidence": "用于单细胞表示学习与扰动效应预测的多层感知机框架",
+      "canonical_evidence": "用于单细胞表示学习与扰动效应预测的多层感知机框架",
+      "llm_tldr_en": "Occam, an MLP framework combining denoising-based cell representations with gene-interaction, text and protein-sequence features, improves perturbation-effect prediction and cross-context few-shot generalization.",
+      "llm_tldr_cn": "预测遗传扰动效应要求模型泛化到未同时观察过的细胞背景与基因组合。作者提出Occam，一种多层感知机框架，将去噪学习的细胞表示与基因互作、文本和蛋白序列特征结合用于扰动效应预测。实验显示其在扰动信息表征与细胞类型保持的综合评分最高，并在跨背景少样本预测中优于四个重训练基线，更好地刻画了未观测组合的响应模式。",
+      "llm_tldr": "预测遗传扰动效应要求模型泛化到未同时观察过的细胞背景与基因组合。作者提出Occam，一种多层感知机框架，将去噪学习的细胞表示与基因互作、文本和蛋白序列特征结合用于扰动效应预测。实验显示其在扰动信息表征与细胞类型保持的综合评分最高，并在跨背景少样本预测中优于四个重训练基线，更好地刻画了未观测组合的响应模式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-14-766416-v1",
+      "source": "biorxiv",
+      "title": "A Biologically Interpretable Single-Cell Pathology Foundation Model for Molecular Decoding of H&E Images",
+      "abstract": "The microscopic structure of human tissues encodes molecular information that is not directly accessible by visual inspection. Current pathology foundation models improve histological interpretation but operate at multicellular resolution. It remains unclear whether routine histology contains structured molecular and cellular information recoverable at single-cell resolution, which biological properties are associated with this recoverability, and where its limits lie. Here, we introduce Loki2, a single-cell pathology foundation model trained on UniSeg, a pan-tissue resource integrating 15 million cells with segmentation, lineage annotations and measured or histology-inferred transcriptomic profiles. We examine the above question across cellular representation, molecular recoverability, and patient-level relevance. Loki2 captures cellular identity and continuous morphological variation, with interpretable latent dimensions linked to physical nuclear phenotypes through DAPI validation. Transcriptomic retrieval and in silico protein staining test molecular recoverability, with gene-level analyses revealing the strongest recovery for genes associated with morphologically distinct cellular identities and functions. Then, patient staging and biomarker discovery connect cellular morphology representations to clinical relevance. Together, these findings establish Loki2 as a biologically interpretable single-cell pathology foundation model and provide the opportunities of recovering cellular and molecular information from routine H&E histology at single-cell resolution.",
+      "authors": [
+        "Chen, W.",
+        "Li, Q.",
+        "Cheng, H.",
+        "Zhang, P.",
+        "Chang, Y.",
+        "Wang, X.",
+        "Tran, T. N.",
+        "Li, C.",
+        "Yang, Y.",
+        "Xiao, Y.",
+        "Zhao, X.",
+        "Wu, W.",
+        "Ma, A.",
+        "Mora, A.",
+        "Rojas, M.",
+        "Aggarwal, S.",
+        "Lin, S. H.",
+        "Li, S.",
+        "Ma, Q.",
+        "Wang, G."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-17T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.14.766416v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Single-cell pathology foundation model decoding molecular profiles from H&E histology images",
+      "llm_evidence_cn": "从H&E组织学图像解码分子谱的单细胞病理基础模型",
+      "llm_evidence": "从H&E组织学图像解码分子谱的单细胞病理基础模型",
+      "canonical_evidence": "从H&E组织学图像解码分子谱的单细胞病理基础模型",
+      "llm_tldr_en": "Loki2 is a single-cell pathology foundation model trained on UniSeg that tests whether routine H&E histology contains recoverable single-cell molecular information.",
+      "llm_tldr_cn": "常规H&E组织切片蕴含视觉难以直接读取的分子信息，但现有病理基础模型多停留在多细胞分辨率。作者构建整合1500万细胞分割、谱系注释与实测或组织学推断转录组的UniSeg资源，并训练单细胞病理基础模型Loki2。研究系统考察了组织学中单细胞分子信息的可恢复性、相关生物学属性及其边界，为从形态推断表达提供依据。",
+      "llm_tldr": "常规H&E组织切片蕴含视觉难以直接读取的分子信息，但现有病理基础模型多停留在多细胞分辨率。作者构建整合1500万细胞分割、谱系注释与实测或组织学推断转录组的UniSeg资源，并训练单细胞病理基础模型Loki2。研究系统考察了组织学中单细胞分子信息的可恢复性、相关生物学属性及其边界，为从形态推断表达提供依据。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "histology images for inferring spatial gene expression",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-16-767041-v1",
+      "source": "biorxiv",
+      "title": "Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects",
+      "abstract": "Second-generation sequence models can be conditioned on a cell state supplied as a single-cell snapshot rather than selected from a fixed catalogue, but whether that conditioning carries an experimentally applied perturbation has not been tested. We conditioned such a model on interferon-{beta}-stimulated and unstimulated monocytes from a published experiment, using cells disjoint from those providing the measurement, and asked whether the predicted expression response tracks the measured one and whether the same conditioning identifies expression QTL specific to the stimulated state. Predicted and measured responses agree at Spearman {rho} = 0.616 across 119 genes (95% CI 0.486 to 0.716), and at 0.607 after all 119 target genes are deleted from the conditioning input; across fifteen conditions the model's response scales with how much each condition's biology genuinely overlaps the target response (slope 0.73, Pearson 0.92), and a near-neighbour monocyte subset receives 0.295 against a measured overlap of 0.336. For stimulation-specific genetic effects we find no reliable evidence: the pre-specified primary arm moves from p = 0.0019 to 0.443 once both conditions must carry a measurable predicted effect, and the separation localises to the resting-condition baseline. Neither model generation's catalogue contains a perturbed sample, 0 of 4,430 tracks and 0 of 2,799 conditions, although both carry activation-state labels, so the gap is experimental perturbation rather than cell state. Two incidental findings apply beyond this model: credible-set membership mislabels over half of putatively condition-specific loci, and gating a ratio statistic on its larger term manufactures signal.",
+      "authors": [
+        "He, H.",
+        "Sun, J.",
+        "Xu, J.",
+        "Abudureyimu, M.",
+        "Yang, Y.",
+        "Huang, Y.",
+        "Wang, Z.",
+        "Xia, Q.",
+        "Wang, S."
+      ],
+      "primary_category": "genomics",
+      "categories": [
+        "genomics"
+      ],
+      "published": "2026-11-17T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.16.767041v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "cell-state conditioned sequence model predicts expression response to an unseen stimulus",
+      "llm_evidence_cn": "细胞状态条件化的序列模型预测未见刺激下的表达响应",
+      "llm_evidence": "细胞状态条件化的序列模型预测未见刺激下的表达响应",
+      "canonical_evidence": "细胞状态条件化的序列模型预测未见刺激下的表达响应",
+      "llm_tldr_en": "Conditioning a sequence model on a single-cell snapshot predicts the transcriptional response to interferon-beta stimulation (Spearman rho 0.62 over 119 genes), but fails to capture stimulus-dependent genetic effects such as state-specific eQTLs.",
+      "llm_tldr_cn": "第二代序列模型可用单细胞快照作为条件预测扰动后的表达，但这种条件化是否真正携带实验扰动信息尚未验证。作者以干扰素β刺激与未刺激的单核细胞为条件，用不重叠的细胞评估预测响应与实测响应的一致性，并检验其能否识别刺激特异的表达数量性状位点。结果显示119个基因上预测与实测响应的相关系数为0.616，但刺激依赖的遗传效应未被捕捉。这说明细胞状态条件化可用于刺激响应预测，却不足以刻画遗传扰动效应。",
+      "llm_tldr": "第二代序列模型可用单细胞快照作为条件预测扰动后的表达，但这种条件化是否真正携带实验扰动信息尚未验证。作者以干扰素β刺激与未刺激的单核细胞为条件，用不重叠的细胞评估预测响应与实测响应的一致性，并检验其能否识别刺激特异的表达数量性状位点。结果显示119个基因上预测与实测响应的相关系数为0.616，但刺激依赖的遗传效应未被捕捉。这说明细胞状态条件化可用于刺激响应预测，却不足以刻画遗传扰动效应。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-20-760537-v2",
+      "source": "biorxiv",
+      "title": "Averaging in gene perturbation benchmarks hides perturbation-strength variation: Consequences for model evaluation",
+      "abstract": "Perturbation-response benchmarks usually represent each genetic intervention by averaging all cells assigned that perturbation label. We inquire what perturbation-strength information is lost by this averaging, and whether current model predictions preserve enough perturbation-specific information for this perturbation-strength variation to be evaluated. Using X-Atlas/Orion CRISPRi screens, we use depth-corrected guide abundance as a cell-level proxy for perturbation strength and examine how transcriptional responses vary within a nominal perturbation. Higher perturbation strength is associated with greater response reproducibility. The effect is present in two human cell lines, HCT116 and HEK293T, but is larger in HCT116. For model evaluation, HCT116 retrieval tests show that observed responses preserve perturbation identity, whereas the evaluated STATE and Cell2Sentence predictions do not reliably recover it, hence the question of within-perturbation strength information cannot be meaningfully evaluated.",
+      "authors": [
+        "Sharma, Y. S.",
+        "Subramaniyam, M.",
+        "Passariello, P.",
+        "Jay, D.",
+        "Render, D."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-18T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.20.760537v2.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "examines how averaging hides perturbation-strength variation in perturbation-response benchmarks",
+      "llm_evidence_cn": "考察扰动响应基准中平均化如何掩盖扰动强度差异",
+      "llm_evidence": "考察扰动响应基准中平均化如何掩盖扰动强度差异",
+      "canonical_evidence": "考察扰动响应基准中平均化如何掩盖扰动强度差异",
+      "llm_tldr_en": "Perturbation-response benchmarks average all cells per perturbation label; using CRISPRi guide abundance as a cell-level strength proxy, the authors show stronger perturbations give more reproducible responses.",
+      "llm_tldr_cn": "扰动响应基准通常将同一扰动标签下的所有细胞取平均，可能掩盖扰动强度差异并影响模型评估。作者以X-Atlas/Orion CRISPRi筛选中的深度校正向导丰度作为细胞级扰动强度代理，分析同一名义扰动内转录响应的变化。结果显示扰动强度越高响应可重复性越强，且该效应在HCT116与HEK293T两株细胞中存在。研究提示现有基准的平均化做法会丢失扰动强度信息，需改进模型评估方式。",
+      "llm_tldr": "扰动响应基准通常将同一扰动标签下的所有细胞取平均，可能掩盖扰动强度差异并影响模型评估。作者以X-Atlas/Orion CRISPRi筛选中的深度校正向导丰度作为细胞级扰动强度代理，分析同一名义扰动内转录响应的变化。结果显示扰动强度越高响应可重复性越强，且该效应在HCT116与HEK293T两株细胞中存在。研究提示现有基准的平均化做法会丢失扰动强度信息，需改进模型评估方式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-15-766815-v1",
+      "source": "biorxiv",
+      "title": "Transferring CRISPRi knockdown responses to new cell lines requires screening part of each line",
+      "abstract": "Perturb-seq screens measure knockdown responses in one cell line at a time. Models that transfer responses to new lines rarely beat simple averages, and standard metrics often ignore noise. It is unclear how much of a response is shared and what a new line must contribute. We studied CRISPR interference Perturb-seq of essential genes in four human cell lines, using noise ceilings and calibrated metrics. We also introduce CASTER, a set-based model that adapts the transferred mean to the target line. After noise correction, responses correlated at a median of 0.52, highest between the TP53 wild-type lines. With 30% of a line screened, a linear model and CASTER scored 0.84 and 0.80 versus 0.44 for the transferred mean (1 equals a technical duplicate). CASTER led only at 2.5% screened (0.62 versus 0.47) and fell below the transferred mean without a screen. Response size tracked general essentiality more than line-specific dependency.",
+      "authors": [
+        "Kawsar, M.",
+        "Dip, S. A.",
+        "Paul, B. K.",
+        "Noman, A. A.",
+        "Zhang, L.",
+        "Moni, M. A."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-17T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.15.766815v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "transferring Perturb-seq knockdown responses to new cell lines with a set-based model",
+      "llm_evidence_cn": "用集合模型将Perturb-seq敲低响应迁移到新细胞系",
+      "llm_evidence": "用集合模型将Perturb-seq敲低响应迁移到新细胞系",
+      "canonical_evidence": "用集合模型将Perturb-seq敲低响应迁移到新细胞系",
+      "llm_tldr_en": "The authors quantify how much CRISPRi Perturb-seq response transfers across cell lines using noise-calibrated metrics, and introduce CASTER, a set-based model that adapts transferred responses to a new line.",
+      "llm_tldr_cn": "Perturb-seq筛选每次只能在一个细胞系中测量敲低响应，而跨细胞系迁移模型往往难以胜过简单平均，且标准指标忽略噪声。作者在四个人类细胞系的必需基因CRISPRi数据上用噪声天花板与校准指标分析响应的共享程度，并提出集合模型CASTER将迁移均值适配到目标细胞系。结果显示噪声校正后响应中位相关为0.52，筛查30%细胞系后线性模型与CASTER显著优于迁移均值。",
+      "llm_tldr": "Perturb-seq筛选每次只能在一个细胞系中测量敲低响应，而跨细胞系迁移模型往往难以胜过简单平均，且标准指标忽略噪声。作者在四个人类细胞系的必需基因CRISPRi数据上用噪声天花板与校准指标分析响应的共享程度，并提出集合模型CASTER将迁移均值适配到目标细胞系。结果显示噪声校正后响应中位相关为0.52，筛查30%细胞系后线性模型与CASTER显著优于迁移均值。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": []
+}

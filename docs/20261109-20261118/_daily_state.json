@@ -1,0 +1,25 @@
+{
+  "date": "20261109-20261118",
+  "date_label": "2026-11-09 ~ 2026-11-18",
+  "generated_at": "2026-11-18 18:45:06 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2611.21959v1",
+      "route": "20261109-20261118/2611.21959v1-occam-improved-single-cell-representation-learning-and-perturbation-effect-prediction",
+      "title": "OCCAM: Improved Single-Cell Representation Learning and Perturbation Effect Prediction",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "用于单细胞表示学习与扰动效应预测的多层感知机框架",
+      "first_seen_at": "2026-11-18 18:45:06 UTC",
+      "updated_at": "2026-11-18 18:45:06 UTC"
+    }
+  ]
+}
