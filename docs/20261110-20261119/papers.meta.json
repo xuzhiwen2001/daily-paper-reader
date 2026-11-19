@@ -1,0 +1,54 @@
+{
+  "label": "2026-11-10 ~ 2026-11-19",
+  "date": "2026-11-10 ~ 2026-11-19",
+  "generated_at": "2026-11-19T18:42:51",
+  "count": 3,
+  "papers": [
+    {
+      "paper_id": "20261110-20261119/2611.23999v1-reliflow-reliability-calibrated-residual-transport-for-combinatorial-single-cell-perturbation-prediction",
+      "section": "deep",
+      "title_en": "ReliFlow: Reliability-Calibrated Residual Transport for Combinatorial Single-Cell Perturbation Prediction",
+      "authors": "Jinrui David, Yun Peng",
+      "date": "2026-11-18",
+      "pdf": "https://arxiv.org/pdf/2611.23999v1",
+      "score": "10.0",
+      "evidence": "用条件流匹配预测组合单细胞扰动响应",
+      "tldr": "组合扰动转录响应预测需区分真实交互与单扰动效应估计误差，稀疏或缺失单基因证据时尤甚。ReliFlow用仅训练集交叉拟合估计单基因效应可靠性，并校准加性源分布；速度场分解为加性参考的已知修正与学习到的残差传输。在Norman和ComboSciPlex上，未见组合MAE分别由0.142降至0.131、0.198降至0.178，药物组合由0.191降至0.176，非加性残差相关提升至0.638。结果表明可靠性加权可改善遗传与化学组合泛化，训练成本仅中度增加。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "Predicting the transcriptional response to combined perturbations requires distinguishing interactions between interventions from errors in their individual effect estimates. The latter become more pronounced when single-perturbation evidence is sparse or withheld. We introduce a conditional flow-matching model that estimates the reliability of single-gene effects from training-only cross-fitting and uses those estimates to calibrate the additive source distribution. The velocity is decomposed into a known correction of the additive reference and a learned residual transport field. On Norman genetic perturbations, reduces mean absolute error (MAE) from 0.142 to 0.131 for unseen combinations of observed singles and from 0.198 to 0.178 when constituent singles are withheld. On held-out ComboSciPlex drug combinations, MAE decreases from 0.191 to 0.176. Non-additive residual correlation improves from 0.574 to 0.638, and component ablations identify the contribution of reliability weighting. The results indicate that accounting for uncertain constituent effects improves generalization to unseen genetic and chemical combinations, with a moderate increase in training cost.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "20261110-20261119/2611.23953v1-mitoworld-a-stochastic-world-model-of-the-single-cell-cycle-under-genetic-perturbation",
+      "section": "deep",
+      "title_en": "MitoWorld: A Stochastic World Model of the Single-Cell Cycle under Genetic Perturbation",
+      "authors": "Ting Long, Xiaojing Sun, Cheng Han, Zhicheng Ji, Yingnian Wu, Jiebo Luo, Heng Fan, Dongfang Liu",
+      "date": "2026-11-18",
+      "pdf": "https://arxiv.org/pdf/2611.23953v1",
+      "score": "9.0",
+      "evidence": "随机世界模型预测遗传扰动下单细胞轨迹与分裂时序",
+      "tldr": "基因敲低后单细胞未来形态与分裂时间不确定，现有方法难以联合建模个体轨迹和分裂时序。MitoWorld以高斯参考潜空间中的随机演化生成连续外观，用分裂风险终止并由条件扩散渲染成图像。在325条MitoCheck留出轨迹、17种敲低和对照上，FID降34.6%、JEDi降45.6%，预测区间近名义90%覆盖且窄35%。该模型把单细胞随机动力学变成可检验、可生成的延时扰动筛选工具。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "A cell observed after a gene knockdown has an uncertain future, both in how its appearance will evolve and when it will divide. Existing approaches predict endpoints or population-level changes without jointly modeling individual trajectories and division timing. In this work, we present MitoWorld, a stochastic world model that generates these future appearances as continuous evolution in a Gaussian reference latent, terminated by a division hazard and converted into images by a conditional diffusion renderer. The ordinary transition provably preserves its Gaussian reference, tying its noise to its dynamics; paired observations identify its discrete transition where stationary marginals cannot. The hazard turns division timing into a survival likelihood that can be tested against real cycle lengths. On 325 held-out MitoCheck tracks spanning 17 knockdowns and a control, MitoWorld lowers FID by 34.6\\% and the video metric JEDi by 45.6\\% relative to the strongest baselines. Its latent-space prediction intervals achieve near-nominal 90\\% coverage, are 35\\% narrower than those of a model with freely fitted noise. The hazard also yields cell-cycle length distributions with KS distance close to the model-based finite-sample reference. Testable single-cell stochastic dynamics thus offer a generative tool for time-lapse perturbation screens.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "20261110-20261119/2611.24104v1-scope-single-cell-omics-prediction-from-histology-via-rna-protein-prior-enhancement",
+      "section": "deep",
+      "title_en": "SCOPE: Single-Cell Omics Prediction from Histology via RNA-Protein Prior Enhancement",
+      "authors": "Leyang Tao, Xuan Gong, Luyuan Xie, Arjun Beniwal, Yuqi Tan, Kun-Hsing Yu",
+      "date": "2026-11-18",
+      "pdf": "https://arxiv.org/pdf/2611.24104v1",
+      "score": "9.0",
+      "evidence": "由H&E组织学图像预测单细胞RNA与蛋白含量",
+      "tldr": "从常规H&E图像预测细胞RNA与蛋白含量，可将空间分子谱推广至既有切片档案，但配对的空间组学数据标记有限、细胞级高质量数据稀缺。SCOPE以RNA与蛋白的生物学互补关系构建统一框架，通过生物标志物先验与基因-蛋白对应实现跨模态知识迁移。在16个器官测试集上RNA平均Pearson提升8.8%，外部蛋白队列的已见与未见标记分别提升9.7%与11.9%。该工作缓解了单组学监督不足，并支持未见标记预测。",
+      "tags": "query:spatial-gene",
+      "abstract_en": "Predicting the RNA and protein content of cells from routine H&E images could extend spatial molecular profiling to existing slide archives. However, both H&E-spatial proteomics and H&E-spatial transcriptomics paired datasets are limited by the number of available markers and the insufficient availability of high-quality, cell-resolved data. We present SCOPE (Single-Cell Omics Prediction via RNA-protein prior Enhancement), a unified framework that leverages biologically complementary information between RNA and proteins to address the limited availability of single-omics supervision. Our key insight is that, although RNA and proteins represent distinct molecular modalities, their biological relationships provide valuable shared knowledge that can benefit single-omics prediction tasks. To this end, SCOPE introduces biologically informed biomarker priors to enhance shared gene-level representations, enabling knowledge transfer across RNA and protein modalities through gene-protein correspondence and molecular associations. By exploiting these complementary relationships, SCOPE enables both prediction tasks to benefit from a shared backbone enriched with cross-omics biological knowledge. Furthermore, its biomarker correlation design facilitates the prediction of unseen markers, extending spatially resolved molecular profiling beyond directly supervised targets. Across test datasets spanning 16 organs, SCOPE improves the average RNA Pearson correlation over the strongest baseline by 8.8%. On two external protein cohorts, it improves the average Pearson correlation over the strongest baseline by 9.7% for seen markers and 11.9% for unseen markers.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

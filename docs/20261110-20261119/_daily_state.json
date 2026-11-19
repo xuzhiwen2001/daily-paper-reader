@@ -1,0 +1,57 @@
+{
+  "date": "20261110-20261119",
+  "date_label": "2026-11-10 ~ 2026-11-19",
+  "generated_at": "2026-11-19 18:42:49 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2611.23999v1",
+      "route": "20261110-20261119/2611.23999v1-reliflow-reliability-calibrated-residual-transport-for-combinatorial-single-cell-perturbation-prediction",
+      "title": "ReliFlow: Reliability-Calibrated Residual Transport for Combinatorial Single-Cell Perturbation Prediction",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "用条件流匹配预测组合单细胞扰动响应",
+      "first_seen_at": "2026-11-19 18:42:49 UTC",
+      "updated_at": "2026-11-19 18:42:49 UTC"
+    },
+    {
+      "paper_id": "2611.23953v1",
+      "route": "20261110-20261119/2611.23953v1-mitoworld-a-stochastic-world-model-of-the-single-cell-cycle-under-genetic-perturbation",
+      "title": "MitoWorld: A Stochastic World Model of the Single-Cell Cycle under Genetic Perturbation",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "随机世界模型预测遗传扰动下单细胞轨迹与分裂时序",
+      "first_seen_at": "2026-11-19 18:42:49 UTC",
+      "updated_at": "2026-11-19 18:42:49 UTC"
+    },
+    {
+      "paper_id": "2611.24104v1",
+      "route": "20261110-20261119/2611.24104v1-scope-single-cell-omics-prediction-from-histology-via-rna-protein-prior-enhancement",
+      "title": "SCOPE: Single-Cell Omics Prediction from Histology via RNA-Protein Prior Enhancement",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "由H&E组织学图像预测单细胞RNA与蛋白含量",
+      "first_seen_at": "2026-11-19 18:42:49 UTC",
+      "updated_at": "2026-11-19 18:42:49 UTC"
+    }
+  ]
+}

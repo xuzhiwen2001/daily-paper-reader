@@ -1,0 +1,457 @@
+Title: MitoWorld: A Stochastic World Model of the Single-Cell Cycle under Genetic Perturbation
+
+URL Source: https://arxiv.org/pdf/2611.23953v1
+
+Published Time: Thu, 19 Nov 2026 02:10:27 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# MitoWorld: A Stochastic World Model of the Single-Cell Cycle under Genetic Perturbation 
+
+# Ting Long 1 Xiaojing Sun 1 Cheng Han 2 Zhicheng Ji 3
+
+# Ying Nian Wu 4 Jiebo Luo 5 Heng Fan 6 Dongfang Liu 1,* 
+
+> 1
+
+Purdue University 2University of Missouri 3Duke University 
+
+> 4
+
+UCLA 5University of Rochester 6University of North Texas 
+
+> *
+
+Corresponding author 
+
+# Abstract 
+
+A cell observed after a gene knockdown has an uncertain fu-ture, both in how its appearance will evolve and when it will divide. Existing approaches predict endpoints or population-level changes without jointly modeling individual trajecto-ries and division timing. In this work, we present MitoWorld, a stochastic world model that generates these future ap-pearances as continuous evolution in a Gaussian reference latent, terminated by a division hazard and converted into images by a conditional diffusion renderer. The ordinary transition provably preserves its Gaussian reference, tying its noise to its dynamics; paired observations identify its discrete transition where stationary marginals cannot. The hazard turns division timing into a survival likelihood that can be tested against real cycle lengths. On 325 held-out MitoCheck tracks spanning 17 knockdowns and a control, MitoWorld lowers FID by 34.6% and the video metric JEDi by 45.6% relative to the strongest baselines. Its latent-space prediction intervals achieve near-nominal 90% coverage, are 35% narrower than those of a model with freely fitted noise. The hazard also yields cell-cycle length distributions with KS distance close to the model-based finite-sample ref-erence. Testable single-cell stochastic dynamics thus offer a generative tool for time-lapse perturbation screens. 
+
+# 1. Introduction 
+
+The phenotype of a gene knockdown unfolds over time, and cells that start alike can follow different growth trajectories and divide at different times [3, 23, 48, 58, 63]. We therefore aim to model an observed cell’s future appearance distribu-tion under a given gene knockdown until division, that is, a world model of the single-cell cycle [14, 73]. Unlike snap-shot images, time-lapse screens follow individual cells over time under controlled interventions, so each generated future appearance can be scored against the real one. (a) What existing paradigms see  
+
+> One-Step
+> ??
+> No Observed Per-Cell Paths
+> Video WM
+> No Single Cell Trajectory
+> (b) MitoWorld
+> Per-Cell Cycle Latent
+
+Figure 1. Cell-cycle prediction. (a) One-step endpoint predictors learn to map control populations to perturbed populations, while video world models synthesize population-level cell dynamics. Nei-ther explicitly models how an individual cell grows or when it divides. (b) From one cell xt under knockdown g, MitoWorld rolls out stochastic latent trajectories, renders every step (faded box), and stops each at a division (red point) sampled from p(Tdiv ).
+
+Existing approaches to predicting cellular responses largely model population-level changes, through either end-point prediction or time-lapse video generation (Fig. 1(a)). First, one-step endpoint predictors learn to map control pop-ulations to perturbed populations [13, 41]. Because destruc-tive measurements prevent repeated observations of the same cells, these methods learn from unpaired snapshots of differ-ent cell populations [72]. Coupling populations across time can infer trajectories, but lacks directly observed same-cell correspondence [60, 66]. Methods limited to endpoint pre-diction additionally leave cellular growth and division timing unspecified. Second, time-lapse video predictors extend gen-erative video models [8, 18, 31] to microscopy, synthesizing population-level cellular dynamics [32]. Although these videos can depict mitosis, they target population-level visual dynamics rather than explicitly modeling each individual cell’s growth trajectory and division time. Our key insight is to make three aspects of a single-cell fu-1arXiv:2611.23953v1 [cs.CV] 18 Nov 2026 ture explicit: cross-time dependence, predictive uncertainty, and the division event. A paired transition learns which future belongs to the same cell; a reference-constrained stochastic kernel couples the amount of noise to the learned dynamics; and a state-, age-, and gene-conditioned hazard turns division into a random stopping time. These compo-nents retain the state, transition, termination, and renderer structure of latent world models [25, 27, 61, 79], while mak-ing their predictions separately testable (Fig. 1(b)). We instantiate this design as MitoWorld . A nonlin-ear encoder maps frames to a Gaussian-regularized latent space, where a gene-conditioned Ornstein–Uhlenbeck transi-tion [69] generates future states and a conditional diffusion renderer converts these states into images. The ordinary transition preserves its Gaussian reference and composes consistently across step sizes (Prop. 1). Under this reference model, paired observations identify the discrete transition kernel that population marginals cannot identify (Prop. 2). A hazard and two terminal transitions complete each sampled cycle with a two-daughter composite image. The method is designed to preserve individual correspondence, quantify possible futures, and predict when a trajectory terminates, rather than optimize appearance alone. We evaluate on MitoCheck [48], using 1,183 training and 325 test tracks spanning 17 knockdowns and a scrambled control. Our experiments evaluate image and sequence fi-delity together with same-cell retrieval, then test the paired dynamics, latent uncertainty and stability, and division tim-ing in the same order as these claims. In summary, our contributions are threefold: • We cast the single-cell cycle under genetic perturbation as a world-model problem , where a cell’s state evolves stochastically and stops at a state-dependent division event, so each cell’s future is a distribution over paths (§3.1). • We propose MitoWorld and prove that its transition pre-serves a Gaussian reference distribution over any number of steps (Prop. 1) and show that its discrete transition kernel is identifiable from per-cell pairs but not from stationary marginals (Prop. 2). • On 325 held-out MitoCheck tracks, we demonstrate Mi-toWorld’s forecast fidelity, uncertainty quantification, and cell-cycle timing : FID decreases by 34.6% relative to the strongest baseline, latent prediction intervals are 34.8% narrower than those with freely fitted noise while maintaining near-nominal 90% coverage, and generated cell-cycle length distributions achieve mean per-condition KS close to the model-based finite-sample reference (§4). 
+
+# 2. Related Work 
+
+Perturbation response prediction. Perturbation screens compare profiles across conditions, with transcriptional readouts of pooled screens [21, 55, 75] or morphological features from microscopy [10, 16, 17]. Predictors then map a control population to a perturbed one, in expres-sion space [13, 41, 42, 57] or, with conditional genera-tive models, in image space [9, 46, 51, 78], and what they pair is one population with another, because destructive profiling never observes the same cell twice [72]. Snap-shots at successive times let optimal transport, Schr¨ odinger bridges, and flow matching pair populations across time as well [12, 33, 36, 60, 66, 67], but a coupling fitted to marginals cannot say which future belongs to which cell [39]. Live-cell tracking pairs each cell with its own future through the whole cycle [29, 45, 47, 48, 80], yet such tracks have served classification and mitotic staging rather than gener-ation, and no model above predicts when a given cell will divide [15, 58]. MitoWorld takes these same-cell pairs as su-pervision, which identify the transition that marginals leave ambiguous (Prop. 2), and models the response as a process ending at a predicted division rather than an endpoint (§3.1). 
+
+World models for visual dynamics. World models learn how a system evolves from observations and simulate fu-tures from a given state [25, 26], and three ingredients recur. 
+
+Reconstruction grounds the latent in images, from masked image and video modeling to recurrent world models [27, 28, 37, 68]. Prediction learns temporal structure through feature prediction or latent transitions [6, 7, 53, 56, 77]. 
+
+Conditioning makes external inputs explicit, as in action-conditioned simulators and conditional diffusion world mod-els [1, 2, 11, 19, 70, 74]. Closest to us, video diffusion has been adapted to time-lapse microscopy at the field-of-view level rather than per cell [32]. In all of them the transition is a network, so the spread of sampled futures is a design choice rather than a tested quantity, and a rollout ends by a learned continue flag, if at all, rather than by an event with checkable timing. MitoWorld keeps the state, transition, ter-mination, and renderer of latent world models, but makes the transition an explicit reference-preserving operator (§3.3) and the termination a division hazard (§3.4). 
+
+Structured stochastic dynamics and division timing. Acell-cycle forecast must describe how the cell evolves when it enters division. For the first problem, neural latent transitions offer flexible predictors [26, 56, 76], but repeated prediction can compound errors [4]. Learning nonlinear coordinates in which the dynamics are approximately linear makes this propagation easier to analyze [5, 43, 50, 64, 71]. In Gaussian-regularized coordinates [38, 44], Ornstein–Uhlenbeck transi-tion attenuates existing deviations, and preserving the Gaus-sian reference ties its noise covariance to the mean opera-tor [34, 49, 59, 69]. MitoWorld learns a gene-conditioned transition of this form from same-cell trajectories and evalu-ates per-cell prediction error over long rollouts (§4.4). Divi-sion ends the trajectory, making its timing a time-to-event problem. In discrete-time survival analysis, the hazard is the probability of an event at a given step conditional on its not having occurred earlier [20, 62]. Drawing on this 2(b) Learn the Motion (c) Know When to Stop No, Next Step Yes Render, Stop     
+
+> Diffusion Renderer
+> Divide? Step Division Transition
+> Induces
+> (a) Learn the Space Project Transition Operator
+> Contraction Rotation Age
+> Sort (§3.2) (§3.3) (§3.4)
+
+Figure 2. The pipeline of MitoWorld. (a) trains the encoder to place cell states in a Gaussian reference space (§3.2). (b) freezes the encoder and moves each state with a reference-preserving transition whose operator splits into a contraction Sg and a rotation Kg (§3.3), and a diffusion renderer converts every state into an image (§3.5). (c) uses a division hazard h to determine the survival probability Sk and the division-time distribution. A hazard trigger initiates the terminal transitions, which end the cycle with a two-daughter composite (§3.4). 
+
+framework [15, 58], MitoWorld treats division as a random stopping time with a hazard conditioned on the generated state, cell age, and gene. We compare the predicted division-time distributions with observed cycle lengths (§4.5). 
+
+# 3. Method 
+
+MitoWorld is a world model of the single-cell cycle built from a latent state space, a stochastic transition, a division hazard, and a diffusion renderer, which §3.2–3.5 describe in turn and Fig. 2 summarizes. We first state the problem (§3.1) and close with training and inference (§3.6). 
+
+3.1. Problem formulation 
+
+Let x0: T denote a single-cell track under gene-knockdown condition g, with ak denoting the cell’s age at frame k. Given an observed frame xt, its age at, and condition g, we jointly sample future appearances and division timing: 
+
+ ˆxt+1: Tdiv +1 , T div 
+
+ ∼ pΘ( · | xt, a t, g ). (1) As summarized in Fig. 2, an encoder initializes the latent state zt = Eψ (xt), and a gene-conditioned stochastic tran-sition propagates it through time. A state-, age-, and gene-conditioned hazard stochastically triggers two terminal tran-sitions, producing chromatin condensation at Tdiv and a two-daughter composite frame at Tdiv + 1 . A conditional diffusion renderer maps the resulting states to images. This construction models the joint evolution of the same cell across time rather than independent population marginals. 
+
+3.2. Learn the latent space 
+
+We learn a nonlinear representation with a Gaussian refer-ence, aiming to capture complex image-level variation in the encoder while modeling cellular evolution through linear stochastic dynamics. An encoder Eψ maps each frame x to a latent state z = Eψ (x) ∈ Rd, and a decoder D reconstructs the frame using a weighted L1 loss: 
+
+Lreconst = ⟨wp|ˆxp − xp|⟩ p. (2) Here xp and ˆxp are the normalized target and reconstructed intensities at pixel p, wp is weight parameter to focus more on foreground pixels, and the brackets average over pixels and the training batch. We regularize the pooled latent distribution toward 
+
+N (0 , I ) using: 
+
+Lshape = LSW + 1
+
+d
+
+> d
+
+X
+
+> j=1
+
+ |ˆμj | + |ˆσj − 1|, (3) where LSW is the sliced Wasserstein discrepancy to 
+
+N (0 , I ) [35, 65], and ˆμj , ˆσj are the batch mean and standard deviation of the j-th latent coordinate. The constraint applies to pooled states across conditions, without requiring each gene-specific distribution to be Gaussian. We evaluate its contribution to long-horizon forecasting in §4.4. 
+
+3.3. Learn how cells move 
+
+Predicting an individual cell requires learning how its cur-rent state constrains its future, beyond matching population appearance. We therefore learn stochastic dynamics from 3same-cell frame pairs. In the learned representation, we use a linear conditional mean to propagate the state and tie its uncertainty to the dynamics through the Gaussian reference. This design combines directional evolution with contraction, while allowing progression speed to vary with cell age. 
+
+Reference-preserving stochastic transition. Before the division hazard triggers, we propagate the latent state using a gene-conditioned Ornstein–Uhlenbeck (OU) transition [69]: 
+
+ˆzk+∆ = Rg (∆) zk + Qg (∆) ϵk, ϵk ∼ N (0 , I ),Rg (∆) = e−∆Ag , Qg (∆) =  I − Rg R⊤
+
+> g
+
+1/2. (4) The conditional mean advances the current state, while fresh noise generates alternative futures. Requiring the tran-sition to preserve N (0 , I ) determines its covariance from Rg ,linking uncertainty to the decay of initial-state information rather than fitting an independent covariance. 
+
+Structured operator. To allow directional changes in the latent mean during cell-cycle progression, we combine a contractive component with a rotational component: 
+
+Ag = Sg + Kg , Sg ≻ 0, K⊤ 
+
+> g
+
+= −Kg ,Sg = Λ + U diag( βg ) U ⊤, Kg = U Ωg U ⊤, (5) where Λ ≻ 0 is a shared diagonal matrix and U ∈ Rd×r has orthonormal columns with r ≪ d. In the deterministic mean flow, Sg controls norm decay, while the skew-symmetric 
+
+Kg changes direction without directly changing the state norm. The rotational component therefore allows tempo-ral evolution beyond contraction alone. To share statistical strength across perturbations, gene-dependent coefficients 
+
+βg ≥ 0 and Ωg = −Ω⊤ 
+
+> g
+
+modulate these components within a common low-rank subspace, rather than fitting a separate full-dimensional operator for each condition. Prop. 1 formalizes how the structured operator and tied covariance preserve the Gaussian reference and ensure con-sistent composition across step sizes. 
+
+Proposition 1 (Reference preservation) . For a fixed gene g,
+
+Sg ≻ 0 makes Rg (∆) a strict contraction for every ∆ > 0,so Qg (∆) is well defined. The transition preserves N (0 , I ),and consecutive steps of lengths ∆1, ∆2 equal one step of length ∆1 + ∆ 2 in distribution. 
+
+Biological clock. To capture age-dependent progression rates, we use a learned monotone biological clock τ to con-vert chronological age into effective transition time: 
+
+∆k = τ (ak+1 ) − τ (ak). (6) The clock adjusts evolution speed across cycle ages while retaining the same gene-conditioned operator. Its average rate over a reference cycle is normalized to one. Because clock increments add, the composition property also holds for age-dependent effective steps. Reference preservation is exact for the ordinary kernel, while the encoded distribution only approximately matches the Gaussian reference. 
+
+Learning cross-time correspondence. Reference preser-vation alone does not specify how a particular cell evolves: different transitions can share the same time-point marginals. We therefore fit the operator and clock using frames (xu, x v )
+
+from the same cell cycle with the encoder frozen, learning the cross-time dependence needed for individual forecasting: 
+
+Lcoupling = E
+
+ 1
+
+d ∥Rg (∆) zu − zv ∥22
+
+
+
+, (7) where zu = Eψ (xu), zv = Eψ (xv ), and ∆ = τ (av ) −
+
+τ (au). Under the reference model, Prop. 2 establishes that these pairs identify the discrete transition kernel. 
+
+Proposition 2 (Identifiability from pairs) . For a fixed gene 
+
+g, let zt ∼ N (0 , I ) evolve under Eq. (4) . The marginal of zt+k∆ is N (0 , I ) for every k and every admissible oper-ator Ag , so time-point marginals cannot identify the tran-sition. Paired states identify Rg (∆) , since E[zt+∆ z⊤ 
+
+> t
+
+] = 
+
+Rg (∆) . This determines the full conditional p(zt+∆ | zt) = 
+
+N  Rg (∆) zt, I − Rg (∆) Rg (∆) ⊤ and hence the joint dis-tribution over paths on the corresponding time grid. 
+
+Thus, reference preservation constrains repeated stochas-tic evolution, while paired supervision identifies cross-time dependence. Recovering the continuous generator Ag re-quires additional spectral conditions. We evaluate paired supervision and operator structure in §4.3, and long-horizon behavior in §4.4. 
+
+3.4. Know when to stop 
+
+The ordinary OU transition models gradual cellular evolu-tion over extended horizons, while completing a cell cycle requires predicting when division begins and capturing its abrupt morphological changes. We therefore combine a con-ditioned hazard for event timing with two terminal transitions for condensation and two-daughter formation. 
+
+Predicting division timing. Cell age signals cycle progres-sion, while the state and gene condition modulate division propensity. We express the probability of entering condensa-tion at the next frame through a discrete-time hazard [20, 62]: 
+
+h(z, a, g ) = σ
+
+b +
+
+> Kage −1
+
+X
+
+> j=0
+
+γj φj (a) + w⊤ 
+
+> z
+
+z + w⊤ 
+
+> g
+
+eg
+
+ ,
+
+(8) where σ is the sigmoid function, {φj (a)}Kage −1 
+
+> j=0
+
+are the Kage 
+
+Gaussian age basis functions, eg is the gene embedding shared with the transition, and b, γ j , w z , w g are learned pa-rameters. This formulation allows cells of the same age to have different division probabilities according to their state and perturbation condition. Let hj = h(zj , a j , g ) along an ordinary OU path starting from an observation at frame t. As illustrated in Fig. 2(c), survival through frame k ≥ t requires no trigger at frames 4t through k − 1, giving Sk = Qk−1 
+
+> j=t
+
+(1 − hj ) with St = 1 .A first trigger at k produces condensation at Tdiv = k + 1 
+
+with pathwise probability Skhk. Averaging over ordinary OU paths conditional on (zt, a t, g ), denoted by Et, gives: 
+
+P (Tdiv > k | zt, a t, g ) = Et[Sk],P (Tdiv = k + 1 | zt, a t, g ) = Et[Skhk]. (9) For each set of N labeled hazard decisions, we minimize binary cross-entropy: 
+
+Lh = − 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+yi log hi + (1 − yi) log(1 − hi), (10) where hi is the predicted hazard, and yi = 1 at the frame immediately before condensation and 0 at earlier frames. We average the losses on observed states and training rollout states with equal weights. At sampling time, the first hazard trigger switches the rollout from OU dynamics to the division transitions described below. 
+
+The division transition. To represent abrupt division-associated changes separately from ordinary evolution, we fit two affine Gaussian transitions: 
+
+p(r) 
+
+> η
+
+(z′ | z) = N (z′; Jr z + br , V r ), r ∈ { M, C }, (11) where Jr, br, and Vr are the stage-specific linear map, off-set, and conditional covariance. Stage M maps the pre-condensation state to condensed chromatin, and stage C
+
+maps that state to the two-daughter composite. Their pa-rameters η = {Jr , b r , V r }r∈{ M,C } are fitted from training terminal triples. A hazard trigger at frame k produces con-densation at k + 1 = Tdiv and the composite at k + 2 , after which the rollout stops. Together, the hazard and terminal transitions specify when ordinary evolution ends and how the sampled cycle completes. Division timing and conditioning-factor ablations are evaluated in §4.5. 
+
+3.5. What cells look like 
+
+A conditional diffusion renderer [30, 52, 54] converts the la-tent states generated by the ordinary and terminal transitions into images. The diffusion renderer uses x-prediction [40] to directly predict the clean frame ˆxϕ(xs, s, z, a, g, c ) from the noisy target xs at diffusion step s, the latent state z, cell age a, gene condition g, and source image c. We train it with a weighted MSE: 
+
+Ldiff = E
+
+h
+
+wtime (s) 1
+
+> HW
+
+PHW p=1 wfocal ,p (ˆ xϕ,p − xp)2
+
+i
+
+,
+
+(12) where H and W are the image dimensions, wtime empha-sizes low-noise steps, and wfocal ,p emphasizes pixels with larger reconstruction errors. We evaluate rendering in Tab. 1 and illustrate sampled trajectories in Fig. 3. 
+
+3.6. Learning the space, then the motion 
+
+We first learn the latent representation through reconstruction and Gaussian regularization. We then freeze the encoder and learn the motion and rendering models in fixed latent coordinates. The objectives for these two stages are: 
+
+Lspace = Lreconst + λshape Lshape ,
+
+Lmotion = Lcoupling + λdiff Ldiff . (13) Here λshape and λdiff represent the weight of Lshape and Ldiff ,respectively. We fit the coupling independently of the hazard using latent pairs encoded from observed frames of the same cell. Once the coupling is trained, we keep the encoder and coupling fixed and fit the division hazard with Lh using both observed and rollout states (§3.4). Delaying hazard fitting avoids exposing it to unreliable predictions from early coupling training, while rollout states expose it to the model-generated inputs it will encounter at inference. At inference, we initialize the latent state as zt = Eψ (xt).At each step, we sample a trigger from the hazard. If no event is sampled, the ordinary transition (Eq. (4)) advances the state. Upon a trigger, the two terminal transitions (Eq. (11)) generate the final states in sequence. The diffusion renderer converts the sampled states into images, and the rollout ends after the composite frame. Repeating this procedure from the same observation yields joint samples of future image trajectories and division times for the same cell. 
+
+# 4. Experiments 
+
+We first describe the experimental setup(§4.1) and then com-pare MitoWorld with strong baselines on single-cell forecast-ing performance and further complement this evaluation with qualitative analyses in image and latent space (§4.2). After that, we ablate paired supervision and operator structure, as-sess calibration and rollout stability, and test the contribution of hazard conditioning to division timing in §4.3–4.5 and close with failure case analysis (§4.6). 
+
+4.1. Experimental setup 
+
+Dataset. We use a subset of MitoCheck [48], a genome-wide time-lapse RNAi screen of HeLa cells expressing H2B-GFP and imaged every 30 minutes. Our subset comprises 17 gene knockdown conditions and one negative control. After excluding censored tracks, we retain 1,508 complete single-cell cycles with recorded birth and division events, partitioned at the track level into 1,183 training and 325 test trajectories. For each tracked cell, we rotate the image to align the segmentation mask’s major axis vertically and set pixels outside the mask to zero. We center the mask’s bounding-box crop on a ( 96 × 96 ) grayscale canvas, discard-ing the oversized crops. 
+
+Baselines. We compare four perturbation-conditioned gen-erative models: CellFlux [78], IMPA [51], PhenDiff [9], 5Table 1. Image prediction and biological features on 325 test MitoCheck [48] tracks. FID measures frame fidelity at +3h, +10h, pre-division ( div ), and across future frames ( all ); R@1 measures cell-specific retrieval, and JEDi measures sequence realism. The five biological categories average marginal W1 distances. BEST and SECOND results are highlighted. Method FID +3h ↓ FID +10h ↓ FID div ↓ FID all ↓ R@1 ↑ JEDi ↓ Size ↓ Intensity ↓ Intensity dist. ↓ Texture ↓ Shape ↓
+
+> Generative
+
+CellFlux [ICML25] [78] 74.72 99.39 97.96 85.74 37.33% 7.14 0.3056 0.0789 0.4073 0.1343 0.1476 IMPA [Nat. Commun.25] [51] 68.61 64.65 55.10 54.38 5.67% 6.50 0.1626 4.0374 0.5267 2.4320 0.1812 PhenDiff [MICCAI24] [9] 306.09 300.45 279.16 289.75 3.59% 9.61 1.3789 3.6650 0.8561 3.2474 4.7492 MorphoDiff [ICLR25] [46] 104.21 123.30 110.95 112.68 6.46% 9.78 0.5144 3.8396 0.2490 2.9829 0.1356 
+
+> World Model
+
+DIAMOND [NeurIPS24] [2] 89.36 95.69 73.22 80.09 5.64% 8.31 0.3126 3.4623 0.7152 3.7944 0.3780 DreamerV3 [Nature25] [27] 176.59 183.83 176.49 177.08 18.92% 3.75 0.2734 0.0789 0.7617 0.1191 0.4845 TWM [ICLR23] [56] 163.91 182.36 185.30 174.80 14.15% 5.00 0.3918 0.1472 0.7166 0.1567 0.6853 OC-STORM [ICLR26] [77] 237.07 250.05 244.82 242.06 18.54% 6.54 0.3164 0.1870 0.4785 0.1000 0.4861 EADream [ICLR26] [53] 190.13 201.46 205.69 196.87 8.59% 8.87 0.1998 0.1653 0.6971 0.2068 0.5444 HI [ICLR26] [19] 56.81 66.31 57.37 54.36 36.72% 4.73 0.2662 0.0988 0.2503 0.1091 0.1582 
+
+MitoWorld 20.71 46.30 44.01 35.54 41.87% 2.04 0.1349 0.0612 0.1586 0.0591 0.1021 
+
+and MorphoDiff [46] and further compare against six com-petitive world models: DIAMOND [2], DreamerV3 [27], TWM [56], OC-STORM [77], EADream [53], and HI [19], which capture temporal dynamics for multi-step visual pre-diction. We adapt their predictive components to single-cell image forecasting. 
+
+Reproducibility. We train MitoWorld for 100 epochs on a single NVIDIA H200 GPU using AdamW with a learning rate of 10 −4 and a batch size of 128. We generate images using source-conditioned DDIM with 16 sampling steps. 
+
+4.2. Predicting individual cellular futures 
+
+Appearance and individual correspondence. We first assess whether the model predicts individual cellular futures and improves image fidelity and sequence-level temporal realism while preserving correspondence to the same cell. In Tab. 1, MitoWorld achieves an overall FID of 35.54 and JEDi of 2.04, improving on the strongest respective base-lines (54.36 and 3.75) by 34.6% and 45.6%. Image-feature retrieval reaches 41.87%, compared with 37.33% for the strongest baseline. This is consistent with explicit stochas-tic dynamics constraining evolution across time and same-cell paired supervision learning the cross-time dependence needed for individual forecasting (§3.3 and Prop. 2). In addition, for interpretable cellular-feature evaluation, we follow the 17-feature taxonomy of LIVECell [22]: size 
+
+(area, perimeter, Feret’s diameter), intensity (mean, mini-mum, maximum, fifth and 95th percentiles), intensity distri-bution (skewness, kurtosis, normalized weighted centroid), 
+
+texture (intensity standard deviation), and shape (eccentric-ity, roundness, circularity, solidity, aspect ratio). MitoWorld achieves the lowest category-averaged marginal W1 distance in all five biological categories. Together, these results show that MitoWorld not only generates temporally evolving cel-lular trajectories but also captures the morphological feature distributions of future cells. 
+
+Image- and latent-level trajectories. In Fig. 3a, we com-pare observed snapshots with predictions against two strong baselines from Tab. 1, IMPA and HI, at corresponding stages of the cell cycle. IMPA captures size changes but rounds the cell excessively, whereas HI yields smoother shape transi-tions with little of the observed growth. MitoWorld captures changes in both size and shape, consistent with its lowest distances on both metrics in Tab. 1, and continues through chromatin condensation to two-daughter formation. Panel (b) visualizes state evolution on a fixed UMAP. Before division, the observed and MitoWorld trajectories progress through similar regions, while HI follows a broader, less ordered path through the central region. During the hazard-triggered terminal transitions, MitoWorld reproduces the observed late return toward regions of smaller nuclear area, consistent with chromatin condensation before division. These examples complement Fig. 3a by illustrating how the model organizes individual futures across both gradual progression and abrupt division events. Figure 3c shows that MitoWorld captures gene-dependent differences in cell-cycle length distributions. Together, these results further support MitoWorld’s ability to forecast both how a cell evolves and when it divides. 
+
+Human expert evaluation. Experts compared anonymized sequences from MitoWorld and strong baselines from Tab. 1 on five criteria (Tab. 2): validity (plausible cell appearance), temporal coherence (natural changes across frames), agreement with observations (morphological match at corresponding stages), division morphology (plausible terminal division), and overall quality (visual quality of the full sequence). Although HI achieved the highest validity score for realistic cell appearance, its low scores for agreement and temporal coherence suggesting limited fidelity to the observed cells’ morphological changes over time. MitoWorld scored above 4 on all five criteria and led on four, suggesting that it preserves realistic cell appearance while generating biologically consistent growth and division trajectories. 6(a) Image-level cell trajectory 
+
+Observed IMPA HI 
+
+MitoWorld 
+
+Time 
+
+(c) Cycle-length distributions 20 40 Control (n=37) 20 40 COPB2 (n=8) 20 40 cycle length (h) ZNF358 (n=14) observed generated 
+
+(b) Latent space cell trajectory Observed 
+
+> 1 · 0 h 6 · 21 h 2 · 0 –25% 3 · 25 –50% 4 · 50 –75% 5 · 75 –100%
+
+HI  
+
+> 1 · 0 h 6 · 21 h 2345
+
+MitoWorld     
+
+> 1 · 0 h 6 · 22 h 2345
+> 200 600 1000
+> Area (pixels²)
+> Input Phase mean Final state
+
+Figure 3. Single-cell growth, division, and latent trajectories. (a) Image-level cell trajectory. Observed trajectory and predictions from strong baselines IMPA and HI, and our MitoWorld. (b) Latent space cell trajectory. Top to bottom: the observed encoded trajectory, HI native-latent trajectory, and MitoWorld coupling rollout, shown on the same frozen UMAP. Thin lines show full state trajectories; thick arrows connect phase-averaged states. Background points are colored by cell area (pixels 2), reflecting variation in cell size. (c) Cycle-length distributions. Observed and generated cycle lengths for three conditions. 
+
+Table 2. Human expert evaluation on a five-point Likert scale (1: strongly disagree; 5: strongly agree). Model Valid. ↑ Temp. ↑ Agr. ↑ Div. ↑ Overall ↑
+
+IMPA 2.27 ±0.73 2.63 ±0.69 1.87 ±0.57 1.03 ±0.08 2.67 ±0.72 
+
+CellFlux 3.57 ±0.45 2.93 ±1.02 2.20 ±0.79 1.13 ±0.18 3.50 ±0.74 
+
+DIAMOND 2.47 ±0.19 1.30 ±0.32 1.60 ±0.25 1.03 ±0.08 1.60 ±0.37 
+
+OC-STORM 3.77 ±0.68 1.80 ±0.46 2.63 ±0.64 1.00 ±0.00 2.10 ±0.09 
+
+HI 4.30 ±0.51 2.43 ±0.63 2.00 ±0.72 1.03 ±0.08 2.97 ±0.94 
+
+MitoWorld 4.03 ±0.36 4.23 ±0.36 4.93 ±0.15 4.93 ±0.09 4.33 ±0.26 
+
+4.3. Why paired and structured dynamics? 
+
+To examine the roles of paired supervision and transition design, we compare the full operator (Eq. (5)) with shuffled-pair supervision, scalar ( ρI ) and diagonal operators, removal of the rotational component Kg , removal of gene condition-ing, and a uniform biological clock (Tab. 4). 
+
+Biological readouts from observed states. We first test whether the encoded state z carries phenotypic information about an individual cell beyond what is predictable from its age and gene condition. We fit linear ridge probes on the training tracks using either the frozen encoder states of observed frames or age and gene as inputs. We weight frames inversely by track length so that each track con-tributes equally. On the 325 held-out tracks, the latent read-out achieves higher test R2 for area, eccentricity, mean in-tensity, and texture contrast than the age-and-gene baseline. 
+
+Table 3. Phenotypic information in the frozen encoder. Equal-track test R2 for linear readouts from age and gene or from z.Brackets give 95% lineage-root bootstrap intervals. 
+
+Feature Age + gene Latent z
+
+Area 0.483 0.804   
+
+> [0 .425 ,0.542] [0 .773 ,0.832]
+
+Eccentricity 0.050 0.802   
+
+> [0 .019 ,0.074] [0 .779 ,0.822]
+
+Mean intensity 0.270 0.885   
+
+> [0 .208 ,0.326] [0 .869 ,0.897]
+
+Texture contrast 0.268 0.693   
+
+> [0 .224 ,0.306] [0 .653 ,0.724]
+
+These readouts ((Tab. 3)) measure phenotypic information in observed states and complement the forecast correspon-dence evaluated by retrieval in §4.2. The higher readout scores indicate that z encodes cell-specific phenotypic vari-ation beyond what age and gene alone predict, motivating the ablations below that test whether paired supervision and structured dynamics preserve correspondence between suc-cessive states of the same cell. 7Learning cross-time correspondence. We test whether paired supervision and structured dynamics preserve cross-time dependence for individual forecasting. In Tab. 4, shuf-fling targets within gene/age strata preserves endpoint popu-lations but reduces latent retrieval from 41.23% to 31.18%. This supports same-cell pairing: cross-time dependence identifies the discrete transition under the reference model, whereas population marginals cannot (Prop. 2). Shuffled pairs nevertheless achieve lower NLL, showing that like-lihood can improve even as individual forecasts worsen. A broader predictive covariance can reduce covariance-normalized residuals despite weaker correspondence.                     
+
+> Table 4. Effects of coupling components on latent-state predic-tion . Red and blue mark the BEST and SECOND BEST values. Variant Err ↓NLL ↓R@1 z↑
+> ρI 0.9093 1.3760 36.62% Diagonal 0.9072 1.3740 36.24% w/o Kg0.8996 1.3575 39.66% Shuffled pairs 0.9185 1.3343 31.18% No gene cond. 0.8932 1.3596 40.55% Uniform clock 0.9002 1.4229 41.16%
+> Full 0.8903 1.3439 41.23%
+
+Evaluating the structured operator. Scalar and diagonal dynamics reach 36.62% and 36.24% retrieval, respectively, below Full’s 41.23%, with higher prediction errors. These restricted operators cannot express the same coupled evolu-tion of latent coordinates. Removing Kg retains symmetric coupling but reduces retrieval to 39.66% and increases er-ror to 0.8996. This additional contrast supports the value of rotation beyond contraction: Sg controls norm decay, while the skew term Kg changes direction without directly increasing the state norm (Eqs. (4) and (5)). The results are thus consistent with the structured transition expressing directional progression while retaining contractive dynamics, complementing the qualitative trajectories in Fig. 3b. 
+
+Adjusting condition and progression speed. Removing gene conditioning degrades performance across all three metrics, supporting its role in adapting the shared dynamics to different perturbations. A uniform clock leaves retrieval nearly unchanged but raises NLL to 1.4229, supporting clock modulation’s role in improving state and distribution pre-diction by adjusting effective evolution speed across cycle ages (Eq. (6)). Together, these comparisons support comple-mentary roles for paired supervision, structured motion, and condition- and age-dependent modulation. 
+
+4.4. Are stochastic futures calibrated and stable? 
+
+Uncertainty from dynamics. With the mean transition fixed, we compare no noise, isotropic noise, a freely fitted covariance, and the reference-tied covariance of MitoWorld (Tab. 5). By setting Σg = I − Rg R⊤ 
+
+> g
+
+, MitoWorld links injected uncertainty to the loss of initial-state information,                                     
+
+> Table 5. Calibration results of latent futures.
+> Noise Horizon CRPS ↓ES ↓Cov90 Width ↓
+> None +3h 0.62 6.07 ––Isotropic 0.48 4.72 98 .02% 4.03 Free 0.47 4.69 97 .88% 3.96
+> MitoWorld 0.44 4.36 89 .72 %2.58
+> None div 0.79 7.55 ––Isotropic 0.59 5.84 99 .28% 5.15 Free 0.58 5.78 99 .21% 5.01
+> MitoWorld 0.54 5.35 88 .92 %3.05
+
+constraining uncertainty estimation without separately fitting a covariance matrix. At +3h and the pre-division horizon, co-ordinatewise coverage is 89.72% and 88.92%, with intervals about 35% and 39% narrower than Free, together with lower CRPS and ES [24]. These results support our dynamics-constrained uncertainty model, which yields sharper predic-tions with coverage close to the nominal 90% level (Eq. (4)). Overcoverage by Free and Isotropic indicates that wider intervals alone are not more informative. 
+
+Stable long-horizon dynamics. Fig. 4 compares our OU transition with latent autoregression (AR) and the same OU structure fitted without Gaussian encoder regularization. Mi-toWorld maintains closer agreement with observed future distributions over longer horizons, while its per-cell error levels off rather than growing rapidly as in latent AR. Re-moving Lshape yields lower short-horizon per-cell error but greater long-horizon drift. These trends support combining a Gaussian-regularized representation with OU dynamics: the linear conditional mean propagates latent states, while contraction and the tied covariance control moment growth (Eq. (4) and Prop. 1). Thus, linear stochastic dynamics in the learned latent space can sustain stable long-horizon evolution without a nonlinear autoregressive transition.         
+
+> 020 rollout time (h) 10 −1
+> 10 1
+> SWD to real futures 020 rollout time (h) 0.0 0.5 1.0 rel. per-cell error
+> MitoWorld latent AR w/o shape
+> Figure 4. Long-horizon latent dynamics .
+
+4.5. Predicting division events 
+
+Having evaluated cellular state evolution, we now examine division timing. Building on the cycle-length distributions in Fig. 3c, we assess how state, age, and gene conditioning con-tribute to the hazard model (Eq. (8)). The full hazard yields an average KS distance of 0.2229 across the 18 conditions. Even samples drawn from the same distribution can differ when only a few cells are available per condition. To esti-8mate the size of this difference, we drew 200 simulated test sets from the model’s predicted cycle lengths, matching the actual number of test cells in each condition. The resulting average KS distance was 0.2234, close to the 0.2229 mea-sured on the real test set. We then ablate each conditioning factor using Brier score, per-condition KS, and terminal FID (Tab. 6). Removing age increases KS from 0.2229 to 0.4743, identifying age as the main timing signal. Removing state or gene conditioning also worsens all three metrics, support-ing their complementary roles in adjusting age-dependent division propensity. The full hazard also yields the low-est terminal FID, indicating closer agreement in terminal appearance distributions. 
+
+Table 6. Effects of the factors on division timing prediction.                          
+
+> State zAge akGene egBrier ↓KS ↓FID ↓
+> ✓✓0.0211 0.2263 30.61
+> ✓✓0.0220 0.4743 32.95
+> ✓✓0.0202 0.2414 30.65
+> ✓✓✓0.0201 0.2229 30.50
+
+Together with the preceding experiments, these results support a unified model of individual cellular evolution, dynamics-constrained uncertainty, and division timing over a complete cell cycle. 
+
+4.6. Failure case analysis 
+
+MitoWorld achieves the lowest discrepancy between ob-served and generated size distributions in Tab. 1, however, on closer inspection, we found that MitoWorld can under-estimate nuclear growth in cells with unusually large nu-clei. In the held-out example in Fig. 5, the mean observed area is 1.73 times the mean across test tracks for the same gene. From the shared observation, MitoWorld preserves 
+
+> Observed IMPA Ours
+
+Figure 5. Underestimated nuclear growth. Both methods gener-ate trajectories from the first observed frame. 
+
+the overall nuclear shape and predicts the observed widen-ing, but underestimates its extent. This case also challenges IMPA, a strong baseline on the size metric, which predicts initial shrinkage while the observed nucleus widens. For MitoWorld, this underestimation may reflect the influence of more common growth patterns on the learned dynamics. Im-proving generalization to rare single-cell growth trajectories is a direction for future work. 
+
+# 5. Conclusion 
+
+MitoWorld encodes an observed cell in a Gaussian-regularized latent space and learns an Ornstein–Uhlenbeck transition from same-cell pairs. This linear-Gaussian transi-tion supports stable long-horizon rollouts, a division hazard determines when the cell enters division, and a diffusion renderer maps predicted states to microscopy images. On held-out MitoCheck tracks, MitoWorld reduces overall FID by 34.6% and JEDi by 45.6% relative to the strongest respec-tive baselines. We learn cell dynamics from paired obser-vations and evaluate on known knockdowns in one dataset and cell line. Future work includes improving generalization both in rare single-cell case and unseen gene conditions, and adapting the dynamics to unpaired snapshots. 
+
+# References 
+
+[1] Niket Agarwal, Arslan Ali, Maciej Bala, Yogesh Balaji, Erik Barker, Tiffany Cai, et al. Cosmos world foundation model platform for physical AI. arXiv preprint arXiv:2501.03575 ,2025. 2 [2] Eloi Alonso, Adam Jelley, Vincent Micheli, Anssi Kanervisto, Amos Storkey, Tim Pearce, and Franc ¸ois Fleuret. Diffusion for world modeling: Visual details matter in atari. In NeurIPS ,2024. 2, 6 [3] Steven J. Altschuler and Lani F. Wu. Cellular heterogeneity: Do differences make a difference? Cell , 141(4):559–563, 2010. 1 [4] Kavosh Asadi, Dipendra Misra, and Michael Littman. Lip-schitz continuity in model-based reinforcement learning. In 
+
+International Conference on Machine Learning , pages 264– 273, 2018. 2 [5] Omri Azencot, N. Benjamin Erichson, Vanessa Lin, and Michael Mahoney. Forecasting sequential data using con-sistent Koopman autoencoders. In Proceedings of the 37th International Conference on Machine Learning , pages 475– 485. PMLR, 2020. 2 [6] Randall Balestriero and Yann LeCun. LeJEPA: Provable and scalable self-supervised learning without the heuristics. arXiv preprint arXiv:2511.08544 , 2025. 2 [7] Adrien Bardes, Quentin Garrido, Jean Ponce, Xinlei Chen, Michael Rabbat, Yann LeCun, Mido Assran, and Nicolas Ballas. Revisiting feature prediction for learning visual rep-resentations from video. Transactions on Machine Learning Research , 2024. 2 [8] Andreas Blattmann, Robin Rombach, Huan Ling, Tim Dock-horn, Seung Wook Kim, Sanja Fidler, and Karsten Kreis. Align your latents: High-resolution video synthesis with la-tent diffusion models. In CVPR , pages 22563–22575, 2023. 1[9] Anis Bourou, Thomas Boyer, Marzieh Gheisari, K´ evin Daupin, V´ eronique Dubreuil, Aur´ elie De Thonel, Val´ erie Mezger, and Auguste Genovesio. Phendiff: Revealing sub-tle phenotypes with diffusion models in real images. In In-ternational Conference on Medical Image Computing and 
+
+9Computer-Assisted Intervention , pages 358–367. Springer, 2024. 2, 5, 6 [10] Mark-Anthony Bray, Shantanu Singh, Han Han, Chadwick T. Davis, Blake Borgeson, Cathy Hartland, et al. Cell Painting, a high-content image-based assay for morphological profiling using multiplexed fluorescent dyes. Nature Protocols , 11(9): 1757–1774, 2016. 2 [11] Jake Bruce, Michael D. Dennis, Ashley Edwards, et al. Genie: Generative interactive environments. In ICML , pages 4603– 4623, 2024. 2 [12] Charlotte Bunne, Laetitia Papaxanthos, Andreas Krause, and Marco Cuturi. Proximal optimal transport modeling of popu-lation dynamics. In AISTATS , pages 6511–6528, 2022. 2 [13] Charlotte Bunne, Stefan G. Stark, Gabriele Gut, Jacobo Sara-bia del Castillo, Mitch Levesque, Kjong-Van Lehmann, et al. Learning single-cell perturbation responses using neural opti-mal transport. Nature Methods , 20(11):1759–1768, 2023. 1, 2[14] Charlotte Bunne, Yusuf Roohani, Yanay Rosen, et al. How to build the virtual cell with artificial intelligence: Priorities and opportunities. Cell , 187(25):7045–7063, 2024. 1 [15] Clotilde Cadart, Sylvain Monnier, Jacopo Grilli, Pablo J. S´ aez, Nishit Srivastava, Rafaele Attia, Emmanuel Terriac, Buzz Baum, Marco Cosentino-Lagomarsino, and Matthieu Piel. Size control in mammalian cells involves modulation of both growth rate and cell cycle duration. Nature Communications ,9(1):3275, 2018. 2, 3 [16] Juan C. Caicedo, Sam Cooper, Florian Heigwer, Scott War-chal, Peng Qiu, Csaba Molnar, et al. Data-analysis strategies for image-based cell profiling. Nature Methods , 14(9):849– 863, 2017. 2 [17] Srinivas Niranj Chandrasekaran, Hugo Ceulemans, Justin D. Boyd, and Anne E. Carpenter. Image-based profiling for drug discovery: Due for a machine-learning upgrade? Nature Reviews Drug Discovery , 20(2):145–159, 2021. 2 [18] Boyuan Chen, Diego Mart´ ı Mons´ o, Yilun Du, Max Sim-chowitz, Russ Tedrake, and Vincent Sitzmann. Diffusion forcing: Next-token prediction meets full-sequence diffusion. In NeurIPS , 2024. 1 [19] Lior Cohen, Ofir Nabati, Kaixin Wang, Navdeep Kumar, and Shie Mannor. Horizon imagination: Efficient on-policy roll-out in diffusion world models. In ICLR , 2026. 2, 6 [20] D. R. Cox. Regression models and life-tables. Journal of the Royal Statistical Society: Series B (Methodological) , 34(2): 187–202, 1972. 2, 4 [21] Atray Dixit, Oren Parnas, Biyu Li, Jenny Chen, Charles P. Fulco, Livnat Jerby-Arnon, et al. Perturb-Seq: Dissecting molecular circuits with scalable single-cell RNA profiling of pooled genetic screens. Cell , 167(7):1853–1866, 2016. 2 [22] Christoffer Edlund, Timothy R. Jackson, Nabeel Khalid, Nicola Bevan, Timothy Dale, Andreas Dengel, Sheraz Ahmed, Johan Trygg, and Rickard Sj¨ ogren. LIVECell—a large-scale dataset for label-free live cell segmentation. Nature Methods ,18:1038–1045, 2021. 6 [23] Michael B. Elowitz, Arnold J. Levine, Eric D. Siggia, and Peter S. Swain. Stochastic gene expression in a single cell. 
+
+Science , 297(5584):1183–1186, 2002. 1 [24] Tilmann Gneiting and Adrian E. Raftery. Strictly proper scor-ing rules, prediction, and estimation. Journal of the American Statistical Association , 102(477):359–378, 2007. 8 [25] David Ha and J¨ urgen Schmidhuber. Recurrent world models facilitate policy evolution. In NeurIPS , 2018. 2 [26] Danijar Hafner, Timothy Lillicrap, Ian Fischer, Ruben Ville-gas, David Ha, Honglak Lee, and James Davidson. Learning latent dynamics for planning from pixels. In ICML , pages 2555–2565, 2019. 2 [27] Danijar Hafner, Jurgis Pasukonis, Jimmy Ba, and Timothy Lil-licrap. Mastering diverse control tasks through world models. 
+
+Nature , 640(8059):647–653, 2025. 2, 6 [28] Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Doll´ ar, and Ross Girshick. Masked autoencoders are scalable vision learners. In CVPR , pages 16000–16009, 2022. 2 [29] Michael Held, Michael H. A. Schmitz, Bernd Fischer, et al. CellCognition: Time-resolved phenotype annotation in high-throughput live cell imaging. Nature Methods , 7(9):747–754, 2010. 2 [30] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising dif-fusion probabilistic models. In NeurIPS , pages 6840–6851, 2020. 5 [31] Jonathan Ho, Tim Salimans, Alexey Gritsenko, William Chan, Mohammad Norouzi, and David J. Fleet. Video diffusion models. In NeurIPS , 2022. 1 [32] Alexander Holmberg, Nils Mechtel, and Wei Ouyang. Adapt-ing video diffusion models for time-lapse microscopy. arXiv preprint arXiv:2503.18583 , 2025. 1, 2 [33] Guillaume Huguet, Daniel Sumner Magruder, Alexander Tong, Oluwadamilola Fasina, Manik Kuchroo, Guy Wolf, et al. Manifold interpolating optimal-transport flows for tra-jectory inference. In NeurIPS , pages 29705–29718, 2022. 2[34] Yoo Sung Jang and Michael Ryoo. Latent projection for latent planning. arXiv preprint arXiv:2610.26979 , 2026. 2 [35] Soheil Kolouri, Phillip E. Pope, Charles E. Martin, and Gus-tavo K. Rohde. Sliced Wasserstein auto-encoders. In ICLR ,2019. 3 [36] Takeshi Koshizuka and Issei Sato. Neural Lagrangian Schr¨ odinger bridge: Diffusion modeling for population dy-namics. In ICLR , 2023. 2 [37] Oren Kraus, Kian Kenyon-Dean, Saber Saberian, Maryam Fallah, Peter McLean, Jess Leung, et al. Masked autoencoders for microscopy are scalable learners of cellular biology. In 
+
+CVPR , pages 11757–11768, 2024. 2 [38] Sebastien Lachapelle, Pau Rodriguez, Yash Sharma, Katie E. Everett, R´ emi Le Priol, Alexandre Lacoste, and Simon Lacoste-Julien. Disentanglement via mechanism sparsity regularization: A new principle for nonlinear ICA. In Pro-ceedings of the First Conference on Causal Learning and Reasoning , pages 428–484, 2022. 2 [39] Hugo Lavenant, Stephen Zhang, Young-Heon Kim, and Geof-frey Schiebinger. Toward a mathematical theory of trajectory inference. The Annals of Applied Probability , 34(1A):428– 500, 2024. 2 [40] Tianhong Li and Kaiming He. Back to basics: Let denoising generative models denoise. In Proceedings of the IEEE/CVF 
+
+10 Conference on Computer Vision and Pattern Recognition (CVPR) , pages 36115–36125, 2026. 5 [41] Mohammad Lotfollahi, F. Alexander Wolf, and Fabian J. Theis. scGen predicts single-cell perturbation responses. Na-ture Methods , 16(8):715–721, 2019. 1, 2 [42] Mohammad Lotfollahi, Anna Klimovskaia Susmelj, Carlo De Donno, Leon Hetzel, Yuge Ji, Ignacio L. Ibarra, et al. Predicting cellular responses to complex perturbations in high-throughput screens. Molecular Systems Biology , 19 (6):e11517, 2023. 2 [43] Bethany Lusch, J. Nathan Kutz, and Steven L. Brunton. Deep learning for universal linear embeddings of nonlinear dynam-ics. Nature Communications , 9:4950, 2018. 2 [44] Lucas Maes, Quentin Le Lidec, Damien Scieur, Yann LeCun, and Randall Balestriero. LeWorldModel: Stable end-to-end joint-embedding predictive architecture from pixels. arXiv preprint arXiv:2603.19312 , 2026. 2 [45] Micha M¨ uller, Merve Avar, Daniel Heinzer, Marc Emmeneg-ger, Adriano Aguzzi, Lucas Pelkmans, and Scott Berry. High content genome-wide siRNA screen to investigate the coordi-nation of cell size and RNA production. Scientific Data , 8(1): 162, 2021. 2 [46] Zeinab Navidi, Jun Ma, Esteban Miglietta, Le Liu, Anne E. Carpenter, Beth A. Cimini, et al. MorphoDiff: Cellular mor-phology painting with diffusion models. In ICLR , 2025. 2, 6[47] Beate Neumann, Michael Held, Urban Liebel, et al. High-throughput RNAi screening by time-lapse imaging of live human cells. Nature Methods , 3(5):385–390, 2006. 2 [48] Beate Neumann, Thomas Walter, Jean-Karim H´ erich´ e, et al. Phenotypic profiling of the human genome by time-lapse microscopy reveals cell division genes. Nature , 464(7289): 721–727, 2010. 1, 2, 5, 6 [49] Antonio Orvieto, Samuel L. Smith, Albert Gu, et al. Res-urrecting recurrent neural networks for long sequences. In 
+
+ICML , pages 26670–26698, 2023. 2 [50] Samuel E. Otto and Clarence W. Rowley. Linearly recurrent autoencoder networks for learning dynamics. SIAM Journal on Applied Dynamical Systems , 18(1):558–593, 2019. 2 [51] Alessandro Palma, Fabian J Theis, and Mohammad Lotfol-lahi. Predicting cell morphological responses to perturbations using generative modeling. Nature Communications , 16(1): 505, 2025. 2, 5, 6 [52] William Peebles and Saining Xie. Scalable diffusion models with transformers. In ICCV , 2023. 5 [53] Zhao-Han Peng, Shaohui Li, Zhi Li, Shulan Ruan, Yu Liu, and You He. From observations to events: Event-aware world models for reinforcement learning. In ICLR , 2026. 2, 6 [54] Konpat Preechakul, Nattanat Chatthee, Suttisak Wizad-wongsa, and Supasorn Suwajanakorn. Diffusion autoencoders: Toward a meaningful and decodable representation. In CVPR ,2022. 5 [55] Joseph M. Replogle, Reuben A. Saunders, Angela N. Pogson, Jeffrey A. Hussmann, Alexander Lenail, Alina Guna, et al. Mapping information-rich genotype-phenotype landscapes with genome-scale Perturb-seq. Cell , 185(14):2559–2575, 2022. 2 [56] Jan Robine, Marc H¨ oftmann, Tobias Uelwer, and Stefan Harmeling. Transformer-based world models are happy with 100k interactions. In ICLR , 2023. 2, 6 [57] Yusuf Roohani, Kexin Huang, and Jure Leskovec. Predicting transcriptional outcomes of novel multigene perturbations with GEARS. Nature Biotechnology , 42(6):927–935, 2024. 2 [58] Oded Sandler, Sivan Pearl Mizrahi, Noga Weiss, Oded Agam, Itamar Simon, and Nathalie Q. Balaban. Lineage correlations of single cell division time as a probe of cell-cycle dynamics. 
+
+Nature , 519(7544):468–471, 2015. 1, 2, 3 [59] Simo S¨ arkk¨ a and Arno Solin. Applied Stochastic Differential Equations . Cambridge University Press, 2019. 2 [60] Geoffrey Schiebinger, Jian Shu, Marcin Tabaka, Brian Cleary, Vidya Subramanian, Aryeh Solomon, et al. Optimal-transport analysis of single-cell gene expression identifies developmen-tal trajectories in reprogramming. Cell , 176(4):928–943, 2019. 1, 2 [61] Bernhard Sch¨ olkopf, Francesco Locatello, Stefan Bauer, Nan Rosemary Ke, Nal Kalchbrenner, Anirudh Goyal, and Yoshua Bengio. Toward causal representation learning. Pro-ceedings of the IEEE , 109(5):612–634, 2021. 2 [62] Judith D. Singer and John B. Willett. It’s about time: Us-ing discrete-time survival analysis to study duration and the timing of events. Journal of Educational Statistics , 18(2): 155–195, 1993. 2, 4 [63] Sabrina L. Spencer, Suzanne Gaudet, John G. Albeck, John M. Burke, and Peter K. Sorger. Non-genetic origins of cell-to-cell variability in TRAIL-induced apoptosis. Nature , 459(7245): 428–432, 2009. 1 [64] Naoya Takeishi, Yoshinobu Kawahara, and Takehisa Yairi. Learning Koopman invariant subspaces for dynamic mode de-composition. In Advances in Neural Information Processing Systems , 2017. 2 [65] Ilya Tolstikhin, Olivier Bousquet, Sylvain Gelly, and Bern-hard Sch¨ olkopf. Wasserstein auto-encoders. In ICLR , 2018. 3[66] Alexander Tong, Jessie Huang, Guy Wolf, David Van Dijk, and Smita Krishnaswamy. Trajectorynet: A dynamic optimal transport network for modeling cellular dynamics. In Inter-national conference on machine learning , pages 9526–9536. PMLR, 2020. 1, 2 [67] Alexander Y. Tong, Nikolay Malkin, Kilian Fatras, Lazar Atanackovic, Yanlei Zhang, Guillaume Huguet, et al. Simulation-free Schr¨ odinger bridges via score and flow match-ing. In AISTATS , pages 1279–1287, 2024. 2 [68] Zhan Tong, Yibing Song, Jue Wang, and Limin Wang. Video-MAE: Masked autoencoders are data-efficient learners for self-supervised video pre-training. In Advances in Neural Information Processing Systems , pages 10078–10093, 2022. 2[69] G. E. Uhlenbeck and L. S. Ornstein. On the theory of the Brownian motion. Physical Review , 36(5):823–841, 1930. 2, 4[70] Dani Valevski, Yaniv Leviathan, Moab Arar, and Shlomi Fruchter. Diffusion models are real-time game engines. In 
+
+ICLR , 2025. 2 
+
+11 [71] Manuel Watter, Jost Springenberg, Joschka Boedecker, and Martin Riedmiller. Embed to control: A locally linear latent dynamics model for control from raw images. In NeurIPS ,pages 2746–2754, 2015. 2 [72] Caleb Weinreb, Samuel Wolock, Betsabeh K. Tusi, Merav Socolovsky, and Allon M. Klein. Fundamental limits on dynamic inference from single-cell snapshots. Proceedings of the National Academy of Sciences , 115(10):E2467–E2476, 2018. 1, 2 [73] Eric P. Xing and Le Song. A world model of the virtual cell. 
+
+Cell , 189(19):5831–5844, 2026. 1 [74] Sherry Yang, Yilun Du, Kamyar Ghasemipour, Jonathan Tompson, Leslie Kaelbling, Dale Schuurmans, et al. Learning interactive real-world simulators. In ICLR , 2024. 2 [75] Chenglei Yu, Chuanrui Wang, Bangyan Liao, and Tailin Wu. Pace: Geometry-aware bridge transport for single-cell tra-jectory inference. arXiv preprint arXiv:2605.18587 , 2026. 2[76] Weipu Zhang, Gang Wang, Jian Sun, Yetian Yuan, and Gao Huang. STORM: Efficient stochastic transformer based world models for reinforcement learning. In Advances in Neural Information Processing Systems , 2023. 2 [77] Weipu Zhang, Adam Jelley, Trevor McInroe, Amos Storkey, and Gang Wang. Object-centric world models from few-shot annotations for sample-efficient reinforcement learning. In 
+
+ICLR , 2026. 2, 6 [78] Yuhui Zhang, Yuchang Su, Chenyu Wang, Tianhong Li, Zoe Wefers, Jeffrey J Nirschl, James Burgess, Daisy Ding, Ale-jandro Lozano, Emma Lundberg, and Serena Yeung-Levy. CellFlux: Simulating cellular morphology changes via flow matching. In Proceedings of the 42nd International Con-ference on Machine Learning , pages 76111–76138. PMLR, 2025. 2, 5, 6 [79] Yujia Zheng, David Klindt, Randall Balestriero, and Bern-hard Sch¨ olkopf. DSReg: Provably recovering individ-ual world latents without reconstruction. arXiv preprint arXiv:2610.09457 , 2026. 2 [80] Qing Zhong, Alberto Giovanni Busetto, Juan P. Fededa, Joachim M. Buhmann, and Daniel W. Gerlich. Unsuper-vised modeling of cell morphology dynamics for time-lapse microscopy. Nature Methods , 9(7):711–713, 2012. 2 
+
+12

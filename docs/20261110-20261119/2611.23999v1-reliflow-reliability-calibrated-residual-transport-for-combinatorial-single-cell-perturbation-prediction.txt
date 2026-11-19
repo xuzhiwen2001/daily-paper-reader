@@ -1,0 +1,463 @@
+Title: ReliFlow: Reliability-Calibrated Residual Transport for Combinatorial Single-Cell Perturbation Prediction
+
+URL Source: https://arxiv.org/pdf/2611.23999v1
+
+Published Time: Thu, 19 Nov 2026 02:15:37 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# ReliFlow: Reliability-Calibrated Residual Transport for Combinatorial Single-Cell Perturbation Prediction 
+
+Jinrui David 1 Yun Peng 1
+
+> 1
+
+Fudan University, Shanghai, China 
+
+# Abstract 
+
+Predicting the transcriptional response to combined perturbations requires distinguishing interactions between interventions from errors in their individual effect estimates. The latter become more pronounced when single-perturbation evidence is sparse or withheld. We introduce R ELI FLOW , a conditional flow-matching model that estimates the reliability of single-gene effects from training-only cross-fitting and uses those estimates to calibrate the additive source distribution. The velocity is decomposed into a known correction of the additive reference and a learned residual transport field. On Norman genetic perturbations, R ELI FLOW 
+
+reduces mean absolute error (MAE) from 0.142 to 0.131 for unseen combinations of observed singles and from 0.198 to 0.178 when constituent singles are withheld. On held-out ComboSciPlex drug combinations, MAE decreases from 0.191 to 0.176. Non-additive residual correlation improves from 0.574 to 0.638, and component ablations identify the contribution of reliability weighting. The results indicate that accounting for uncertain constituent effects improves generalization to unseen genetic and chemical combinations, with a moderate increase in training cost. 
+
+# 1 Introduction 
+
+A transcriptional response to a genetic or chemical perturba-tion is a distribution over heterogeneous cellular states rather than a single deterministic vector. Predicting that distribution for interventions not yet measured could help prioritize ex-periments and explore regulatory interactions, but the space of potential combinations quickly exceeds the available ob-servations [1, 2, 3]. A typical prediction system can learn common responses from training perturbations while miss-ing rare response states or interaction-specific changes. The central difficulty is therefore not only to reconstruct the domi-nant expression pattern, but also to determine which evidence supports the predicted deviation from a reference state. A natural reference is additive composition. When the ef-fects of interventions a and b are measured separately, their summed expression shifts offer a useful prediction of the com-bined treatment. Indeed, simple linear strategies remain com-petitive against considerably larger perturbation models on some benchmarks [4, 5]. The value of additive composition, however, depends on how accurately its constituent effects were estimated. This is particularly consequential when evalu-ating generalization beyond familiar intervention combinations. For a pair of well-characterized perturbations, the additive com-ponent may be stable and the residual largely reflects interac-tions. For a pair involving an unseen perturbation, the residual also contains error inherited from extrapolating a single-effect predictor. Treating both cases as equivalent may obscure what the model is learning. Conditional flow matching provides a flexible way to learn distributions without assuming a pairing between individual control and treated cells [6, 7]. An additive estimate can in-stead be used as the flow source, leaving a conditional velocity field to learn the residual transport. This is an informative starting point: it reduces the burden of generating a complete expression vector from an unrelated noise distribution. Yet an additive anchor estimated from sparse evidence is not equally trustworthy across genes and perturbations. If its errors are ignored, a velocity model may use its capacity to repair the anchor rather than model higher-order biological effects. The issue is most acute precisely where predictive models are ex-pected to extrapolate. 
+
+We ask whether the reliability of observed single-perturbation evidence should determine where residual transport begins and which part of the required correction is learned. We develop R ELI FLOW to make this choice ex-plicit. It estimates a gene-wise support scale using cross-fitted training perturbations, shrinks uncertain additive shifts toward a learned prior, and adjusts source variability accordingly. We then decompose the conditional velocity into a known correc-tion that restores the raw additive reference and a learned field that targets the remaining interaction-dependent transport. In this way, anchor uncertainty is represented rather than silently mixed into the nonlinear residual. The model makes three distinctions operational. First, re-liability is estimated from training data and transferred to excluded interventions through their representations; it cannot use the held-out outcomes that it seeks to predict. Second, full-response reconstruction and recovery of non-additive effects receive separate diagnostic analyses. Third, improvements must be assessed on matched partitions and compute budgets rather than inferred from attractive samples or one aggregate score. These choices reflect a broader principle in predictive modeling: model confidence and downstream utility must be tied to the evidence actually available, not simply to the plau-sibility of generated outputs [8]. We evaluate the resulting model using condition-disjoint genetic and chemical perturbation splits, interaction-sensitive 1arXiv:2611.23999v1 [stat.ML] 18 Nov 2026 metrics, and component ablations. 
+
+# 2 Related work 
+
+2.1 Learning perturbation response distribu-tions 
+
+Single-cell response prediction has progressed from latent perturbation arithmetic in scGen [9] to neural optimal trans-port [7], compositional perturbation autoencoders [3], graph-based gene perturbation models such as GEARS [2], and predictive systems for both chemical and genetic interven-tions [10, 11]. Drug combinations can be assayed through combinatorial transcriptomic screens [12], while statistical models such as GPerturb offer an alternative account of gene-level variation [13]. Recent models target the response dis-tribution itself, including direct flow models and conditional distribution shift prediction [14, 15, 16]. Heterogeneous out-comes and multi-response populations make it important to evaluate more than mean error [17, 18]. Large-scale pretrained representations offer reusable gene features. These include scBERT [19], transformer-based cell representations [20], scGPT [21], Geneformer [22], and uni-versal cell embeddings [23]. The deep generative scVI frame-work models technical variation and uncertainty in single-cell expression [24]; foundation-model approaches and virtual-cell benchmarks extend the scope of perturbation predic-tion [25, 26]. Benchmarking studies report competitive perfor-mance from strong linear baselines and sensitivity to evaluation metrics and data composition [4, 5, 27]. These observations motivate separating an uncertain single-effect estimate from non-additive response generation. 
+
+2.2 Transport, generative dynamics and evi-dence quality 
+
+Diffusion modeling [28], score-based stochastic dynam-ics [29], and flow matching [6] provide related approaches to learning complex distributions. Stochastic interpolants formalize the relationship between diffusion and determin-istic transport [30]. Kernel two-sample comparisons furnish distribution-level losses without observed cell-to-cell corre-spondence [31, 32]. This is important because destructive expression profiling does not provide paired before-after ob-servations for the same cell. Structure priors can be sensitive to dropout and nuisance variation [33, 34]. Differential atten-tion and other selective representation mechanisms provide architectural options but do not themselves establish calibrated perturbation effects [35]. Reliability and grounding also arise in other forms of con-ditional prediction. Structured multimodal diffusion has been studied for multi-agent trajectory forecasting [36], whereas ra-diology grounding and radiographic world models connect gen-erated representations to evidence in clinical imaging [37, 38]. Medical visual reasoning and uncertainty-aware imaging mod-els provide further perspectives on distinguishing plausible outputs from supported predictions [39, 8]. These studies ad-dress different tasks rather than direct single-cell baselines. Here we take the narrower position that training-supported single-effect reliability should explicitly modulate the source distribution used for conditional transport. 
+
+# 3 Problem setting 
+
+Let c ∈ RG denote expression from a control cell over G
+
+genes, and let p = {j1, . . . , j m} denote an intervention set. For each condition p, we observe independent samples from a treated-cell distribution Pp. We also have a control population 
+
+P0. Because cell measurements are destructive, c ∼ P0 and 
+
+x ∼ Pp are not matched observations of the same biological cell. We use (c, p, x ) only as a conditional transport training tuple, never as an observed counterfactual pair. Suppose an effect decoder dϕ(c, e j ) predicts the response shift for single intervention j, where ej is a perturbation repre-sentation. The raw additive estimate is 
+
+Araw (c, p ) = c + X
+
+> j∈p
+
+dϕ(c, e j ). (1) If all component effects were perfectly estimated and acted independently, this reference would be sufficient. For an ob-served treated profile x, define a reference-relative residual 
+
+sraw = x − Araw (c, p ). This residual is a useful transport tar-get, but because (c, x ) are unpaired it should not be interpreted as an identified individual-cell causal interaction. At the pop-ulation level, departures from additive mean response can be estimated from separate treated and control samples, provided that all component perturbation conditions are observed. We distinguish two evaluation regimes. Composition ex-cludes combinations of training-observed singles; extrapola-tion excludes one or more constituent singles and combinations containing them. The latter requires inference about both the single-effect predictions and their interactions. We keep these regimes separate throughout the analysis. 
+
+# 4 Method: Reliability-calibrated trans-port 
+
+4.1 Estimating reliability without test leakage 
+
+The single-effect decoder dϕ is trained using only the train-ing split. To evaluate the credibility of each estimated gene response, we cross-fit it across training conditions. For an observed training single j, the measured population-average effect on gene g is 
+
+b∆jg = xj,g − cg , (2) with both means computed from the relevant training popu-lations. We divide the training perturbation identities into K
+
+folds and let f (j) denote the fold containing j. The cross-fitted effect b∆(−f (j))  
+
+> jg
+
+is predicted by a model trained without 2A / TRAINING-ONLY EVIDENCE Observed single effects       
+
+> training conditions only
+> Cross-fitted errors
+> bootstrap + held-out folds
+> Reliability map α(j, gene)
+> predicted for excluded perturbations
+> B/RELIABILITY-AWARE SOURCE Raw additive anchor
+> A_raw = control + Σ single shifts
+> Calibrated source
+> A_cal = control + Σ α ⊙ shifts
+> Adaptive source spread
+> variance from control + uncertainty
+> C/DECOMPOSED TRANSPORT Known anchor correction
+> b = A_raw − A_cal
+> Learned interaction velocity
+> uθ: non-additive transport residual
+> Generated population
+> ODE velocity v = b + uθ
+
+Figure 1: R ELI FLOW architecture. Training-only single-perturbation evidence is used to estimate gene-wise reliability. The resulting reliability map modifies the additive source and its stochastic spread. The full transport field is decomposed into a deterministic correction from the calibrated to the raw additive anchor and a learned interaction-residual velocity. The architecture separates evidence calibration, anchor construction, and interaction-conditioned velocity learning. 
+
+response profiles from any perturbation in that fold. This leave-condition-out design requires ej to be computable for an excluded gene identity from shared gene features, rather than an embedding trained only as a separate lookup parameter. We define an error-scale target 
+
+bu2 
+
+> jg
+
+=   b∆(−f (j))  
+
+> jg
+
+− b∆jg 
+
+2 + dVar boot ( b∆jg ), (3) where the bootstrap term captures sampling variation in esti-mating the treated-control shift. This is a training-data relia-bility proxy, not a calibrated posterior variance. Cross-fitting prevents the same response observations from simultaneously fitting the effect decoder and assessing its error. A nonnegative reliability head uψ (ej , c )g predicts these scales from the perturbation representation and control context. We train it using a robust loss on log scales, 
+
+Lrel = Ej∈P train single ,g ρ log( ε + u2 
+
+> ψ
+
+) − log( ε + bu2 
+
+> jg
+
+) , (4) where ρ is a Huber penalty. At test time the network pro-duces uψ without observing test treatment outcomes. For an excluded perturbation, its scale is therefore an extrapolated quantity; poor scale extrapolation is an explicit failure mode to evaluate. 
+
+4.2 A support-calibrated additive source 
+
+Let vg > 0 be the empirical across-perturbation variance of training single-effect means for gene g, with a variance floor for stability. We define a reliability weight 
+
+αjg (c) = vg
+
+vg + u2 
+
+> ψ
+
+(ej , c )g + ε , 0 < α jg ≤ 1. (5) This is a deterministic shrinkage rule, not a claim of optimal Bayesian estimation. It expresses a testable bias: when the estimated single effect is unreliable relative to the usual vari-ability of training effects, the model should rely less on that predicted shift when choosing a starting point. The calibrated anchor becomes 
+
+Acal (c, p ) = c + X
+
+> j∈p
+
+αj (c) ⊙ dϕ(c, e j ). (6) We use a gene-wise stochastic source 
+
+z0 = Acal (c, p ) + ϵ, ϵ ∼ N  0, diag( σ20(c, p ))  ,σ20,g = τ 2σ2ctrl ,g + κ2 X
+
+> j∈p
+
+α2 
+
+> jg
+
+(c)u2 
+
+> ψ
+
+(ej , c )g .
+
+(7) The first term preserves control-population variability; the second allows uncertainty in estimated intervention effects to affect the initial source distribution. Coefficients τ and κ
+
+are chosen on validation data only. An unreliable additive prediction is thus neither accepted without qualification nor replaced by a universal noise source. 
+
+4.3 Separating anchor repair from learned in-teraction 
+
+The crucial structural choice is to keep track of the difference between the calibrated and raw additive anchors: 
+
+b(c, p ) = Araw (c, p ) − Acal (c, p ). (8) This correction is computable at inference time. Given z0 from Eq. (7) and an independently sampled treated profile x, define the straight conditional path 
+
+xt = (1 − t)z0 + tx, t ∼ U (0 , 1) . (9) 3TWO DISTINCT SOURCES OF CORRECTION    
+
+> expression state
+> Calibrated source Raw additive state Observed target
+> Known anchor adjustment Interaction residual to learn Illustration of the model decomposition; positions are schematic and not measured values.
+
+Figure 2: Transport decomposition. The known vector b bridges the reliability-calibrated source and raw additive estimate, while uθ learns the remaining transport. Diagrammatic distances are not empirical measurements. 
+
+Its conditional target velocity has an exact algebraic decompo-sition: 
+
+x − z0
+
+| {z } 
+
+> v∗
+
+= ( Araw − Acal )
+
+| {z }
+
+> b
+
++ ( x − Araw − ϵ)
+
+| {z }
+
+> u∗
+
+. (10) We parameterize the full velocity as 
+
+vθ (xt, t, c, p ) = b(c, p ) + uθ (xt, t, c, p, αp). (11) The learned field uθ therefore receives the reference-relative target u∗ = x − Araw − ϵ, while the anchor-repair term b
+
+is represented analytically. This prevents a learned network from having to rediscover a correction already known from the two anchors. It does not, however, make the learned residual an identified biological mechanism: nuisance variation and unpaired sampling remain part of the distributional problem. 
+
+4.4 Interaction-conditioned velocity network 
+
+To represent conditional effects, a gene-token encoder receives control expression, gene identity, and a perturbation embed-ding. The encoder uses sparse gene-interaction attention; relia-bility weights are supplied as conditioning signals rather than conflated with edge attention. The input token for gene g is 
+
+h0 
+
+> g
+
+= Eg (g) + Ex(xt,g ) + Ec(cg )+ Er (αp,g , σ 0,g ) + Ep(p) + Et(t). (12) A transformer or sparse graph-attention stack maps (h0 
+
+> g
+
+)g to 
+
+uθ . Here αp,g = |p|−1 P 
+
+> j∈p
+
+αjg summarizes reliability for a multi-perturbation condition. The term Er is important: two examples with identical nominal interventions may warrant different reliance on their additive anchors when training cov-erage or predicted error scales differ. We avoid imposing an attention graph estimated using test conditions; any graph prior must be learned from training controls or training perturbations only. 
+
+4.5 Distributional and interaction constraints 
+
+The fundamental objective is the conditional flow-matching loss 
+
+LFM = E 1
+
+G uθ (xt, t, c, p, αp)
+
+− (x − Araw (c, p ) − ϵ) 22.
+
+(13) For practical population supervision we use the intermediate-time endpoint estimator 
+
+bx1 = xt + (1 − t)b(c, p ) + uθ (xt, t, c, p, αp). (14) Samples are grouped by perturbation condition before esti-mating population discrepancies. We use a Gaussian-mixture kernel to match the generated and observed condition-specific endpoint populations, 
+
+Lpop = MMD 2( bX1,p , X 1,p ). (15) Because the kernel is translation-invariant, subtracting the same fixed additive reference from both populations leaves this MMD unchanged. We therefore use one population dis-crepancy rather than presenting two equivalent shifted losses as independent constraints [31, 32]. Where training contains the single effects of a and b and the observed double (a, b ), their mean non-additive response can also be estimated directly: 
+
+mobs  
+
+> ab
+
+= xab − xa − xb + c. (16) Let bmab = Ec[bxab − Araw (c, {a, b })] be the generated reference-relative mean residual. On training-observed dou-bles only, the auxiliary moment constraint is 
+
+Lpair = E(a,b )∈P train double 
+
+1
+
+G ∥ bmab − mobs  
+
+> ab
+
+∥22. (17) We explicitly exclude held-out combinations from this term. Otherwise an apparently strong test performance could result from leaking the mean response of the target condition into training. The complete training objective is 
+
+L = LFM + λpop Lpop + λpair Lpair 
+
++ λrel Lrel + λsingle Lsingle , (18) where Lsingle is the training-only single-effect decoder loss. Its population-based implementation is given in Appendix A. All coefficients must be selected without consulting test scores. The loss terms jointly constrain reliability estima-tion, condition-level response distributions, and the residual transport. 
+
+4.6 Training and generation 
+
+Reliability-scale fitting is separated from full-model training. Cross-fitted errors are computed only on training perturbations. The support network uψ is then fitted on these error targets; finally, the calibrated source and interaction field are optimized using the training conditions. At inference, no observed treated population is required. For a new p, the model predicts dϕ, uψ ,
+
+αp, and z0, then numerically integrates 
+
+dX t
+
+dt = b(c, p ) + uθ (Xt, t, c, p, αp), X0 = z0. (19) The generated condition-specific population comprises inde-pendent trajectories from a batch of control cells and source noise samples. The source spread is not automatically a confi-dence interval for the final output; empirical calibration must be tested separately. 45 Experiments 
+
+5.1 Data, preprocessing, and held-out parti-tions 
+
+We evaluated genetic perturbation prediction on the Norman dataset [1] and chemical combination prediction on ComboSci-Plex [12, 40]. We split perturbation conditions, rather than individual cells, before fitting predictors or selecting hyperpa-rameters. Expression was normalized by counts per 10,000 followed by log(1 + x). The 5,000 highly variable genes (HVGs) were selected using training cells only. We evalu-ated three random seeds in each dataset. Figure 3 shows the allocation of observed double-perturbation conditions. The Norman seen-single partition contains 105 training sin-gles and 91/20/20 training/validation/test double conditions, with 68,000/10,000/13,000 cells, respectively. In the excluded-single partition, training uses 93 singles and 79 double condi-tions, validation uses 20 doubles, and testing uses 12 withheld singles and 32 doubles; the corresponding cell counts are 62,000/9,000/20,000. There are no validation singles in either partition. The excluded genes occur in no training singles, training doubles, or validation conditions. All these counts are exact. ComboSciPlex comprises A549 responses to seven single-drug conditions and 25 drug pairs. All seven measured singles and 15 double-drug conditions are in training; five double con-ditions are used for validation and five for testing (Table 2). The split contains 43,000 training cells, 9,000 validation cells, and 11,378 test cells. The complete identities of the five valida-tion and five test pairs appear in Appendix E. Both evaluation splits are condition-disjoint and use the same 5,000-gene nor-malization procedure as Norman. 
+
+5.2 Baselines, metrics, and experimental con-trols 
+
+We compared R ELI FLOW with the additive predictor, CPA [3], GEARS [2], scDFM [14], and CellFlow [15] where applicable. Each tabulated comparison uses the corresponding partition defined above. Mean absolute error (MAE) and mean squared error (MSE) measure expression reconstruction; differential-expression Spearman correlation (DE-Spearman or DE-ρ) mea-sures gene-rank agreement; effect Pearson correlation mea-sures perturbation-effect recovery. We also report the discrimi-nation score (DS) and, for chemical perturbations, maximum mean discrepancy (MMD). We use the same metric implemen-tation for models within each table; higher values are preferred for correlations and DS, and lower values for MAE, MSE, and MMD. To evaluate non-additive interaction, we use held-out dou-ble conditions for which both constituent single-intervention effects are separately observed. The mean interaction target follows Eq. (16). Metrics include Pearson correlation of mean residual effects (Resid. r), residual MAE, and F1 for recov-ery of the top-k interaction-associated genes. The additive predictor has no separately learned interaction ranking; corre-sponding correlation and top-k F1 entries are undefined. The four ablations remove reliability weights, the analytic correc-tion field, the pairwise moment penalty, or adaptive source covariance, respectively. The leakage audit was performed on the excluded-single genetic split. No excluded gene was present in training singles, training doubles, or validation conditions. No test response was used to fit preprocessing, estimate single effects, train the reliability head, or select the model. The HVG selector and the cross-fitting procedure used training data only; hyperparameter selection used the validation conditions only (Appendix F). 
+
+# 6 Results 
+
+6.1 Genetic perturbation prediction 
+
+On Norman, R ELI FLOW reduced MAE from 0.142 for scDFM to 0.131 when constituent singles were observed during train-ing, and from 0.198 to 0.178 when the single-gene perturba-tions were excluded (Table 3). These are absolute reductions of 0.011 and 0.020, corresponding to 7.7% and 10.1% relative reductions. MSE fell from 0.056 to 0.049 and from 0.093 to 0.078, respectively. DE-Spearman increased from 0.724 to 0.752 in the seen-single partition, and from 0.548 to 0.601 in the excluded-single partition. Effect Pearson and DS also improved in both settings. Figure 4 compares MAE with the strongest listed baseline, scDFM. 
+
+6.2 Chemical combination prediction 
+
+On the A549 ComboSciPlex split, R ELI FLOW achieved an MAE of 0.176 versus 0.191 for scDFM (Table 4), a reduction of 0.015 (7.9%). MMD decreased from 0.074 to 0.063, while DE-ρ increased from 0.605 to 0.641 and DS from 0.630 to 0.670. The gain therefore extended beyond genetic pertur-bations to a separate chemical response setting, although the datasets differ in interventions and evaluation design. 
+
+6.3 Recovering non-additive effects 
+
+A model may reconstruct full expression accurately while fail-ing to recover the deviation from additive single-perturbation effects. We therefore compared interaction-specific predictions on held-out pairs with observed constituent singles (Table 5). RELI FLOW increased residual Pearson correlation from 0.574 to 0.638 relative to scDFM and reduced residual MAE from 0.078 to 0.068. Top-k F1 increased from 0.493 to 0.551. These comparisons support improved population-level recovery of non-additive effects; they do not identify a unique causal cell-to-cell trajectory. 
+
+6.4 Component ablations 
+
+The complete model outperformed all four variants on the Norman seen-single evaluation (Table 6, Fig. 5). Removing reliability weights caused the largest decrease, raising MAE from 0.131 to 0.148 and decreasing DE-ρ from 0.752 to 0.691. 50 20 40 60 80 100 120 140 Number of double-perturbation conditions Norman: seen singles Norman: excluded singles ComboSciPlex: drugs   
+
+> 91 79 15 20 20 520 32 5
+> Training Validation Test
+
+Figure 3: Double-perturbation splits. Counts are numbers of distinct combination conditions, not cells. Single-perturbation counts and exact cell counts are given in Tables 1 and 2. In the excluded-single setting, twelve single-gene perturbations and combinations containing the excluded genes are reserved for testing. 
+
+Table 1: Norman genetic perturbation evaluation. Exact counts for the two fixed partition schemes. The seen-single test comprises unseen combinations of interventions whose single effects are available during training. The excluded-single test additionally withholds twelve constituent perturbations and their related doubles. Seen singles Excluded singles Seen singles Excluded singles Training single conditions 105 93 Training double conditions 91 79 Validation single conditions 0 0 Validation double conditions 20 20 Test single conditions 0 12 Test double conditions 20 32 Training cells 68,000 62,000 Validation cells 10,000 9,000 Test cells 13,000 20,000 Selected genes 5,000 HVGs 5,000 HVGs Split unit Condition Perturbation identity Random seeds 3 3
+
+Table 2: ComboSciPlex evaluation. Each held-out pair is disjoint from training and from the other evaluation split. Setting Value Cell line A549 Measured single-drug conditions 7Measured double-drug conditions 25 Training single-drug conditions 7Training double-drug conditions 15 Validation double-drug conditions 5Test double-drug conditions 5Training / validation cells 43,000 / 9,000 Test cells 11,378 Genes 5,000 Random seeds 3
+
+Removing analytic correction increased MAE to 0.143; re-moving pairwise moment supervision increased it to 0.139; and fixing source covariance increased it to 0.136. The same ordering held for effect correlation. Each component there-fore contributed to the observed performance, with reliability weighting producing the largest ablation gap in this setting. 
+
+6.5 Support-stratified prediction reliability 
+
+Prediction error increased as available support decreased. Error was 0.105 in the high-support group, 0.132 in the moderate-Norman seen singles Norman excluded singles ComboSciPlex held-out pairs 0.00 0.05 0.10 0.15 0.20 Mean absolute error (lower is better)      
+
+> 0.142 0.198 0.191 0.131 0.178 0.176
+> −7.7% −10.1% −7.9% scDFM ReliFlow
+
+Figure 4: MAE on three held-out evaluations. Bars reproduce the corresponding scDFM and R ELI FLOW entries in Tables 3 and 4. Percentages indicate reductions relative to scDFM. 
+
+support group, 0.168 in the low-support group, and 0.209 for excluded interventions (Table 7, Fig. 6). Scale–error correla-tions were 0.440, 0.480, 0.530, and 0.420, respectively. The positive associations indicate that the predicted reliability scale carries information about error within each group. They do not by themselves establish probabilistic calibration or nominal uncertainty coverage. 6Table 3: Norman genetic perturbation prediction. All values are test-set scores on the fixed split. Bold indicates the best score in each setting. Arrows show the preferred direction. Setting Model MAE ↓ MSE ↓ DE-Spearman ↑ Effect Pearson ↑ DS ↑
+
+Seen singles Additive 0.185 0.082 0.612 0.685 0.570 CPA 0.173 0.077 0.645 0.711 0.590 GEARS 0.161 0.068 0.681 0.746 0.620 scDFM 0.142 0.056 0.724 0.784 0.670 RELI FLOW 0.131 0.049 0.752 0.811 0.700 
+
+Excluded singles Additive 0.244 0.132 0.421 0.492 0.480 CPA 0.228 0.119 0.458 0.526 0.500 GEARS 0.217 0.110 0.493 0.563 0.530 scDFM 0.198 0.093 0.548 0.612 0.570 RELI FLOW 0.178 0.078 0.601 0.672 0.610 Table 4: ComboSciPlex chemical combination prediction. Held-out drug-pair conditions in A549 cells. Model MAE ↓ MMD ↓ DE-ρ ↑ DS ↑
+
+CPA 0.228 0.102 0.512 0.540 CellFlow 0.205 0.087 0.563 0.590 scDFM 0.191 0.074 0.605 0.630 RELI FLOW 0.176 0.063 0.641 0.670 Table 5: Non-additive interaction recovery. Evaluation is restricted to held-out combinations with independently measured constituent single perturbations. Model Resid. r ↑ Resid. MAE ↓ Top-k F1 ↑
+
+Additive N/A 0.115 N/A GEARS 0.482 0.093 0.421 scDFM 0.574 0.078 0.493 RELI FLOW 0.638 0.068 0.551 Table 6: Ablation study on Norman seen singles. Full-model values are also reported in Table 3. Variant MAE ↓ DE-ρ ↑ Effect r ↑
+
+RELI FLOW (full) 0.131 0.752 0.811 
+
+No reliability weights 0.148 0.691 0.749 No analytic correction 0.143 0.708 0.765 No pairwise moment loss 0.139 0.716 0.773 Fixed source covariance 0.136 0.731 0.792 
+
+6.6 Random-seed stability and computational cost 
+
+Over three random seeds, R ELI FLOW obtained MAE values of 0.132, 0.130, and 0.131, compared with 0.144, 0.142, and 0.140 for scDFM (Table 8). The mean MAE was 0.131 ±
+
+0.001 for R ELI FLOW and 0.142 ± 0.002 for scDFM (mean ±
+
+sample standard deviation). The paired differences were 0.012, 0.012, and 0.009, averaging 0.011 ± 0.002 . With only three seeds, these values describe run-to-run variation rather than supporting a strong significance claim. 0.00 0.02 0.04 0.06 0.08 0.10 0.12 0.14 0.16 Norman seen-singles MAE (lower is better) Full ReliFlow Fixed source covariance No pairwise moment loss No analytic correction No reliability weights 
+
+> 0.131 0.136 0.139 0.143 0.148
+
+Figure 5: Contribution of individual components. Norman seen-single MAE for the complete model and the four ablations in Table 6; lower is better. 
+
+Table 7: Support-stratified prediction error and scale–error asso-ciation. The group counts refer to scored evaluation instances. Support group Count Error ↓ Scale–error r
+
+High support 40,000 0.105 0.440 Moderate support 30,000 0.132 0.480 Low support 20,000 0.168 0.530 Excluded intervention 10,000 0.209 0.420 High Moderate Low Excluded 0.00 0.05 0.10 0.15 0.20 Prediction error (lower is better) 
+
+> 0.105 0.132 0.168 0.209
+> High Moderate Low Excluded 0.0 0.1 0.2 0.3 0.4 0.5 0.6 Scale–error correlation, r
+> 0.440 0.480 0.530 0.420
+
+Figure 6: Support-stratified error and association with estimated scale. The two panels reproduce values in Table 7. Scale–error correlation is an association measure, not a calibration curve. 
+
+The gain required additional computation. Training cost increased from 12.4 to 14.8 GPU-hours, an increase of 19.4%, while both models used 32 function evaluations per sample (Table 9). Generation throughput decreased from 420 to 402 cells/s (4.3%). The method improved predictive accuracy but 7Table 8: Seed-to-seed MAE stability. Paired ∆ is scDFM minus RELI FLOW ; dispersion is sample SD across three seeds. Model Seed 1 Seed 2 Seed 3 Mean ± SD scDFM 0.144 0.142 0.140 0.142 ± 0.002                          
+
+> RELI FLOW 0.132 0.130 0.131 0.131 ±0.001
+> Paired ∆0.012 0.012 0.009 0.011 ±0.002
+> Table 9: Computational cost under the reported configuration.
+> NFE is the number of velocity evaluations during sampling. Model GPU-h ↓NFE ↓Cells/s ↑
+> scDFM 12.4 32 420
+> RELI FLOW 14.8 32 402
+
+was not more computationally efficient under the reported configuration. 
+
+# 7 Discussion 
+
+Reliability-aware source calibration addresses an error source that is distinct from biological interaction: the uncertainty of the separately predicted single effects used to assemble a combined perturbation. The improvement on Norman is larger in absolute MAE when constituent singles are excluded from training (0.020) than when they have been observed (0.011). This pattern is consistent with the motivation for evidence-dependent calibration, although it does not isolate the calibration mechanism by itself. The ablation results provide a more direct comparison, with the largest loss of accuracy following removal of reliability weights. Interaction recovery is another useful test of the proposed decomposition. Residual correlation, residual MAE, and top-k
+
+F1 all improve over scDFM on pairs whose constituent single effects can be independently measured. These are population-level estimates of non-additivity, not identified cell-level causal effects. Since single-cell sequencing profiles distinct cells before and after perturbation, multiple transport paths may agree with the same observed endpoint distributions. The observed scale–error correlations suggest that relia-bility estimates are associated with predictive difficulty, but correlation is not a demonstration of calibrated uncertainty. Probability coverage and error-versus-scale calibration would require additional testing. The excluded-intervention stratum has the highest error, indicating that extrapolation to compo-nents without measured training responses remains difficult. The cost comparison also shows a trade-off: the improved accuracy required 2.4 additional GPU-hours and slightly lower sampling throughput at equal NFE. Three-seed results quantify repeatability but do not establish statistical significance across perturbation conditions. 
+
+# 8 Conclusion 
+
+RELI FLOW combines a training-only estimate of single-effect reliability with a calibrated additive source and an explicit correction-plus-residual velocity decomposition. On condition-disjoint genetic and chemical perturbation tests, it improves reconstruction and interaction-sensitive metrics compared with the reported baselines. Reliability weighting makes the largest contribution in the ablation study; improving calibration for genuinely unseen perturbations remains an important next step. 
+
+# A Population-level single-effect super-vision 
+
+For a single intervention j with an observed training popula-tion, let μj and Σdiag  
+
+> j
+
+be its sample mean and diagonal vari-ance; let the additive estimate generate bXj = {c + dϕ(c, e j ) : 
+
+c ∼ P0}. A pairing-free training objective is 
+
+Lsingle = Ej ∥E bXj − μj ∥22/G 
+
++ γEj ∥ Var( bXj ) − Σdiag  
+
+> j
+
+∥1/G. (20) Unlike a cell-wise squared-error loss, this objective does not claim that an observed control cell and treated cell are a true before-after pair. The objective operates on condition-level mo-ments, avoiding an assumption of cell-to-cell pairing between control and treated populations. 
+
+# B Exact relation between full and resid-ual velocity 
+
+Writing z0 = Acal + ϵ and b = Araw − Acal gives 
+
+b + ( x − Araw − ϵ) = Araw − Acal + x − Araw − ϵ
+
+= x − z0. (21) The decomposition therefore does not change the target straight-path velocity. It changes which portion of that ve-locity is analytically known and which portion is predicted by the network. Whether this inductive bias helps generalization is an empirical question, not an algebraic consequence. 
+
+# C Training procedure D Reproducibility details 
+
+Training and evaluation use the exact perturbation-condition allocations in Tables 1 and 2; the chemical pair identities and leakage checks are specified in Appendices E and F. Gene selection uses 5,000 training-selected HVGs and expression values normalized to counts per 10,000 followed by log(1+ x).Each benchmark is evaluated over three random seeds, and 8Algorithm 1 RELI FLOW training procedure  
+
+> 1:
+
+Partition conditions into training, validation, and test be-fore computing preprocessing statistics.  
+
+> 2:
+
+Fit single-effect decoder dϕ with training-condition popu-lation supervision.  
+
+> 3:
+
+Cross-fit dϕ on training singles and estimate fold-wise bu2 
+
+> jg
+
+. 
+
+> 4:
+
+Train reliability head uψ on the training-only scale targets.  
+
+> 5:
+
+for each training mini-batch grouped by p do  
+
+> 6:
+
+Construct Araw , α, Acal , and b = Araw − Acal . 
+
+> 7:
+
+Draw source noise using training-estimated variances; sample t and xt. 
+
+> 8:
+
+Predict uθ , reconstruct endpoint, and optimize Eq. (18).  
+
+> 9:
+
+end for  
+
+> 10:
+
+Select loss weights and stopping time using validation conditions only.  
+
+> 11:
+
+Sample X0 for test condition p and integrate Eq. (19). inference uses 32 function evaluations per generated sample for the reported cost comparison. The Norman and ComboSciPlex cell counts are exact. 
+
+# E ComboSciPlex held-out combina-tions                        
+
+> Table 10: Exact validation and test drug pairs. Drug-pair identities are listed in the order supplied by the experimental split. Split Drug A Drug B Validation Alvespimycin Pirarubicin Validation Carmofur Givinostat Validation Cediranib PCI-34051 Validation Crizotinib Givinostat Validation Dacinostat Dasatinib Test Dacinostat Danusertib Test Givinostat Cediranib Test Panobinostat Alvespimycin Test Panobinostat SRT2104 Test SRT2104 Alvespimycin
+
+# F Partition leakage audit 
+
+HVG selection and reliability cross-fitting use training data only. Model selection uses validation conditions only. For the reported partitions, the held-out test responses are not used to fit the preprocessing pipeline, the base effects, the reliability estimator, or the hyperparameters.            
+
+> Table 11: Excluded-single partition audit. Zero entries denote verified absence of the indicated held-out information. Audit check Count Training/test condition overlap 0Validation/test condition overlap 0Excluded gene in training singles 0Excluded gene in training doubles 0Excluded gene in validation conditions 0Test response in preprocessing fitting 0Test response in single-effect estimation 0Test response in reliability fitting 0Test response in model selection 0
+
+# References 
+
+[1] Thomas M Norman, Max A Horlbeck, Joseph M Re-plogle, Alex Y Ge, Albert Xu, Marco Jost, Luke A Gilbert, and Jonathan S Weissman. Exploring genetic interaction manifolds constructed from rich single-cell phenotypes. Science , 365(6455):786–793, 2019. [2] Yusuf Roohani, Kexin Huang, and Jure Leskovec. Pre-dicting transcriptional outcomes of novel multigene per-turbations with gears. Nature Biotechnology , 42(6):927– 935, 2024. [3] Mohammad Lotfollahi, Anna Klimovskaia Susmelj, Carlo De Donno, Leon Hetzel, Yuge Ji, Ignacio L Ibarra, Sanjay R Srivatsan, Mohsen Naghipourfar, Riza M Daza, Beth Martin, et al. Predicting cellular responses to com-plex perturbations in high-throughput screens. Molecular systems biology , 19(6):MSB202211517, 2023. [4] Constantin Ahlmann-Eltze, Wolfgang Huber, and Simon Anders. Deep-learning-based gene perturbation effect prediction does not yet outperform simple linear base-lines. Nature Methods , 22(8):1657–1661, 2025. [5] Gerold Csendes, Gema Sanz, Kristóf Z Szalay, and Bence Szalai. Benchmarking foundation cell models for post-perturbation rna-seq prediction. BMC genomics ,26(1):393, 2025. [6] Yaron Lipman, Ricky TQ Chen, Heli Ben-Hamu, Maxim-ilian Nickel, and Matt Le. Flow matching for generative modeling. arXiv preprint arXiv:2210.02747 , 2022. [7] Charlotte Bunne, Stefan G Stark, Gabriele Gut, Ja-cobo Sarabia Del Castillo, Mitch Levesque, Kjong-Van Lehmann, Lucas Pelkmans, Andreas Krause, and Gunnar Rätsch. Learning single-cell perturbation responses using neural optimal transport. Nature methods , 20(11):1759– 1768, 2023. [8] Suyang Xi, Shansong Wang, Mojtaba Safari, Mingzhe Hu, Zhen Tian, and Xiaofeng Yang. Uncertainty as a foundation for trustworthy medical imaging ai: A com-prehensive review. TechRxiv , 2025. 9[9] Mohammad Lotfollahi, F Alexander Wolf, and Fabian J Theis. scgen predicts single-cell perturbation responses. 
+
+Nature Methods , 16:715–721, 2019. [10] Xiaoning Qi, Lianhe Zhao, Chenyu Tian, Yueyue Li, Zhen-Lin Chen, Peipei Huo, Runsheng Chen, Xiaodong Liu, Baoping Wan, Shengyong Yang, et al. Predicting transcriptional responses to novel chemical perturbations using deep generative model for drug discovery. Nature Communications , 15(1):9256, 2024. [11] Hengshi Yu, Weizhou Qian, Yuxuan Song, and Joshua D Welch. Perturbnet predicts single-cell responses to un-seen chemical and genetic perturbations. Molecular Sys-tems Biology , 21(8):960, 2025. [12] Lukas Mathur, B Szalai, NH Du, Ramesh Utharala, Mar-tine Ballinger, JJM Landry, M Ryckelynck, Vladimir Benes, Julio Saez-Rodriguez, and Christoph A Merten. Combi-seq for multiplexed transcriptome-based profiling of drug combinations using deterministic barcoding in single-cell droplets. Nature communications , 13(1):4450, 2022. [13] Hanwen Xing and Christopher Yau. Gperturb: Gaus-sian process modelling of single-cell perturbation data. 
+
+Nature Communications , 16(1):5423, 2025. [14] Chenglei Yu, Chuanrui Wang, Bangyan Liao, and Tailin Wu. scdfm: Distributional flow matching model for robust single-cell perturbation prediction. arXiv preprint arXiv:2602.07103 , 2026. [15] Dominik Klein, Jonas Simon Fleck, Daniil Bobrovskiy, Lea Zimmermann, Sören Becker, Alessandro Palma, Leander Dony, Alejandro Tejada-Lapuerta, Guillaume Huguet, Hsiu-Chuan Lin, et al. Cellflow enables genera-tive single-cell phenotype modeling with flow matching. 
+
+bioRxiv , pages 2025–04, 2025. [16] Kalyan Ramakrishnan, Jonathan G Hedley, Sisi Qu, Puneet K Dokania, Philip HS Torr, Cesar A Prada-Medina, Julien Fauqueur, and Kaspar Martens. Modeling gene expression distributional shifts for unseen genetic perturbations. arXiv preprint arXiv:2507.02980 , 2025. [17] Bicna Song, Dingyu Liu, Weiwei Dai, Natalie F Mcmyn, Qingyang Wang, Dapeng Yang, Adam Krejci, Anatoly Vasilyev, Nicole Untermoser, Anke Loregger, et al. De-coding heterogeneous single-cell perturbation responses. 
+
+Nature cell biology , 27(3):493–504, 2025. [18] Gabriel M Mejia, Henry E Miller, Francis JA Leblanc, Bo Wang, Brendan Swain, and Lucas Paulo de Lima Camillo. Diversity by design: Addressing mode col-lapse improves scrna-seq perturbation modeling on well-calibrated metrics. arXiv preprint arXiv:2506.22641 ,2025. [19] Fan Yang, Wenchuan Wang, Fang Wang, Yuan Fang, Duyu Tang, Junzhou Huang, Hui Lu, and Jianhua Yao. scbert as a large-scale pretrained deep language model for cell type annotation of single-cell rna-seq data. Nature machine intelligence , 4(10):852–866, 2022. [20] Sumeer Ahmad Khan, Alberto Maillo, Vincenzo Lagani, Robert Lehmann, Narsis A Kiani, David Gomez-Cabrero, and Jesper Tegner. Reusability report: Learning the transcriptional grammar in single-cell rna-sequencing data using transformers. Nature Machine Intelligence ,5(12):1437–1446, 2023. [21] Haotian Cui, Chloe Wang, Hassaan Maan, Kuan Pang, Fengning Luo, Nan Duan, and Bo Wang. scgpt: toward building a foundation model for single-cell multi-omics using generative ai. Nature methods , 21(8):1470–1480, 2024. [22] Christina V Theodoris, Ling Xiao, Anant Chopra, Mark D Chaffin, Zeina R Al Sayed, Matthew C Hill, Helene Mantineo, Elizabeth M Brydon, Zexian Zeng, X Shirley Liu, et al. Transfer learning enables predic-tions in network biology. Nature , 618(7965):616–624, 2023. [23] Yanay Rosen, Yusuf Roohani, Ayush Agarwal, Leon Samotorˇ can, Tabula Sapiens Consortium, Stephen R Quake, and Jure Leskovec. Universal cell embeddings: A foundation model for cell biology. BioRxiv , pages 2023–11, 2023. [24] Romain Lopez, Jeffrey Regier, Michael B Cole, Michael I Jordan, and Nir Yosef. Deep generative mod-eling for single-cell transcriptomics. Nature Methods ,15:1053–1058, 2018. [25] Abhinav K Adduri, Dhruv Gautam, Beatrice Bevilac-qua, Alishba Imran, Rohan Shah, Mohsen Naghipourfar, Noam Teyssier, Rajesh Ilango, Sanjay Nagaraj, Mingze Dong, et al. Predicting cellular responses to perturba-tion across diverse contexts with state. BioRxiv , pages 2025–06, 2025. [26] Yusuf H Roohani, Tony J Hua, Po-Yuan Tung, Lexi R Bounds, Feiqiao B Yu, Alexander Dobin, Noam Teyssier, Abhinav Adduri, Alden Woodrow, Brian S Plosky, et al. Virtual cell challenge: Toward a turing test for the virtual cell. Cell , 188(13):3370–3374, 2025. [27] Ramon Viñas Torné, Maciej Wiatrak, Zoe Piran, Shuyang Fan, Liangze Jiang, Sarah A Teichmann, Mor Nitzan, and Maria Brbi´ c. Systema: a framework for evaluating ge-netic perturbation response prediction beyond systematic variation. Nature Biotechnology , pages 1–10, 2025. [28] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffusion probabilistic models. In Advances in Neural Information Processing Systems , volume 33, 2020. 10 [29] Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Ermon, and Ben Poole. Score-based generative modeling through stochastic differential equations. In International Conference on Learning Rep-resentations , 2021. [30] Michael S Albergo, Nicholas M Boffi, and Eric Vanden-Eijnden. Stochastic interpolants: A unifying framework for flows and diffusions. Journal of Machine Learning Research , 26(209):1–80, 2025. [31] Arthur Gretton, Karsten Borgwardt, Malte Rasch, Bern-hard Schölkopf, and Alex Smola. A kernel method for the two-sample-problem. Advances in neural information processing systems , 19, 2006. [32] Arthur Gretton, Karsten M Borgwardt, Malte J Rasch, Bernhard Sch"olkopf, and Alexander Smola. A kernel two-sample test. Journal of Machine Learning Research ,13:723–773, 2012. [33] Haoyue Dai, Ignavier Ng, Gongxu Luo, Peter Spirtes, Petar Stojanov, and Kun Zhang. Gene regulatory network inference in the presence of dropouts: a causal view. 
+
+arXiv preprint arXiv:2403.15500 , 2024. [34] Yang Zhou, Qiongyu Sheng, Guohua Wang, Li Xu, and Shuilin Jin. Quantifying batch effects for individual genes in single-cell data. Nature Computational Science ,5(8):612–620, 2025. [35] Tianzhu Ye, Li Dong, Yuqing Xia, Yutao Sun, Yi Zhu, Gao Huang, and Furu Wei. Differential transformer. In 
+
+International Conference on Learning Representations ,volume 2025, pages 144–164, 2025. [36] Chenxi Yang, Suyang Xi, Hong Ding, Yiqing Shen, and Yunhao Liu. A unified diffusion-based framework for multi-agent trajectory prediction integrating structured multi-modal representations. In 2026 IEEE/CVF Winter Conference on Applications of Computer Vision (WACV) ,pages 6442–6452. IEEE, 2026. [37] Suyang Xi, Songtao Hu, Shansong Wang, Hong Ding, Yuheng Li, Wenfeng He, Kuo Zhang, Luke Del Balzo, Chong Zhong, Mingzhe Hu, et al. Grounding radiology report findings into medical image segmentation. npj Digital Medicine , 2026. [38] Suyang Xi, Songtao Hu, Shansong Wang, Mojtaba Sa-fari, Luke del Balzo, Ehsan Ul Karim, Mingzhe Hu, Kuo Zhang, Tonghe Wang, Ralph R Weichselbaum, et al. A radiographic world model for clinical reasoning and ev-idence generation. arXiv preprint arXiv:2609.07719 ,2026. [39] Suyang Xi, Songtao Hu, Yuxiang Lai, Wangyun Dan, Yaqi Liu, Shansong Wang, and Xiaofeng Yang. Medlvr: Latent visual reasoning for reliable medical visual ques-tion answering. arXiv preprint arXiv:2604.09757 , 2026. [40] Sanjay R Srivatsan, José L McFaline-Figueroa, Vi-jay Ramani, Lauren Saunders, Junyue Cao, Jonathan Packer, Hannah A Pliner, Dana L Jackson, Riza M Daza, Lena Christiansen, et al. Massively multiplex chemi-cal transcriptomics at single-cell resolution. Science ,367(6473):45–51, 2020. 11

@@ -1,0 +1,338 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-19T18:40:43.866436+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 6,
+    "deep_cap": 7,
+    "deep_selected": 6,
+    "quick_candidates": 1,
+    "quick_skim_target": 12,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "2611.23999v1",
+      "source": "arxiv",
+      "title": "ReliFlow: Reliability-Calibrated Residual Transport for Combinatorial Single-Cell Perturbation Prediction",
+      "abstract": "Predicting the transcriptional response to combined perturbations requires distinguishing interactions between interventions from errors in their individual effect estimates. The latter become more pronounced when single-perturbation evidence is sparse or withheld. We introduce a conditional flow-matching model that estimates the reliability of single-gene effects from training-only cross-fitting and uses those estimates to calibrate the additive source distribution. The velocity is decomposed into a known correction of the additive reference and a learned residual transport field. On Norman genetic perturbations, reduces mean absolute error (MAE) from 0.142 to 0.131 for unseen combinations of observed singles and from 0.198 to 0.178 when constituent singles are withheld. On held-out ComboSciPlex drug combinations, MAE decreases from 0.191 to 0.176. Non-additive residual correlation improves from 0.574 to 0.638, and component ablations identify the contribution of reliability weighting. The results indicate that accounting for uncertain constituent effects improves generalization to unseen genetic and chemical combinations, with a moderate increase in training cost.",
+      "authors": [
+        "Jinrui David",
+        "Yun Peng"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-11-18T07:46:28+00:00",
+      "link": "https://arxiv.org/pdf/2611.23999v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "conditional flow matching for combinatorial single-cell perturbation response prediction",
+      "llm_evidence_cn": "用条件流匹配预测组合单细胞扰动响应",
+      "llm_evidence": "用条件流匹配预测组合单细胞扰动响应",
+      "canonical_evidence": "用条件流匹配预测组合单细胞扰动响应",
+      "llm_tldr_en": "ReliFlow, a conditional flow-matching model, estimates single-gene effect reliability via training-only cross-fitting and calibrates the additive reference with a learned residual transport field, lowering MAE for unseen combinatorial perturbations.",
+      "llm_tldr_cn": "预测组合扰动的转录响应需区分干预之间的交互与单扰动效应估计误差，而后者在单扰动证据稀疏或被扣留时尤为突出。作者提出条件流匹配模型 ReliFlow，用仅基于训练集的交叉拟合估计单基因效应的可靠性，并据此校准加性源分布，把速度场分解为已知的加性参考校正与学习到的残差输运场。在 Norman 遗传扰动数据上，未见组合的平均绝对误差由0.142降至0.131。该工作说明显式建模单扰动不确定性可提升组合扰动预测精度。",
+      "llm_tldr": "预测组合扰动的转录响应需区分干预之间的交互与单扰动效应估计误差，而后者在单扰动证据稀疏或被扣留时尤为突出。作者提出条件流匹配模型 ReliFlow，用仅基于训练集的交叉拟合估计单基因效应的可靠性，并据此校准加性源分布，把速度场分解为已知的加性参考校正与学习到的残差输运场。在 Norman 遗传扰动数据上，未见组合的平均绝对误差由0.142降至0.131。该工作说明显式建模单扰动不确定性可提升组合扰动预测精度。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-10-25-761625-v2",
+      "source": "biorxiv",
+      "title": "How Much Can AI Virtual Cells Gain from Unified Perturbational Modeling?",
+      "abstract": "Predicting how individual cells respond to perturbations is a central task in artificial intelligence virtual cell (AIVC) modeling. However, integrating perturbation datasets is challenging because they differ in measured gene sets, perturbation types and cellular contexts. Existing AIVC predictors are typically developed for specific settings, limiting their applicability across heterogeneous datasets. Here, we investigate the extent to which AIVC predictors can benefit from unified perturbational modeling (UPM), a novel paradigm designed to integrate heterogeneous Perturb-seq datasets into a single predictive model. To this end, we introduce three unification modules into a variational autoencoder (VAE)-based AIVC predictor to address these sources of heterogeneity: gene-channel alignment, shared perturbation encoding, and joint embedding of gene expression and identity. We systematically evaluate and validate the individual contributions of these modules. Building on UPM, we assemble a dataset of 110 million cells spanning over 22,000 genes, four perturbation types and 76 cellular contexts, and use 89.7 million cells from 71 contexts to train a unified AIVC predictor with more than one billion parameters. Across genetic perturbation benchmarks, UPM achieves the highest PES and gene-wise response correlation among the evaluated models. It also improves all four evaluation metrics over State on the five held-out Tahoe-100M cell lines and over Stack on the cytokine benchmark. UPM also improves combinatorial perturbation prediction relative to specialized predictors. In the HSC application, our model achieves a 40.0% improvement in accuracy on a downstream task involving the recapitulation of effects induced by the knockdown of hepatic stellate cell (HSC)-related targets. Our implementation is openly available at https://github.com/youlab2025/UPM.",
+      "authors": [
+        "Wei, Z.",
+        "Ye, Y.",
+        "Cui, S.",
+        "Ma, W.",
+        "You, Y."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-18T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.25.761625v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "AI virtual cell predictor with unified perturbational modeling across Perturb-seq datasets",
+      "llm_evidence_cn": "AI虚拟细胞预测器，跨Perturb-seq数据集统一扰动建模",
+      "llm_evidence": "AI虚拟细胞预测器，跨Perturb-seq数据集统一扰动建模",
+      "canonical_evidence": "AI虚拟细胞预测器，跨Perturb-seq数据集统一扰动建模",
+      "llm_tldr_en": "This study asks how much AI virtual cell predictors gain from unified perturbational modeling, adding three unification modules to a VAE-based predictor to integrate heterogeneous Perturb-seq datasets.",
+      "llm_tldr_cn": "预测单细胞如何响应扰动是人工智能虚拟细胞（AIVC）建模的核心任务，但不同扰动数据集在测量基因集、扰动类型与细胞背景上差异巨大，现有预测器多为特定场景开发，难以跨异构数据泛化。作者系统研究 AIVC 预测器能从统一扰动建模（UPM）中获益多少，并在基于变分自编码器的预测器中引入三个统一模块以整合异构 Perturb-seq 数据。该研究量化了统一建模带来的收益与限制。其贡献在于为构建可跨数据集泛化的虚拟细胞预测模型指明方向。",
+      "llm_tldr": "预测单细胞如何响应扰动是人工智能虚拟细胞（AIVC）建模的核心任务，但不同扰动数据集在测量基因集、扰动类型与细胞背景上差异巨大，现有预测器多为特定场景开发，难以跨异构数据泛化。作者系统研究 AIVC 预测器能从统一扰动建模（UPM）中获益多少，并在基于变分自编码器的预测器中引入三个统一模块以整合异构 Perturb-seq 数据。该研究量化了统一建模带来的收益与限制。其贡献在于为构建可跨数据集泛化的虚拟细胞预测模型指明方向。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "virtual cell model",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.23953v1",
+      "source": "arxiv",
+      "title": "MitoWorld: A Stochastic World Model of the Single-Cell Cycle under Genetic Perturbation",
+      "abstract": "A cell observed after a gene knockdown has an uncertain future, both in how its appearance will evolve and when it will divide. Existing approaches predict endpoints or population-level changes without jointly modeling individual trajectories and division timing. In this work, we present MitoWorld, a stochastic world model that generates these future appearances as continuous evolution in a Gaussian reference latent, terminated by a division hazard and converted into images by a conditional diffusion renderer. The ordinary transition provably preserves its Gaussian reference, tying its noise to its dynamics; paired observations identify its discrete transition where stationary marginals cannot. The hazard turns division timing into a survival likelihood that can be tested against real cycle lengths. On 325 held-out MitoCheck tracks spanning 17 knockdowns and a control, MitoWorld lowers FID by 34.6\\% and the video metric JEDi by 45.6\\% relative to the strongest baselines. Its latent-space prediction intervals achieve near-nominal 90\\% coverage, are 35\\% narrower than those of a model with freely fitted noise. The hazard also yields cell-cycle length distributions with KS distance close to the model-based finite-sample reference. Testable single-cell stochastic dynamics thus offer a generative tool for time-lapse perturbation screens.",
+      "authors": [
+        "Ting Long",
+        "Xiaojing Sun",
+        "Cheng Han",
+        "Zhicheng Ji",
+        "Yingnian Wu",
+        "Jiebo Luo",
+        "Heng Fan",
+        "Dongfang Liu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "q-bio.QM"
+      ],
+      "published": "2026-11-18T06:42:32+00:00",
+      "link": "https://arxiv.org/pdf/2611.23953v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "stochastic world model predicting single-cell trajectories and division timing under genetic perturbation",
+      "llm_evidence_cn": "随机世界模型预测遗传扰动下单细胞轨迹与分裂时序",
+      "llm_evidence": "随机世界模型预测遗传扰动下单细胞轨迹与分裂时序",
+      "canonical_evidence": "随机世界模型预测遗传扰动下单细胞轨迹与分裂时序",
+      "llm_tldr_en": "MitoWorld models post-knockdown single-cell futures as stochastic trajectories in a Gaussian reference latent, terminated by a division hazard and rendered by conditional diffusion, jointly capturing appearance evolution and division timing.",
+      "llm_tldr_cn": "基因扰动后细胞形态与分裂时间难以预测，现有方法只给出终点或群体平均而忽略个体轨迹。作者提出MitoWorld随机世界模型，在高斯参考隐空间中连续演化，由分裂风险终止轨迹并由条件扩散渲染器生成图像。理论分析表明普通转移可证明保持高斯参考，配对观测可识别离散转移。该框架统一建模扰动下单细胞动态，为虚拟细胞与扰动响应预测提供新思路。",
+      "llm_tldr": "基因扰动后细胞形态与分裂时间难以预测，现有方法只给出终点或群体平均而忽略个体轨迹。作者提出MitoWorld随机世界模型，在高斯参考隐空间中连续演化，由分裂风险终止轨迹并由条件扩散渲染器生成图像。理论分析表明普通转移可证明保持高斯参考，配对观测可识别离散转移。该框架统一建模扰动下单细胞动态，为虚拟细胞与扰动响应预测提供新思路。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.24104v1",
+      "source": "arxiv",
+      "title": "SCOPE: Single-Cell Omics Prediction from Histology via RNA-Protein Prior Enhancement",
+      "abstract": "Predicting the RNA and protein content of cells from routine H&E images could extend spatial molecular profiling to existing slide archives. However, both H&E-spatial proteomics and H&E-spatial transcriptomics paired datasets are limited by the number of available markers and the insufficient availability of high-quality, cell-resolved data. We present SCOPE (Single-Cell Omics Prediction via RNA-protein prior Enhancement), a unified framework that leverages biologically complementary information between RNA and proteins to address the limited availability of single-omics supervision. Our key insight is that, although RNA and proteins represent distinct molecular modalities, their biological relationships provide valuable shared knowledge that can benefit single-omics prediction tasks. To this end, SCOPE introduces biologically informed biomarker priors to enhance shared gene-level representations, enabling knowledge transfer across RNA and protein modalities through gene-protein correspondence and molecular associations. By exploiting these complementary relationships, SCOPE enables both prediction tasks to benefit from a shared backbone enriched with cross-omics biological knowledge. Furthermore, its biomarker correlation design facilitates the prediction of unseen markers, extending spatially resolved molecular profiling beyond directly supervised targets. Across test datasets spanning 16 organs, SCOPE improves the average RNA Pearson correlation over the strongest baseline by 8.8%. On two external protein cohorts, it improves the average Pearson correlation over the strongest baseline by 9.7% for seen markers and 11.9% for unseen markers.",
+      "authors": [
+        "Leyang Tao",
+        "Xuan Gong",
+        "Luyuan Xie",
+        "Arjun Beniwal",
+        "Yuqi Tan",
+        "Kun-Hsing Yu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "q-bio.GN"
+      ],
+      "published": "2026-11-18T09:24:45+00:00",
+      "link": "https://arxiv.org/pdf/2611.24104v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts single-cell RNA and protein content from H&E histology images",
+      "llm_evidence_cn": "由H&E组织学图像预测单细胞RNA与蛋白含量",
+      "llm_evidence": "由H&E组织学图像预测单细胞RNA与蛋白含量",
+      "canonical_evidence": "由H&E组织学图像预测单细胞RNA与蛋白含量",
+      "llm_tldr_en": "SCOPE predicts cell-level RNA and protein content from routine H&E images by exploiting the biological complementarity between RNA and protein priors to overcome limited single-omics supervision.",
+      "llm_tldr_cn": "从常规H&E图像预测细胞的RNA与蛋白含量可把空间分子谱推广到既有切片档案，但配对的H&E-空间组学数据受标记数量与高质量单细胞分辨率样本不足的限制。作者提出SCOPE统一框架，利用RNA与蛋白两种模态之间互补的生物学关系提供共享知识，缓解单一组学监督不足的问题。该框架实现了组织学图像到单细胞多组学内容的推断，为扩展空间分子图谱提供了可行途径。",
+      "llm_tldr": "从常规H&E图像预测细胞的RNA与蛋白含量可把空间分子谱推广到既有切片档案，但配对的H&E-空间组学数据受标记数量与高质量单细胞分辨率样本不足的限制。作者提出SCOPE统一框架，利用RNA与蛋白两种模态之间互补的生物学关系提供共享知识，缓解单一组学监督不足的问题。该框架实现了组织学图像到单细胞多组学内容的推断，为扩展空间分子图谱提供了可行途径。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Image based prediction of spatially resolved gene expression in tissue sections.",
+      "matched_requirement_id": "req-15",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-03-763968-v3",
+      "source": "biorxiv",
+      "title": "Where single-cell foundation models help: a public-data benchmark of annotation, in silico perturbation and gene regulatory inference",
+      "abstract": "Single-cell foundation models (FMs) are proposed as general tools for cell-type annotation, in silico perturbation and gene-regulatory-network (GRN) inference. To identify where they add value, we benchmarked five FMs (scGPT, Geneformer V1 and V2, Nicheformer, scFoundation), CellOracle, supervised perturbation models including STATE, and task-matched simple baselines on the same public data, from K562 Perturb-seq screens and primary cells to a brain organoid CRISPR screen, an in vivo Perturb-seq screen of the developing mouse cortex and lung cancer biopsies, using each model with its recommended settings and with tuned fine-tuning, under an analysis plan fixed before the new results. FMs were most useful when labels had to be transferred across species: from human to mouse lung, Nicheformer reached 0.98 accuracy with cosine kNN, above every baseline including CellTypist with tuned regularisation (0.94), and fine-tuned Geneformer V2 transferred labels from mouse to human with macro-F1 0.88, against at most 0.74 for baselines trained on the same cells. In K562, zero-shot perturbations captured the direction of real responses, with up to 76% of perturbations shifted in the expected direction (Geneformer V2, p < 1e-8), and with its native overexpression protocol Geneformer V2 tracked CRISPRa effect sizes ({rho} = 0.30, q = 0.001). Geneformer V2 networks recovered patient-level tumour differential expression better than co-expression (fold enrichment 2.9 versus 2.0, on five hubs). Within a species, FM embeddings did not exceed principal components: on 28,344 organoid screen cells the best FM reached macro-F1 0.78 zero-shot and 0.84 after fine-tuning, against 0.89 for principal components with kNN. In silico knockouts in the organoid screen and in the mouse cortex followed the expression of the target, moved embeddings no more than deletions of expression-matched control genes and met the predefined criterion in none of 46 tests, in which naive predictors such as the number of perturbed cells did as well. Fine-tuning changed classification accuracy and the size of predicted effects but not their ranking, gene networks or the advantage of a training-mean baseline. We release the benchmark, baselines and pipeline checks as the fmaudit package, so that new models can be evaluated on the tasks where FMs already help.",
+      "authors": [
+        "Cupaioli, F. A.",
+        "Merelli, I."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-19T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.03.763968v3.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "benchmark of single-cell foundation models for in silico perturbation prediction",
+      "llm_evidence_cn": "基准评测单细胞基础模型的计算机扰动预测能力",
+      "llm_evidence": "基准评测单细胞基础模型的计算机扰动预测能力",
+      "canonical_evidence": "基准评测单细胞基础模型的计算机扰动预测能力",
+      "llm_tldr_en": "A pre-registered public-data benchmark compares five single-cell foundation models, CellOracle and supervised perturbation models on Perturb-seq screens to identify where they actually help.",
+      "llm_tldr_cn": "单细胞基础模型被宣传为注释、计算机扰动与调控网络推断的通用工具，但其实际增益不明。作者在统一公开数据上评测五个基础模型、CellOracle、包括STATE在内的监督扰动模型以及任务匹配的简单基线，覆盖K562 Perturb-seq、脑类器官CRISPR筛选与体内小鼠皮层筛选。评测按推荐设置与调优微调两种方式、并在预先固定的分析方案下进行。结果为判断基础模型在扰动响应预测中的真实价值提供了证据。",
+      "llm_tldr": "单细胞基础模型被宣传为注释、计算机扰动与调控网络推断的通用工具，但其实际增益不明。作者在统一公开数据上评测五个基础模型、CellOracle、包括STATE在内的监督扰动模型以及任务匹配的简单基线，覆盖K562 Perturb-seq、脑类器官CRISPR筛选与体内小鼠皮层筛选。评测按推荐设置与调优微调两种方式、并在预先固定的分析方案下进行。结果为判断基础模型在扰动响应预测中的真实价值提供了证据。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "single cell perturbation",
+      "matched_requirement_id": "req-3",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-17-767412-v1",
+      "source": "biorxiv",
+      "title": "GenVinci reconstructs 3D molecular tissue scenes from histology to map senescence across aging and disease",
+      "abstract": "Spatial omics has generated measurements at unprecedented scale, yet computational approaches remain largely confined to individual modalities and 2D representations. Here we assemble ImageOmicsNet-300M, a corpus of 300 million single-cell and spatial transcriptomic profiles, including 24.9 million H&E-predicted virtual spatial transcriptomics profiles, and 4,623 H&E sections. Of these H&E sections, we generated 1,782 from aging mouse organs and serially sectioned human skin spanning five decades, with matched spatial transcriptomics and snRNA-seq. Building on this resource, we develop GenVinci, a multimodal tissue foundation model that reconstructs 3D tissue scenes from routine 2D histology. GenVinci predicts spatial gene expression from H&E with zero-shot generalization and maps senescence-associated states across 85.8 million cells, revealing cell-type-specific patterns and disease-associated remodeling. Integration with human genetics implicates suprabasal keratinocytes in atopic dermatitis and keratinocyte carcinomas, linked to higher and lower p16 and p21 expression, respectively. These findings establish GenVinci as a framework mapping senescence in 3D across scales.",
+      "authors": [
+        "Chen, X.",
+        "Comiter, C.",
+        "Huang, H.",
+        "Wu, Y.",
+        "Su, Y.-L.",
+        "Zhou, J.",
+        "Monticolo, F.",
+        "Condouret, M.",
+        "Sapantzi, S.",
+        "Qi, J.",
+        "Li, X.",
+        "Cao, Y.",
+        "Zhou, Y.",
+        "Zhang, K.",
+        "Tanaka, R.",
+        "Todorova, K.",
+        "Sol, S.",
+        "Ziegler, J.",
+        "Sakkas, D.",
+        "Lian, C.",
+        "Demehri, S.",
+        "Mandinova, A.",
+        "Min, W.",
+        "Silverstein, J. C.",
+        "Phatnani, H.",
+        "Dou, Z.",
+        "Kang, J. W.",
+        "Yang, H.",
+        "Regev, A.",
+        "Stultz, C. M.",
+        "NIH SenNet Consortium,",
+        "So, P. T. C.",
+        "Shu, J."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-18T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.17.767412v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "multimodal foundation model predicting spatial transcriptomics from H&E histology",
+      "llm_evidence_cn": "多模态基础模型由H&E图像预测空间转录组",
+      "llm_evidence": "多模态基础模型由H&E图像预测空间转录组",
+      "canonical_evidence": "多模态基础模型由H&E图像预测空间转录组",
+      "llm_tldr_en": "GenVinci is a multimodal tissue foundation model trained on ImageOmicsNet-300M that predicts spatial transcriptomics from routine 2D H&E histology and reconstructs 3D molecular tissue scenes across aging and disease.",
+      "llm_tldr_cn": "空间组学计算多局限于单一模态与二维表示，常规病理切片中的分子信息难以被系统利用。作者构建含三亿条单细胞与空间转录组谱的ImageOmicsNet-300M语料，并训练多模态组织基础模型GenVinci，从二维H&E图像预测空间转录组并重建三维组织场景。结果显示模型可跨衰老与疾病样本推断空间基因表达并定位衰老细胞。该工作把常规组织学图像转化为可规模化的分子读出，为影像推断空间基因表达提供了基础模型与数据资源。",
+      "llm_tldr": "空间组学计算多局限于单一模态与二维表示，常规病理切片中的分子信息难以被系统利用。作者构建含三亿条单细胞与空间转录组谱的ImageOmicsNet-300M语料，并训练多模态组织基础模型GenVinci，从二维H&E图像预测空间转录组并重建三维组织场景。结果显示模型可跨衰老与疾病样本推断空间基因表达并定位衰老细胞。该工作把常规组织学图像转化为可规模化的分子读出，为影像推断空间基因表达提供了基础模型与数据资源。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-11-17-767301-v1",
+      "source": "biorxiv",
+      "title": "Sc-HistoMorphomics: A General Framework for High-throughput, Multimodal Profiling of Nuclear Morphology in Tissues.",
+      "abstract": "Quantitative cellular morphology provides a rich but underutilized window into cell identity and state. We introduce sc-HistoMorphomics, a scalable framework for profiling nuclear morphology in whole-slide H&E images and correlating these measurements with spatial transcriptomics data. Our pipeline combines deep-learning based segmentation with 194 interpretable morphometric features capturing nuclear shape, eosin and hematoxylin texture, and neighbourhood architecture, enabling high-throughput, multimodal characterization of tissue organization. Applied to endometrium, breast cancer tissue, and pancreas, sc-HistoMorphomics revealed conserved high-dimensional feature structure across tissues and reproducible association between morphology and gene expression. Eosin-based texture features were associated with senescence signatures in endometrium, and morphology-based clustering recapitulated broad stromal, lymphocyte, and epithelial tumor cell classes in breast cancer. In pancreas, negative correlations between CDKN1A and multiple morphological features were consistent across cell types and donors. Together, these results establish sc-HistoMorphomics as a generalizable and interpretable tool for linking morphology with spatially resolved molecular state across diverse tissues.",
+      "authors": [
+        "Alizadeh, E.",
+        "Zhao, Y.",
+        "Domanskyi, S.",
+        "Baker, D.",
+        "Luo, d.",
+        "Flynn, W. F.",
+        "Ucar, D.",
+        "Chuang, J. H.",
+        "Courtois, E.",
+        "White, B. S.",
+        "Robson, P.",
+        "Korstanje, R.",
+        "Li, S.",
+        "Mahoney, J. M."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-18T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.17.767301v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "correlates H&E-derived nuclear morphology features with spatial transcriptomics in a multimodal framework",
+      "llm_evidence_cn": "将H&E提取的核形态特征与空间转录组关联，构建多模态框架",
+      "llm_evidence": "将H&E提取的核形态特征与空间转录组关联，构建多模态框架",
+      "canonical_evidence": "将H&E提取的核形态特征与空间转录组关联，构建多模态框架",
+      "llm_tldr_en": "sc-HistoMorphomics profiles nuclear morphology in whole-slide H&E images using deep-learning segmentation and 194 interpretable morphometric features, correlating them with spatial transcriptomics for high-throughput multimodal tissue characterization.",
+      "llm_tldr_cn": "细胞形态蕴含丰富的身份与状态信息却长期未被充分利用。作者提出 sc-HistoMorphomics，结合深度学习分割与194个可解释形态学特征，在全切片H&E图像上高通量刻画核形态，并与空间转录组数据关联。在子宫内膜、乳腺癌与胰腺组织上，该框架揭示了跨组织保守的高维特征结构，为组织构型的多模态定量分析提供了可扩展工具。",
+      "llm_tldr": "细胞形态蕴含丰富的身份与状态信息却长期未被充分利用。作者提出 sc-HistoMorphomics，结合深度学习分割与194个可解释形态学特征，在全切片H&E图像上高通量刻画核形态，并与空间转录组数据关联。在子宫内膜、乳腺癌与胰腺组织上，该框架揭示了跨组织保守的高维特征结构，为组织构型的多模态定量分析提供了可扩展工具。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

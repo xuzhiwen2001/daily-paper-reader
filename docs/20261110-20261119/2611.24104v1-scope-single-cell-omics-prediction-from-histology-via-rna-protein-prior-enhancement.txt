@@ -1,0 +1,464 @@
+Title: SCOPE: Single-Cell Omics Prediction from Histology via RNA-Protein Prior Enhancement
+
+URL Source: https://arxiv.org/pdf/2611.24104v1
+
+Published Time: Thu, 19 Nov 2026 02:28:16 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# SCOPE: Single-Cell Omics Prediction from Histology via RNA–Protein Prior Enhancement 
+
+## Leyang Tao 1 Xuan Gong 1 Luyuan Xie 2 Arjun Beniwal 1 Yuqi Tan 3 Kun-Hsing Yu 1,∗
+
+> 1
+
+Department of Biomedical Informatics, Harvard Medical School, Boston, MA, USA 
+
+> 2
+
+Beijing University of Civil Engineering and Architecture, Beijing, China 
+
+> 3
+
+Department of Microbiology and Immunology, Stanford University, Stanford, CA, USA 
+
+> ∗
+
+Correspondence to Kun-Hsing Yu ( Kun-Hsing Yu@hms.harvard.edu )
+
+## Abstract 
+
+Predicting the RNA and protein content of cells from rou-tine H&E images could extend spatial molecular profiling to existing slide archives. However, both H&E–spatial pro-teomics and H&E–spatial transcriptomics paired datasets are limited by the number of available markers and the in-sufficient availability of high-quality, cell-resolved data. We present SCOPE ( Single-Cell Omics Prediction via RNA– protein prior Enhancement), a unified framework that lever-ages biologically complementary information between RNA and proteins to address the limited availability of single-omics supervision. Our key insight is that, although RNA and proteins represent distinct molecular modalities, their biological relationships provide valuable shared knowledge that can benefit single-omics prediction tasks. To this end, SCOPE introduces biologically informed biomarker priors to enhance shared gene-level representations, en-abling knowledge transfer across RNA and protein modal-ities through gene–protein correspondence and molecular associations. By exploiting these complementary relation-ships, SCOPE enables both prediction tasks to benefit from a shared backbone enriched with cross-omics biological knowledge. Furthermore, its biomarker correlation de-sign facilitates the prediction of unseen markers, extend-ing spatially resolved molecular profiling beyond directly supervised targets. Across test datasets spanning 16 or-gans, SCOPE improves the average RNA Pearson correla-tion over the strongest baseline by 8.8%. On two external protein cohorts, it improves the average Pearson correla-tion over the strongest baseline by 9.7% for seen markers and 11.9% for unseen markers. 
+
+## 1. Introduction 
+
+Spatially resolved transcriptomic and proteomic measure-ments provide complementary insights into cellular states and tissue organization in health and disease [5, 13, 23]. However, obtaining these measurements at single-cell res-olution requires costly and technically demanding as-says, including in situ spatial transcriptomics [14] and multiplex immunofluorescence (mIF) techniques such as CODEX [10]. In contrast, hematoxylin and eosin (H&E) staining is routinely performed in pathology. Predicting single-cell RNA and protein expression directly from H&E images could therefore extend spatial molecular profiling to routinely collected tissue sections and existing slide archives, supporting biological investigation and potentially informing clinical decisions. Recent models have demonstrated the feasibility of pre-dicting spatial molecular profiles from histology. How-ever, many approaches target a single molecular modality or a predefined set of markers [7, 12, 31], limiting their applicability across assays with different molecular panels (Fig. 1(b)). Joint learning from transcriptomic and pro-teomic data offers a promising opportunity to leverage their complementary biological information. However, these modalities are rarely profiled on the same tissue sections, while variations in marker panels leave many molecular tar-gets without direct H&E supervision. These limitations mo-tivate a unified framework that can exploit complementary knowledge across unpaired omics modalities and generalize to molecular markers beyond those directly observed during training. Addressing these challenges requires a unified repre-sentation that bridges complementary supervision across molecular modalities and biomarker targets. The corre-spondence between proteins and their coding genes pro-vides a natural biological link between RNA and protein measurements, enabling supervision from either modality to contribute to shared gene-level representations. How-ever, such correspondence alone cannot address genes ab-sent from the training panels. To further extend supervi-sion beyond directly observed targets, biological relation-1arXiv:2611.24104v1 [cs.CV] 18 Nov 2026 a H&E  RNA  Protein  Markers 
+
+> Xenium
+> Xenium
+> mIF
+
+b    
+
+> WRNA Gene 1
+> Wprot Protein 1
+> separate embeddings
+> ?WUnseen
+> Fixed Vocabulary
+> Text Description
+
+c shared embedding       
+
+> WRNA Gene 1
+> Wprot Protein 1
+> WUnseen
+> Reference data
+> Interaction database
+> Partner Composition Figure 1. SCOPE versus existing H&E models. (a) Spatial RNA and protein assays measure different marker panels across tissue sections. (b) Existing approaches give RNA and protein sepa-rate embeddings. Fixed-vocabulary models predict a fixed list of output channels, and query-based methods read pretrained marker representations. (c) SCOPE reads RNA and protein through one embedding per gene, so a protein without protein labels is read through the RNA-trained embedding of its gene, and each embed-ding adds a combination of related genes chosen by single-cell co-expression and interaction databases.
+
+ships among genes provide complementary priors that facil-itate knowledge transfer from supervised to unseen genes. Motivated by these insights, we develop a biologically in-formed shared gene representation that integrates cross-omics supervision with biomarker-level biological relation-ships, enabling knowledge transfer across both modalities and molecular targets. In this paper, we introduce SCOPE, a unified frame-work for single-cell RNA and protein prediction from H&E images. At its core, SCOPE leverages the biological cor-respondence between genes and their encoded proteins to establish a shared molecular representation, enabling complementary supervision across transcriptomic and pro-teomic modalities. To extend prediction beyond directly supervised targets, we further introduce biologically in-formed biomarker co-encoding, which incorporates gene co-expression patterns, molecular interactions, and pathway relationships to transfer knowledge from observed to un-seen markers. In addition, SCOPE adopts a dual-branch architecture that integrates cell-level molecular prediction with dense spatial expression modeling, leveraging com-plementary supervision from subcellular transcript localiza-tion and protein image intensities. A fusion strategy further combines predictions from the two branches to enable com-prehensive spatially resolved molecular profiling. Our con-tributions are summarized below. • We introduce SCOPE, a unified framework for single-cell RNA and protein prediction from H&E images, enabling joint learning from spatial transcriptomic and proteomic data acquired on separate tissue sections through shared gene-level representations. • We propose biologically informed biomarker co-encoding, leveraging gene relationships and single-cell co-expression patterns to enable prediction of molecular markers without direct H&E supervision, extending spatial molecular profiling beyond the markers observed during training. • We evaluate SCOPE across 16 organs and two external protein cohorts. SCOPE improves the average Pearson correlation over the strongest RNA baseline by 8.8%, and over the strongest protein baseline by 9.7% and 11.9% for seen and unseen markers, respectively. 
+
+## 2. Related work 
+
+Molecular profiles from H&E. Most methods predict ei-ther spatial RNA or protein expression from H&E, at the cell, spot, or pixel level. For RNA, DeepSpot-M uses gene-conditioned decoding from image tokens [22], and CELLO predicts per-cell expression using features from a pathol-ogy foundation model [7]. Pixel-level approaches recon-struct expression maps from spot-level or binned-transcript supervision [38, 39]. For protein, virtual staining methods such as ROSIE, GigaTIME, and HistoPlexer generate mul-tiplexed images [1, 31, 35]. Fewer methods address both assays. H2O uses parallel decoders trained on consecutive sections profiled by both assays [11]; CUBE fuses protein-derived and predicted transcriptomic representations [9]. SCOPE trains on sections with either RNA or protein mea-surements from unpaired datasets, but couples the assays through shared gene embeddings and predicts all requested targets in one forward pass. It combines cell-level and dense expression predictions. 
+
+Marker embeddings. Models predicting many molecu-lar targets use learned identifiers or embeddings derived from sequence or text. CAPTAIN and CARE maintain 2separate gene and protein embeddings [15, 40], whereas UCE and VirTues use protein language-model representa-tions [24, 33]. To generalize beyond directly supervised genes, SGN uses gene descriptions [37], DeepSpot-M uses frozen gene embeddings [22], GSAT-RAG retrieves expres-sion information from seen genes [34], and HINGE con-ditions a pretrained single-cell model on histology [6]. In contrast, SCOPE learns a shared embedding for each gene and its encoded protein from both assays. For genes with-out H&E-linked labels, it complements this embedding with a sparse, signed combination of related genes, chosen by single-cell co-expression and by interaction and pathway re-sources and weighted by single-cell expression covariation. 
+
+## 3. Method 
+
+Method overview. SCOPE predicts the RNA and protein of every H&E nucleus from the image alone (Fig. 2). Ev-ery marker is read through a gene embedding that RNA and protein share and that adds a combination of related genes (Sec. 3.1). Two branches read these embeddings at two res-olutions, a cell model that scores one image vector per nu-cleus (Sec. 3.2) and a dense expression field that scores ev-ery pixel and is trained on transcript positions and protein images (Sec. 3.3). Late fusion averages their predictions (Sec. 3.3). 
+
+3.1. Biomarker co-encoding 
+
+We compose each embedding from the gene’s own learn-able vector and the vectors of related genes, allowing infor-mation learned from supervised partner genes to improve the representations of genes with limited or no direct su-pervision. We take candidate partners of each gene from single-cell co-expression and from STRING [29], which scores functional associations between proteins, and Re-actome [20], which organizes curated molecular reactions into pathways. The signed weight of each partner is esti-mated from gene covariation in single-cell transcriptomic data, and the database links set the prior mean of this esti-mate. Both branches query marker g through its embedding in 
+
+t = T + ST , tg = Tg + P 
+
+> u
+
+Sgu Tu, (1) with learnable embeddings T ∈ RV ×1024 for the V =19 ,496 genes and protein-marker entries, and relation weights S ∈ RV ×V , the signed adjacency of a gene graph (Eq. (1) is one propagation step). 
+
+Learnable embeddings. Embedding Tg starts at T0 
+
+> g
+
+=[ STRING 512 | random 512 ] , a spectral embedding (nor-malized Laplacian [3], as in [30]) of the STRING v12 network and a fixed Gaussian vector. An entry with no STRING protein takes a random first half of the same norm. A loss that reads g trains Tg and, through S, the embed-dings of g’s partners. An embedding that no loss reads gets no gradient and no weight decay, so it stays at T0 
+
+> g
+
+. Such a gene thus reads T0 
+
+> g
+
++ Sg T in both the cell model and the dense branch, its start embedding plus its partners’ trained embeddings. Each part trains its own T, and both share S.
+
+Relation weights. Sg holds a signed weight for each can-didate partner of g. The candidates Ag are the genes most correlated with g in single-cell RNA and the genes among the strongest links of g in STRING or Reactome (through a reaction, as input, output, catalyst, or regulator, or a com-plex), drawn from genes measured on many training sec-tions. Ridge regression toward a prior mean mg built from the database links gives the weights 
+
+Sg, Ag =
+
+ X 
+
+> d
+
+Z⊤ 
+
+> d
+
+Zd + ( α + ω)I
+
+−1
+
+ X 
+
+> d
+
+Z⊤ 
+
+> d
+
+rd + ω mg
+
+
+
+, α = 1 , ω = 10 4,
+
+(2) For each dataset d, Zd contains the ln(1 + c) expression of candidate partners in Ag , and rd contains that of target gene g, both z-scored within the dataset. Candidates not measured in d are assigned zero. We use the training Xe-nium sections and RNA profiles from the training CITE-seq datasets [28]. We estimate partner weights using ridge regression with a biological prior mg . The penalty α stabilizes the esti-mates, while ω controls their shrinkage toward the prior. Since expression values are standardized, ω approximately determines the prior’s strength relative to the number of ob-served cells. For each linked partner, the prior combines a constant, its STRING association score, and indicators of a shared Reactome reaction or protein complex. Unlinked partners receive a zero prior. The coefficients are fitted by least squares using genes from other folds of a random gene partition, so a gene’s own data are excluded when fitting its prior coefficients. This allows biological relationships to guide the weights when expression evidence is limited, while observed co-expression has greater influence when sufficient data are available. We estimate these weights for genes in our Xenium pan-els. For other genes, Sg = 0, giving tg = Tg . Each protein marker inherits the weights of its coding gene γ(g).
+
+3.2. Cell branch 
+
+The cell-level branch predicts the expression of each nu-cleus from one frozen image vector. One MLP and one set of gene embeddings serve both assays, and each assay has its own prediction head. Nucleus i is described by one frozen H-optimus-1 [25] vector ui ∈ R1536 , the average of the patch tokens of a 224-pixel tile at 0.5 μm/px, weighted by the fraction of each token that the nucleus covers. An MLP (LayerNorm, 1536 → 1024 , GELU, 1024 → 512 )gives zi ∈ R512 , and a bilinear prediction head gives marker 3a Knowledge embedding      
+
+> Single-cell RNA
+> co-expression
+> Interaction DB
+> gene links
+> Most correlated
+> HLA-DQA1 ,CD79A ,BANK1
+> Linked genes
+> CD79A ,BANK1 ,ICOS
+> Weight fitting
+> co-expression fit
+> + database prior MS4A1
+> BANK1
+> CD79A
+> CD3D
+> CD3E
+> KRT8
+> KRT19  Sgu
+
+S  
+
+> Start T0
+> STRING
+> random
+> 2
+> 1
+
+T Tg 
+
+> MS4A1 +
+
+Σ BANK1 
+
+> CD79A
+> CD3D
+> Tu
+> trained frozen sum Σconcat ‖union
+> 2
+> 1
+
+b Cell-level branch  1          
+
+> cell
+> H-optimus-1
+> frozen encoder MLP embedding z
+> z⊤+
+> WRNA wRNA ⊤
+> z⊤+
+> Wprot wprot ⊤
+> tgtg
+> RNA
+> protein
+> x1per cell
+> prediction heads tg
+
+c Dense expression field  2         
+
+> window
+> H-optimus-1
+> frozen encoder tokens ConvNeXt
+> RGB pixels
+> CNN
+> ‖
+> concat + MLP F(p)
+> F(p) ⊤+
+> MLP RNA bg
+> softplus
+> F(p) ⊤+
+> MLP prot cg
+> σ
+> tg
+> RNA
+> protein
+> x2per pixel
+> prediction heads tg
+
+d Pipeline at test  
+
+> Cell-level
+> branch
+> Dense
+> field
+> 12
+> tg
+
+· ·    
+
+> Σ
+> x1x2
+> Fusion
+> ½ ( x1/σs+x2/σs)
+> predicted measured
+
+Figure 2. Overview of SCOPE. (a) Knowledge embedding. Single-cell RNA and interaction databases select the partners of each gene and fit their weights S. Each branch (tags b and c) learns its own embedding table T from the shared start T0 and reads gene g through 
+
+tg = Tg + Sg T, which both its RNA and protein heads use. (b) The cell-level branch scores the embedding of each nucleus against tg .(c) The dense expression field scores each pixel, computed from H-optimus-1 tokens and the RGB image, against tg . (d) At test time, only the H&E image and its nuclei are used, and the two branches are averaged with equal weights. 
+
+g of assay a:
+
+x1(i, g ) = z⊤ 
+
+> i
+
+Wa tg + w⊤ 
+
+> a
+
+tg , (3) where tg ∈ R1024 is the embedding of g (Sec. 3.1). Aprotein marker g reads the embedding tγ(g) of γ(g), the gene that encodes its target. Two weights are trained per assay: Wa ∈ R512 ×1024 couples the cell’s state with the marker, and wa ∈ R1024 gives the marker’s baseline level 
+
+w⊤ 
+
+> a
+
+tg , shared by all cells. The target y(i, g ) is the measured value, ln(1+ c) of the transcript count c for RNA and ln(1+ ¯I) of the mean intensity ¯I for protein, z-scored per marker with training statistics. Over the step’s cells B, all from one training section s, and the markers Ps that s measures, the loss is the mean squared error: 
+
+Lcell = 1
+
+|B| |P s|
+
+X
+
+> i∈B
+
+X
+
+> g∈P s
+
+ x1(i, g ) − y(i, g )2. (4) 
+
+3.3. Dense branch 
+
+The dense branch predicts expression on a pixel grid, trained on transcript positions and CODEX pixels, and a cell takes the sum (RNA) or mean (protein) of the field over its pixels. It reads the H&E at two scales. Foundation-model tokens carry tissue context but are coarse, one 7 μm token being about the width of a nucleus, while the pixels resolve nuclear outlines. The field is predicted on 0.875 μm pixels, in tiles of 56 μm ( 64 ×64 pixels). Frozen H-optimus-1 reads the 112 μm box around each tile at 0.5 μm/px ( 16 ×
+
+16 tokens of 7 μm). We keep the 8 × 8 tokens over the tile, one per 8 × 8 pixels, so that every kept token is encoded with at least 28 μm of surrounding tissue, and reduce them to 256 dimensions by a PCA fitted on training tiles. On windows of 4 × 4 tiles (224 μm, 32 × 32 tokens, 256 × 256 
+
+pixels), a 1 × 1 convolution and two ConvNeXt blocks [18] process the tokens, whose 7 × 7 depthwise convolutions let each token use its neighbors within 42 μm, across tiles that the encoder saw separately. The output is upsampled ×8
+
+bilinearly and concatenated with a two-layer CNN ( 3 × 3
+
+kernels) on the H&E at 0.875 μm/px, which adds the local detail a token cannot place, such as where a nucleus ends. A per-pixel MLP gives the field F(p) ∈ R256 at pixel p. These layers hold 1.3M weights. The RNA and protein heads be-low both read this one field, so both losses train them. 
+
+RNA head. The density of gene g at pixel p of section s, in transcripts per μm 2, is λ(p, g ) = ηs softplus( F(p)⊤qg +
+
+bg ). The query qg = MLP RNA (tg ) ∈ R256 maps the gene’s embedding into the space of the field, so F(p)⊤qg
+
+scores how strongly pixel p shows gene g. bg is the gene’s baseline abundance and ηs > 0 the detection efficiency of training section s, a technical factor set by chemistry, gene panel and tissue preparation. The loss is the Poisson neg-ative log-likelihood, i.e . the point-process likelihood of the transcript positions [32] at pixel resolution: 
+
+LRNA = 1
+
+N
+
+X
+
+> p
+
+X
+
+> g∈P s
+
+μ(p, g ) − n(p, g ) log μ(p, g ), (5) where μ(p, g ) = λ(p, g ) ∆ A is the expected count, ∆A =0.875 2 μm 2 is the area of one pixel, n(p, g ) is the number 4of transcripts of g at pixel p, p runs over the pixels of the stored tiles of the step’s Xenium windows, and N counts their transcripts. Unlike the cell model, the dense branch counts every transcript, whether or not it lies in a segmented cell. 
+
+Protein head. The intensity of protein marker g is 
+
+π(p, g ) = σ(F(p)⊤q′ 
+
+> g
+
++ cg ), with the logistic function 
+
+σ keeping it between 0 and 1, like the target. The query 
+
+q′ 
+
+> g
+
+= MLP prot (tγ(g)) ∈ R256 maps the embedding of the marker’s gene into the space of the field with weights of its own, and cg is the marker’s baseline intensity. Its target is 
+
+v(p, g ) = min( ¯I(p, g )/h g , 1) : the mean raw intensity of the CODEX pixels registered into p, divided by the marker’s saturation level hg , its 99.9th percentile over training pix-els [2]. The loss is the binary cross-entropy 
+
+Lprot = − 1
+
+M
+
+X
+
+> p
+
+X
+
+> g∈P s
+
+v log π + (1 − v) log(1 − π), (6) with v and π taken at (p, g ), p running over the pixels with CODEX data in the step’s CODEX windows, and M is the number of pairs of pixels and markers. 
+
+Pooling per cell. The dense branch reads over each cell’s footprint Ωi: the pixels whose center lies inside the H&E nucleus i, the same mask over which the cell vector ui is pooled, so that the read-out does not reach into neighboring cells. For protein, the nucleus is first grown by 1.5 μm, the 3-pixel growth with which the CODEX targets are quanti-fied, and a pixel that two grown nuclei reach goes to the nearer one. The dense branch gives cell i a sum for RNA and a mean for protein: 
+
+x2(i, g ) = ln 
+
+
+
+1 + ∆ A X
+
+> p∈Ωi
+
+¯λ(p, g )
+
+
+
+(RNA) ,x2(i, g ) = 1
+
+|Ωi|
+
+X
+
+> p∈Ωi
+
+π(p, g ) (protein) ,
+
+(7) where ¯λ is λ with ηs replaced by ¯η, the median detection efficiency of the training sections. 
+
+Per-gene late fusion. The cell branch and the dense branch see the H&E at two scales, so their errors differ in part. We combine them without fitting anything. For cell i and marker g, the cell model predicts x1(i, g ) (Eq. (3)) and the dense branch gives x2(i, g ) (Eq. (7)). In test section s, the final prediction averages the two after each is divided by its standard deviation, 
+
+ˆx(i, g ) = 12
+
+ x1(i, g )
+
+σs(x1(·, g )) + x2(i, g )
+
+σs(x2(·, g )) 
+
+
+
+, (8) where σs(xk(·, g )) is the standard deviation of branch k’s predictions for marker g over the cells of s. It needs no labels, so it is available on a test set. The weights are equal for every marker and both assays. 
+
+## 4. Experiments 
+
+4.1. Setup 
+
+Data. We train on 43 Xenium sections from 10 organs (11 in-house and 32 public), with panels of 280–5,098 genes (median 300), and 76 CODEX in-house sections (517 in-testinal tissue pieces) from three donors, with 58 or 59 protein markers. Sections are registered to H&E using VALIS [8], and measured cells are matched one-to-one with H&E nuclei, yielding 7.87M Xenium and 26.49M CODEX training cells. The Xenium sections cover 5,828 genes, each measured on a median of three sections. To estimate the relation weights S, we additionally use RNA profiles of 2.44M cells from 150 training CITE-seq datasets across 21 studies [28]. These datasets provide gene co-expression in-formation but no H&E-linked supervision. Four Xenium and three CODEX sections are reserved for validation. We evaluate on (i) 16 Xenium sections from 16 organs, six of them from organs without any training section (3.38M cells, 5,649 genes); (ii) 22 CODEX sections from a fourth donor, in-house colon (4.11M cells, 57 markers); and (iii) two external colorectal cancer cohorts: CRC [26, 27] (35 patients, 139 cores, 192,779 cells) and ORION [16] (40 patients, 41 slides, 22.32M cells). No evaluation patient appears in SCOPE’s training data. Seen RNA genes are training targets, while unseen genes are withheld from di-rect training supervision. Protein markers are considered unseen if they are absent from the CODEX training panels. 
+
+Evaluation. We compute Pearson correlation between predicted and measured expression across cells for each marker, then average over markers and evaluation units. Missing predictions contribute zero correlation. For the baseline comparison in Tab. 2, CRC correlations are com-puted using cells pooled by patient across 135 eligible cores (190,666 cells), and ORION is evaluated on the four pa-tients excluded from MIPHEI-ViT training. Component ab-lations use all ORION patients. Statistical significance is assessed using one-sided paired 
+
+t-tests, with Benjamini–Hochberg correction within each table ( q < 0.05 ). The testing units are section–gene pairs for Tab. 1, markers for Tab. 2, and sections or patients for the component ablations. Results are averaged over three seeds. 
+
+4.2. Implementation details 
+
+Training on both assays. Both branches are trained with AdamW [19], and we evaluate their final checkpoints. The cell model interleaves the assays across steps. Each step takes the cells of one RNA or one protein section, and both assays update the shared MLP and gene embed-dings, each with its own AdamW state [36]. It trains for 120,000 steps, about 9 epochs over the Xenium cells and 2 over the CODEX cells (2 h on one A40 GPU). The dense 5Table 1. Single-cell RNA prediction on 10x Genomics by organ group. Pearson correlation per gene across cells, averaged over genes and sections within each group (section counts in parentheses). HVG10 denotes the ten genes with the highest variance of ln(1 + c) per section; All includes all measured genes. Genes without predictions count as zero. Digestive: colon, stomach, liver, pancreas; lymphoid: bone marrow, lymph node, tonsil; reproductive and urinary: breast, ovary, cervix, prostate, kidney cancer; thorax, brain and skin: lung, heart, brain, skin. Average is the mean of the four group values. † Released weights; ‡ fine-tuned or retrained on our training and validation sections. SCOPE: mean over 3 seeds (s.d. ≤ 0.008 ). Bold, underline, and italic indicate the top three values per column.                                                                                                    
+
+> Digestive (4) Lymphoid (3) Repro., urinary (5) Thorax, brain, skin (4) Average Model HVG10 All HVG10 All HVG10 All HVG10 All HVG10 All CELLO †[7] 0.454 0.202 0.216 0.055 0.281 0.096 0.278 0.103 0.307 0.114 DeepSpot-M †[22] 0.324 0.082 0.096 0.021 0.207 0.045 0.130 0.046 0.189 0.049 DeepSpot-M ‡[22] 0.535 0.212 0.285 0.109 0.467 0.139 0.460 0.156 0.437 0.154
+> sCellST ‡[4] 0.201 0.064 0.051 0.020 0.185 0.042 0.101 0.028 0.134 0.038 DeepSpot2Cell ‡[21] 0.361 0.133 0.159 0.055 0.315 0.084 0.224 0.065 0.265 0.084 SCOPE cell branch 0.537 0.206 0.323 0.106 0.507 0.136 0.439 0.146 0.452 0.149 SCOPE dense branch 0.510 0.203 0.336 0.115 0.517 0.146 0.426 0.158 0.447 0.155 SCOPE 0.561 0.223 0.363 0.124 0.548 0.155 0.464 0.168 0.484 0.167
+
+Table 2. Protein compared with published models. Pearson correlation per marker across cells, averaged over markers and evaluation units. CRC uses 135 cores (190,666 cells), pooled by patient; ORION uses four patients excluded from MIPHEI-ViT training. Seen and unseen indicate whether a marker receives direct CODEX supervision during SCOPE training. In-house colon cohort reports all 57 markers. Markers without predictions count as zero. (x) denotes the number of predicted markers; – indicates an unavailable prediction. Avg. Seen averages CRC seen, ORION seen, and in-house colon all; Avg. Unseen averages CRC and ORION unseen. Col. IV: collagen IV; Vim.: vimentin; E-cad.: E-cadherin. † Trained on other slides from the ORION cohort. Gray text indicates in-distribution results. Bold, underline, and italic indicate the top three values per column.                                                                                                                       
+
+> CRC ORION In-house colon cohort Avg. Seen (29) Unseen (25) Seen (11) Unseen (4) All (57) Seen Unseen Model CD45 CD31 Mean GATA3 T-bet Mean Pan-CK CD45 Mean E-cad. PD-1 Mean Col. IV Vim. Mean GigaTIME [31] ––0.025 (8) –0.010 0.013 (4) ––0.041 (3) –0.139 0.096 (3) ––0.010 (9) 0.025 0.055 ROSIE [35] 0.196 0.087 0.064 (16) −0.034 –0.060 (12) −0.023 0.228 0.070 (9) −0.060 0.153 0.125 (4) 0.067 0.173 0.029 (17) 0.054 0.093
+> MIPHEI-ViT †[2] 0.632 0.436 0.087 (7) ––0.020 (2) 0.875 0.796 0.576 (11) 0.866 –0.411 (3) ––0.075 (10) 0.246 0.216 HistoPlexer [1] –0.011 0.003 (3) ––0.005 (1) ––0.004 (2) ––0.007 (1) ––0.002 (4) 0.003 0.006 SCOPE 0.663 0.542 0.278 (29) 0.180 0.154 0.127 (25) 0.805 0.723 0.449 (11) 0.761 0.243 0.356 (4) 0.834 0.863 0.584 (57) 0.437 0.241
+
+branch instead sees both assays in every step, four Xenium and four CODEX windows, and trains for 30,000 steps, about 2 epochs over the Xenium tiles and 0.5 over the CODEX tiles (2.6–3.7 h on one A40 or A100 GPU). Sec-tions and CODEX tissue pieces are drawn in proportion to their number of tiles. To balance the differently scaled Pois-son and cross-entropy losses (Eqs. (5) and (6)), we divide each by its exponential moving average (decay 0.99), giv-ing LRNA / ¯LRNA + Lprot / ¯Lprot . Unlike the cell model, the dense branch keeps one optimizer state for both assays, and its single-modality counterparts keep only the correspond-ing head and loss. 
+
+4.3. Results 
+
+RNA. Table 1 compares SCOPE with four published mod-els on the 16 test sections. SCOPE achieves the high-est correlation in all ten columns. Averaged over the four organ groups, it reaches 0.484 on HVG10 and 0.167 on all genes, against 0.437 and 0.154 for the strongest base-line, DeepSpot-M fine-tuned on our training sections, and it is significantly above every baseline in both average columns. The margin over the models run with their re-leased weights is much larger (CELLO 0.307 and 0.114, DeepSpot-M 0.189 and 0.049), and the two models that learn from spots, sCellST and DeepSpot2Cell, average be-low 0.27 on HVG10 after retraining on our sections, since a spot label sums the expression of many cells and does not tell which cell expresses a gene. The largest gains are on HVG10, the genes that vary most between the cells of a section and therefore separate its cell types and states. The lead holds where training data are scarce. In post hoc views, SCOPE is significantly above the fine-tuned DeepSpot-M on the six sections from organs without any training sec-tion (+0.0132), as on the ten sections from organs with one (+0.0138), and on genes labeled on only one to three train-ing sections (+0.0193). This shows that SCOPE transfers to organs without training sections and to genes labeled on few sections. 6Table 3. Joint training and fusion. Comparison of the cell branch, dense branch, and their fusion, trained jointly on RNA and protein or separately on each modality. Differences are computed as the first minus the second method. (n/m ) indicates the number of evaluation units where the first outperforms the second.                                                                                     
+
+> 10x Genomics CRC ORION Model Seen Unseen Seen Unseen Seen Unseen
+> Single-modality counterparts
+> Cell branch 0.155 ±.000 0.094 ±.005 0.211 ±.001 0.073 ±.010 0.398 ±.007 0.203 ±.018
+> Dense branch 0.160 ±.001 0.107 ±.001 0.251 ±.007 0.155 ±.014 0.424 ±.007 0.392 ±.008
+> Dual branch 0.172 ±.000 0.118 ±.002 0.257 ±.003 0.144 ±.008 0.447 ±.006 0.355 ±.006
+> Joint (two-assay) training
+> Cell branch 0.151 ±.000 0.089 ±.004 0.238 ±.001 0.066 ±.008 0.422 ±.003 0.270 ±.032
+> Dense branch 0.158 ±.001 0.107 ±.003 0.272 ±.004 0.225 ±.007 0.461 ±.014 0.386 ±.007
+> Dual branch 0.170 ±.000 0.116 ±.003 0.282 ±.002 0.185 ±.009 0.476 ±.008 0.386 ±.010
+> Paired differences
+> Joint cell −Single cell −0.0032 (1/16) −0.0055 (2/16) +0.0271 (34/35) −0.0069 (12/35) +0.0246 (40/40) +0.0669 (37/40) Joint dense −Single dense −0.0021 (4/16) +0.0004 (9/16) +0.0209 (35/35) +0.0698 (35/35) +0.0373 (40/40) −0.0062 (18/40) Joint dual −Single dual −0.0022 (1/16) −0.0024 (5/16) +0.0244 (35/35) +0.0413 (35/35) +0.0288 (40/40) +0.0306 (32/40) Joint dual −Joint cell +0.0187 (16/16) +0.0269 (16/16) +0.0439 (35/35) +0.1191 (35/35) +0.0534 (40/40) +0.1159 (40/40) Joint dual −Joint dense +0.0120 (12/16) +0.0086 (9/16) +0.0099 (31/35) −0.0397 (0/35) +0.0144 (38/40) +0.0003 (22/40)
+
+Protein. Table 2 compares SCOPE with four published models across three protein test sets. Since baselines pre-dict fixed marker panels, markers without predictions are counted as zero in the full-panel averages. SCOPE ranks first in every CRC and in-house colon column, achiev-ing correlations of 0.278 and 0.127 on seen and unseen CRC markers, and 0.584 on in-house colon, compared with at most 0.087, 0.060, and 0.075 for the baselines. On ORION, MIPHEI-ViT achieves the highest performance but was trained on 37 of the 41 evaluation slides. The re-maining four slides used in the test are in-distribution data for it. SCOPE ranks first among models not trained on ORION (0.449 seen, 0.356 unseen). Unlike fixed-output baselines, SCOPE predicts every marker in the evaluation panels, including proteins absent from its CODEX train-ing data. These results demonstrate transfer to independent patient cohorts and prediction beyond the training protein panel. 
+
+4.4. Ablation study on joint training 
+
+Table 3 tests whether RNA supervision improves protein prediction when the two assays are measured on separate sections. Each part of SCOPE is trained on both assays and compared with a single-modality counterpart using the same number of protein steps, controlling for additional protein training. Joint training improves prediction of seen protein markers in both external cohorts. The cell model gains +0.0271 on CRC and +0.0246 on ORION, the dense branch +0.0209 and +0.0373, and the dual branch +0.0244 and +0.0288, all significant. The benefit extends to un-seen markers, where the dual branch gains +0.0413 on CRC and +0.0306 on ORION, both significant, while the dense branch achieves the largest gain on unseen CRC markers (+0.0698). Two mechanisms may contribute to these gains. First, RNA labels come from 43 sections across 10 organs, whereas protein labels come from intestinal tissue of three donors, exposing the shared image representations to a broader range of tissues. Second, shared gene embeddings provide a route for cross-assay transfer. All unseen pro-tein markers but one have coding genes supervised by RNA labels, so their embeddings can benefit from RNA supervi-sion. These results demonstrate that RNA supervision bene-fits protein prediction, including markers without direct pro-tein supervision. 
+
+4.5. Ablation study on dual-branch fusion 
+
+The cell and dense branches predict molecular expres-sion at different spatial resolutions, and the dual branch combines their predictions with fixed equal weights. In Tab. 3, the dual branch significantly outperforms the cell branch in every column and the dense branch in every seen-marker column, by +0.0120 on RNA, +0.0099 on CRC, and +0.0144 on ORION. These improvements suggest that the two branches provide complementary predictive informa-tion. For unseen markers, the relative contributions of the branches differ. On unseen CRC markers, the dense branch achieves the highest correlation (0.225), followed by the dual branch (0.185) and the cell branch (0.066). On unseen ORION markers, the dual and dense branches achieve com-parable performance (0.386), while on unseen RNA genes, the dual branch outperforms both individual branches. Overall, these results show that the cell and dense branches provide complementary predictions, with their equal-weight combination improving performance over both branches on seen markers. For unseen markers, the rel-ative contributions vary across evaluation settings, with the 7Table 4. Gene embeddings on markers without H&E labels. 
+
+Each variant retrains both branches. Remove T0 replaces initial embeddings with scale-matched random vectors. Remove S dis-ables relation-based composition. No knowledge removes both. RNA evaluates 98 withheld genes with relation weights. Protein evaluates 23 CRC and 3 ORION unseen markers. Results are mean ± s.d. over 3 seeds.                   
+
+> Withheld Unseen protein Gene embeddings 10x Genomics (98) CRC (23) ORION (3) No knowledge 0.040 ±.002 0.152 ±.002 0.176 ±.049
+> Remove T00.083 ±.006 0.141 ±.011 0.237 ±.118
+> Remove S0.105 ±.007 0.175 ±.010 0.387 ±.017
+> SCOPE 0.129 ±.004 0.185 ±.011 0.386 ±.012
+
+dense branch providing stronger predictions in some cases. 
+
+4.6. Ablation study on gene embeddings 
+
+Knowledge components. The gene embedding tg = Tg +
+
+Sg T (Eq. (1)) incorporates two sources of knowledge: the initialization T0, whose first half encodes the gene’s posi-tion in the STRING network, and the relation weights S,which combine embeddings of co-expressed and biologi-cally linked partners. Table 4 ablates either or both com-ponents and retrains SCOPE. We evaluate on 98 withheld RNA genes that have relation weights and on unseen pro-tein markers, none of which receives direct supervision. Both components improve withheld RNA prediction. The dual branch rises from 0.040 without knowledge to 0.083 with a random start and S, 0.105 with T0 alone, and 0.129 with both. SCOPE significantly outperforms all three ablations. On unseen CRC proteins, SCOPE also achieves the highest correlation (0.185), compared with 0.152 with-out knowledge, while on ORION it reaches 0.386 versus 0.176. The two components contribute differently. T0 accounts for most of the improvement on unseen proteins, which are predicted through their coding genes’ embeddings. With-out S, the dual branch reaches 0.175 on CRC and 0.387 on ORION, compared with 0.185 and 0.386 for the full model. 
+
+S helps most where a gene has no RNA label, adding +0.024 on withheld genes but +0.010 on unseen CRC pro-teins, whose genes (all but one) carry RNA labels. Reas-signing relation weights between genes significantly lowers withheld genes from 0.129 to 0.120, so the gain depends on the right partners. S improves 74 of the 98 withheld genes, more for genes measured in more single-cell datasets (Spearman 0.39). 
+
+Comparison with protein language-model embeddings. 
+
+Protein language models offer an alternative source of gene embeddings, as used in UCE [24] and VirTues [33]. We extract mean-pooled last-layer representations from 0.00 0.05 0.10 0.15     
+
+> SCOPE −ESM-2, Pearson per section or patient
+> Withheld genes
+> Unseen proteins
+> Labeled genes
+> Labeled proteins
+> vs ESM-2, fixed vs ESM-2 start, learned mean
+
+Figure 3. SCOPE against ESM-2 gene embeddings. Pearson of SCOPE minus ESM-2 per test section, or per CRC patient for unseen proteins (dots), and the mean (bar). Fixed: ESM-2 vectors as frozen gene embeddings. Start, learned: ESM-2 vectors as the start of learned embeddings. 
+
+15B-parameter ESM-2 [17] for the longest protein encoded by each gene, reduce them to 1,024 dimensions using PCA, and match their mean norm to our embeddings. We evaluate these representations either frozen or as learnable initializa-tions, without relation weights. Data, training steps, seeds, and dual-branch fusion remain unchanged. Figure 3 compares SCOPE with both variants. On with-held RNA genes, SCOPE improves correlation by 0.053 and 0.047 over frozen and learnable ESM-2, respectively, and by 0.029 and 0.026 on unseen CRC proteins. On labeled RNA genes, SCOPE outperforms frozen ESM-2 (+0.023) but performs comparably to learnable ESM-2; differences on labeled in-house colon proteins are within 0.002. These results suggest that learnable sequence-based em-beddings can approach SCOPE on directly supervised tar-gets, but do not replace the benefits of network-based ini-tialization and co-expression composition for markers with-out direct H&E supervision. 
+
+## 5. Conclusion 
+
+We presented SCOPE, which learns to predict the RNA and protein of every cell from H&E alone using unpaired sec-tions, each measuring one assay with its own panel. One learnable embedding per gene, read by both the RNA and the protein heads and composed from the embeddings of related genes, connects the two assays and reaches markers that no section labels. Three findings follow. First, RNA supervision improves protein prediction on both external cohorts, although no sec-tion measures both assays. Second, gene embeddings com-posed from related genes predict RNA genes that no H&E section labels, and the gain depends on the right partners. Third, an equal-weight fusion of the cell-level branch and the dense branch beats the cell-level branch on every test set and the dense branch on the seen markers of every test set. 8Across RNA and protein, SCOPE outperforms the strongest RNA baseline on average and, averaged over the two exter-nal cohorts, the strongest protein baseline on seen and un-seen markers. 
+
+Use of LLMs. We used Claude (Anthropic) to assist with coding and drafting. The authors verified all text, numbers, tables and figures. 
+
+## References 
+
+[1] Sonali Andani, Boqi Chen, Joanna Ficek-Pascual, Simon Heinke, Ruben Casanova, Bernard Friedrich Hild, Bettina Sobottka, Bernd Bodenmiller, Tumor Profiler Consortium, Viktor H. Koelzer, and Gunnar R¨ atsch. Histopathology-based protein multiplex generation using deep learning. Na-ture Machine Intelligence , 7(8):1292–1307, 2025. 2, 6 [2] Guillaume Balezo, Roger Trullo, Albert Pla Planas, Eti-enne Decenci` ere, and Thomas Walter. MIPHEI-ViT: Mul-tiplex immunofluorescence prediction from H&E images us-ing ViT foundation models. Computers in Biology and Medicine , 206:111564, 2026. 5, 6 [3] Mikhail Belkin and Partha Niyogi. Laplacian eigenmaps and spectral techniques for embedding and clustering. In Ad-vances in Neural Information Processing Systems 14 , pages 585–592. MIT Press, 2002. 3 [4] Lo¨ ıc Chadoutaud, Marvin Lerousseau, Daniel Herrero-Saboya, Julian Ostermaier, Jacqueline Fontugne, Emmanuel Barillot, and Thomas Walter. sCellST predicts single-cell gene expression from H&E images. Nature Communica-tions , 17:1194, 2026. 6 [5] Felipe Segato Dezem, Wani Arjumand, Hannah DuBose, Na-talia Silva Morosini, and Jasmine Plummer. Spatially re-solved single-cell omics: Methods, challenges, and future perspectives. Annual Review of Biomedical Data Science , 7 (1):131–153, 2024. 1 [6] Donghai Fang, Yongheng Li, Zhen Wang, Yuansong Zeng, and Wenwen Min. Adapting a pre-trained single-cell foun-dation model to spatial gene expression generation from his-tology images. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 5720–5729, 2026. 3 [7] Zijun Gao, Chunbin Gu, Jinxi Xiang, Xiangde Luo, and Pheng-Ann Heng. Towards scalable context-aware single-cell spatial transcriptomics prediction from histology im-ages. arXiv preprint arXiv:2609.36429 , 2026. Accepted to NeurIPS 2026. 1, 2, 6 [8] Chandler D. Gatenbee, Ann-Marie Baker, Sandhya Prab-hakaran, Ottilie Swinyard, Robbert J. C. Slebos, Gun-jan Mandal, Eoghan Mulholland, Noemi Andor, Andriy Marusyk, Simon Leedham, Jose R. Conejo-Garcia, Chris-tine H. Chung, Mark Robertson-Tessi, Trevor A. Graham, and Alexander R. A. Anderson. Virtual alignment of pathol-ogy image series for multi-gigapixel whole slide images. Na-ture Communications , 14:4502, 2023. 5 [9] Zhiyan Ge and Haoyang Cai. CUBE: Multimodal repre-sentation learning reveals biological structure across histo-morphology, spatial protein phenotypes, and transcriptome-associated signals. bioRxiv , 2026. 2 [10] Yury Goltsev, Nikolay Samusik, Julia Kennedy-Darling, Salil Bhate, Matthew Hale, Gustavo Vazquez, Sarah Black, and Garry P. Nolan. Deep profiling of mouse splenic ar-chitecture with CODEX multiplexed imaging. Cell , 174(4): 968–981.e15, 2018. 1 [11] Yunjie Gu, Zihan Wu, Rui Yan, Zhikang Wang, Yuan Li, Senlin Lin, Yan Cui, Haoran Lai, Xin Luo, Shaohua Kevin Zhou, Zhiyuan Yuan, and Jianhua Yao. H2O: A foundation model bridging histopathology to spatial multi-omics profil-ing. bioRxiv , 2026. 2 [12] Bryan He, Ludvig Bergenstr˚ ahle, Linnea Stenbeck, Abubakar Abid, Alma Andersson, ˚Ake Borg, Jonas Maaskola, Joakim Lundeberg, and James Zou. Integrating spatial gene expression and breast tumour morphology via deep learning. Nature Biomedical Engineering , 4(8): 827–834, 2020. 1 [13] John W. Hickey, Elizabeth K. Neumann, Andrea J. Radtke, Jeannie M. Camarillo, Rebecca T. Beuschel, Alexandre Al-banese, Elizabeth McDonough, Julia Hatler, Anne E. Wiblin, Jeremy Fisher, Josh Croteau, Eliza C. Small, Anup Sood, Richard M. Caprioli, R. Michael Angelo, Garry P. Nolan, Kwanghun Chung, Stephen M. Hewitt, Ronald N. Germain, Jeffrey M. Spraggins, Emma Lundberg, Michael P. Snyder, Neil L. Kelleher, and Sinem K. Saka. Spatial mapping of protein composition and tissue organization: a primer for multiplexed antibody-based imaging. Nature Methods , 19 (3):284–295, 2022. 1 [14] Amanda Janesick, Robert Shelansky, Andrew D. Gottscho, Florian Wagner, Stephen R. Williams, Morgane Rouault, Ghezal Beliakoff, Carolyn A. Morrison, Michelli F. Oliveira, Jordan T. Sicherman, Andrew Kohlway, Jawad Abousoud, Tingsheng Yu Drennon, Seayar H. Mohabbat, 10x Develop-ment Teams, and Sarah E. B. Taylor. High resolution map-ping of the tumor microenvironment using integrated single-cell, spatial and in situ analysis. Nature Communications , 14 (1):8353, 2023. 1 [15] Boya Ji, Tingting Hu, Jiawen Wang, Mengmeng Liu, Liwen Xu, Qinhao Zhang, Siyun Zhong, Libo Qiao, Yan Zhang, Shaoliang Peng, and Fulong Yu. CAPTAIN: a multimodal foundation model pretrained on co-assayed single-cell RNA and protein. Nature Communications , 17:6161, 2026. 3 [16] Jia-Ren Lin, Yu-An Chen, Daniel Campton, Jeremy Cooper, Shannon Coy, Clarence Yapp, Juliann B. Tefft, Erin Mc-Carty, Keith L. Ligon, Scott J. Rodig, Steven Reese, Tad George, Sandro Santagata, and Peter K. Sorger. High-plex immunofluorescence imaging and traditional histology of the same tissue section for discovering image-based biomarkers. 
+
+Nature Cancer , 4:1036–1052, 2023. 5 [17] Zeming Lin, Halil Akin, Roshan Rao, Brian Hie, Zhongkai Zhu, Wenting Lu, Nikita Smetanin, Robert Verkuil, Ori Kabeli, Yaniv Shmueli, Allan dos Santos Costa, Maryam Fazel-Zarandi, Tom Sercu, Salvatore Candido, and Alexan-der Rives. Evolutionary-scale prediction of atomic-level pro-tein structure with a language model. Science , 379(6637): 1123–1130, 2023. 8 [18] Zhuang Liu, Hanzi Mao, Chao-Yuan Wu, Christoph Feicht-enhofer, Trevor Darrell, and Saining Xie. A ConvNet for the 
+
+92020s. In Proceedings of the IEEE/CVF Conference on Com-puter Vision and Pattern Recognition (CVPR) , pages 11976– 11986, 2022. 4 [19] Ilya Loshchilov and Frank Hutter. Decoupled weight de-cay regularization. In International Conference on Learning Representations (ICLR) , 2019. 5 [20] Marija Milacic, Deidre Beavers, Patrick Conley, Chuqiao Gong, Marc Gillespie, Johannes Griss, Robin Haw, Bi-jay Jassal, Lisa Matthews, Bruce May, Robert Petryszak, Eliot Ragueneau, Karen Rothfels, Cristoffer Sevilla, Veron-ica Shamovsky, Ralf Stephan, Krishna Tiwari, Thawfeek Varusai, Joel Weiser, Adam Wright, Guanming Wu, Lincoln Stein, Henning Hermjakob, and Peter D’Eustachio. The Re-actome pathway knowledgebase 2024. Nucleic Acids Re-search , 52(D1):D672–D678, 2024. 3 [21] Kalin Nonchev, Glib Manaiev, Viktor H. Koelzer, and Gun-nar R¨ atsch. DeepSpot2Cell: Predicting virtual single-cell spatial transcriptomics from H&E images using spot-level supervision. bioRxiv , 2025. 6 [22] Kalin Nonchev, Sebastian Dawo, Karina Silina, Viktor H. Koelzer, and Gunnar R¨ atsch. DeepSpot-M: a multimodal foundation model for transcriptome-wide virtual spatial tran-scriptomics from histology. medRxiv , 2026. 2, 3, 6 [23] Anjali Rao, Dalia Barkley, Gustavo S. Franc ¸a, and Itai Yanai. Exploring tissue architecture using spatial transcriptomics. 
+
+Nature , 596(7871):211–220, 2021. 1 [24] Yanay Rosen, Yusuf Roohani, Ayush Agrawal, Leon Samo-torˇ can, Tabula Sapiens Consortium, Stephen R. Quake, and Jure Leskovec. Universal cell embedding provides a foun-dation model for cell biology. Nature , 656(8126):183–191, 2026. 3, 8 [25] Marin Scalbert, Charlie Saillard, Thomas Peeters, Liam Gonzalez, Dasha Valter, Felipe Llinares-L´ opez, Zelda E. Mariet, and Rodolphe Jenatton. H-optimus-1: A foundation model for computational histopathology. In Proceedings of the American Association for Cancer Research Annual Meet-ing 2026; Part 2 (Late-Breaking, Clinical Trial, and Invited Abstracts) , page LB174. AACR, 2026. 3 [26] Christian M. Sch¨ urch, Salil Bhate, Graham Barlow, Darci Phillips, Luca Noti, Inti Zlobec, Pauline Chu, Sarah Black, Janos Demeter, David McIlwain, Nikolay Samusik, Yury Goltsev, and Garry Nolan. High-dimensional imaging of colorectal carcinoma and other tumors with 50+ markers. The Cancer Imaging Archive, https://doi.org/10. 7937/TCIA.2020.FQN0-0326 , 2020. 5 [27] Christian M. Sch¨ urch, Salil S. Bhate, Graham L. Barlow, Darci J. Phillips, Luca Noti, Inti Zlobec, Pauline Chu, Sarah Black, Janos Demeter, David R. McIlwain, Shigemi Ki-noshita, Nikolay Samusik, Yury Goltsev, and Garry P. Nolan. Coordinated cellular neighborhoods orchestrate antitumoral immunity at the colorectal cancer invasive front. Cell , 182 (5):1341–1359.e19, 2020. 5 [28] Marlon Stoeckius, Christoph Hafemeister, William Stephen-son, Brian Houck-Loomis, Pratip K. Chattopadhyay, Harold Swerdlow, Rahul Satija, and Peter Smibert. Simultaneous epitope and transcriptome measurement in single cells. Na-ture Methods , 14(9):865–868, 2017. 3, 5 [29] Damian Szklarczyk, Rebecca Kirsch, Mikaela Koutrouli, Katerina Nastou, Farrokh Mehryary, Radja Hachilif, An-nika L. Gable, Tao Fang, Nadezhda T. Doncheva, Sampo Pyysalo, Peer Bork, Lars J. Jensen, and Christian von Mer-ing. The STRING database in 2023: protein–protein asso-ciation networks and functional enrichment analyses for any sequenced genome of interest. Nucleic Acids Research , 51 (D1):D638–D646, 2023. 3 [30] Wenzhuo Tang, Hongzhi Wen, Renming Liu, Jiayuan Ding, Wei Jin, Yuying Xie, Hui Liu, and Jiliang Tang. Single-cell multimodal prediction via transformers. In Proceedings of the 32nd ACM International Conference on Information and Knowledge Management (CIKM) , pages 2422–2431, 2023. 3[31] Jeya Maria Jose Valanarasu, Hanwen Xu, Naoto Usuyama, Chanwoo Kim, Cliff Wong, Peniel Argaw, Racheli Ben Shi-mol, Angela Crabtree, Kevin Matlock, Alexandra Q. Bartlett, Jaspreet Bagga, Yu Gu, Sheng Zhang, Tristan Naumann, Bernard A. Fox, Bill Wright, Ari Robicsek, Brian Piening, Carlo Bifulco, Sheng Wang, and Hoifung Poon. Multimodal AI generates virtual population for tumor microenvironment modeling. Cell , 189(2):386–400.e19, 2026. 1, 2, 6 [32] Florin C. Walter, Oliver Stegle, and Britta Velten. FISH-Factor: a probabilistic factor model for spatial transcrip-tomics data with subcellular resolution. Bioinformatics , 39 (5):btad183, 2023. 4 [33] Johann Wenckstern, Eeshaan Jain, Benedikt von Quer-furth, Yexiang Cheng, Kiril Vasilev, Matteo Pariset, Phil F. Cheng, Petros Liakopoulos, Olivier Michielin, Andreas Wicki, Gabriele Gut, and Charlotte Bunne. The Virtual Tissues foundation model resolves spatial proteomics across scales. Nature , 657(8132):744–754, 2026. 3, 8 [34] Chaochen Wu, Meiyun Zuo, and Lei Xie. Open-set spa-tial gene expression prediction from histological images via retrieval-augmented generation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Findings , pages 5495–5504, 2026. 3 [35] Eric Wu, Matthew Bieniosek, Zhenqin Wu, Nitya Thakkar, Gregory W. Charville, Ahmad Makky, Christian M. Sch¨ urch, Jeroen R. Huyghe, Ulrike Peters, Christopher I. Li, Li Li, Hannah Giba, Vivek Behera, Arjun Raman, Alexandro E. Trevino, Aaron T. Mayer, and James Zou. ROSIE: AI generation of multiplex immunofluorescence staining from histopathology images. Nature Communications , 16:7633, 2025. 2, 6 [36] Enneng Yang, Junwei Pan, Ximei Wang, Haibin Yu, Li Shen, Xihua Chen, Lei Xiao, Jie Jiang, and Guibing Guo. AdaTask: A task-aware adaptive learning rate approach to multi-task learning. In Proceedings of the AAAI Conference on Artifi-cial Intelligence , pages 10745–10753, 2023. 5 [37] Yan Yang, Md Zakir Hossain, Xuesong Li, Shafin Rahman, and Eric Stone. Spatial transcriptomics analysis of zero-shot gene expression prediction. In Medical Image Computing and Computer Assisted Intervention – MICCAI 2024 , pages 492–502. Springer, 2024. 3 [38] Sicong Yao, Amelia Schroeder, Shunzhou Jiang, Soyoung Im, Jeong Hwan Park, Bernhard Dumoulin, Tae Hyun 
+
+10 Hwang, Katalin Susztak, and Mingyao Li. Pixel2Gene en-ables histology-guided reconstruction and prediction of spa-tial gene expression. bioRxiv , 2026. 2 [39] Daiwei Zhang, Amelia Schroeder, Hanying Yan, Haochen Yang, Jian Hu, Michelle Y. Y. Lee, Kyung S. Cho, Katalin Susztak, George X. Xu, Michael D. Feldman, Edward B. Lee, Emma E. Furth, Linghua Wang, and Mingyao Li. Infer-ring super-resolution tissue architecture by integrating spa-tial transcriptomics with histology. Nature Biotechnology ,42(9):1372–1377, 2024. 2 [40] Di Zhang, Zhangpeng Gong, Xiaobo Pang, Jiashuai Liu, Junbo Lu, Hao Cui, Jiusong Ge, Zhi Zeng, Kai Yi, Yinghua Li, Si Liu, Tingsong Yu, Haoran Wang, Mireia Crispin-Ortuzar, Weimiao Yu, Chen Li, and Zeyu Gao. CARE: A molecular-guided foundation model with adaptive region modeling for whole slide image analysis. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 21078–21088, 2026. 3 
+
+11
