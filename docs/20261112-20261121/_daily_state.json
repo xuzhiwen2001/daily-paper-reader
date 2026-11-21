@@ -1,0 +1,73 @@
+{
+  "date": "20261112-20261121",
+  "date_label": "2026-11-12 ~ 2026-11-21",
+  "generated_at": "2026-11-21 18:43:27 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-19-767979-v1",
+      "route": "20261112-20261121/biorxiv-10-64898-2026-11-19-767979-v1-combinatorial-perturbation-structure-enables-graded-inference-of-signaling-activity-by-circe",
+      "title": "Combinatorial perturbation structure enables graded inference of signaling activity by CIRCE",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "扰动响应建模，可分级推断扰动身份与强度",
+      "first_seen_at": "2026-11-21 18:43:27 UTC",
+      "updated_at": "2026-11-21 18:43:27 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-1101-2024-11-22-624797-v2",
+      "route": "20261112-20261121/biorxiv-10-1101-2024-11-22-624797-v2-mapping-whole-tissue-spatial-multi-omics-at-single-cell-resolution-with-step",
+      "title": "Mapping whole-tissue spatial multi-omics at single-cell resolution with STEP",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "整合组织学图像与空间转录组、单细胞数据进行全切片分子图谱映射",
+      "first_seen_at": "2026-11-21 18:43:27 UTC",
+      "updated_at": "2026-11-21 18:43:27 UTC"
+    },
+    {
+      "paper_id": "2611.25584v1",
+      "route": "20261112-20261121/2611.25584v1-an-explainable-and-scalable-hierarchical-tensor-framework-for-integrating-multi-omics-and-digital-pathomics",
+      "title": "An Explainable and Scalable Hierarchical Tensor Framework for Integrating Multi-Omics and Digital Pathomics",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "病理图像特征与转录组等多组学的多模态融合",
+      "first_seen_at": "2026-11-21 18:43:27 UTC",
+      "updated_at": "2026-11-21 18:43:27 UTC"
+    },
+    {
+      "paper_id": "2611.25917v1",
+      "route": "20261112-20261121/2611.25917v1-lift-latent-flow-matching-for-probabilistic-cell-fate-dynamics-with-single-cell-snapshots",
+      "title": "LIFT: Latent Flow Matching for Probabilistic Cell Fate Dynamics with Single Cell Snapshots",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "从单细胞快照预测未来细胞状态的概率模型",
+      "first_seen_at": "2026-11-21 18:43:27 UTC",
+      "updated_at": "2026-11-21 18:43:27 UTC"
+    }
+  ]
+}

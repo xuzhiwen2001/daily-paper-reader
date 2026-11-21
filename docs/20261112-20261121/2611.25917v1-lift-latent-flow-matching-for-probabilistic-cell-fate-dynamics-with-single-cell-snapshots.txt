@@ -1,0 +1,2460 @@
+LIFT: Latent Flow Matching for Probabilistic Cell Fate Dynamics with Single
+Cell Snapshots∗
+Bowen Yang† , Junda Ying‡ , Yuxuan Wang§ , Peijie Zhou¶, and Lei Zhang∥
+Abstract.
+Lineage tracing links cell states through clonal ancestry, but does not generally identify unique source-
+descendant pairings.
+Learning from such data therefore requires a model of conditional outcomes, rather
+than only the terminal population distribution. We introduce LIFT, a latent flow framework for probabilistic
+cell-state generation from lineage-informed couplings. Variational inference encodes alternative outcomes in a
+latent space, while a conditional prior enables sampling from the initial state alone. A Mean Flow decoder
+predicts future cell state directly, requiring one decoder evaluation per sampling, which makes it convenient
+to predict cell fate through large scale Monte-Carlo sampling. This construction combines a representation of
+one-to-many relationships with efficient sampling and an analysis of conditional prediction error. Experiments
+on synthetic and real datasets demonstrate LIFT’s ability to recover both population distribution and cell fate
+probabilities.
+Relevance to Life Sciences.
+Predicting differentiation and reprogramming requires estimating both which outcomes are possible and
+how their probabilities depend on the observed initial state.
+We evaluate LIFT on lineage-traced mouse
+hematopoiesis and fibroblast reprogramming using transcriptomic state representations.
+Lineage-informed
+training improves fate-probability prediction relative to geometric coupling, while the hematopoietic application
+illustrates graded fate bias in regions with mixed clonal outcomes. Synthetic branching experiments further
+demonstrate accurate population reconstruction and branching probabilities at low sampling cost.
+Mathematical Content.
+We formulate barcode resolved observations as measures linked by an unknown true lineage-compatible
+coupling, distinguish this target from the empirical coupling used for training, and quantify reconstruction error
+via conditional Wasserstein discrepancies. The irreducible error of deterministic endpoint maps is characterized
+by the true conditional variance. We establish reconstruction estimates for flow matching and Mean Flow
+decoders and bound the total conditional error by coupling discrepancy, decoder reconstruction, and mismatch
+between the aggregated posterior and sampling prior.
+Under regularity and bounded Gaussian prior scale
+assumptions, the latter terms are controlled by the training objectives. Boundary sensitive probability estimates
+and Monte Carlo concentration bounds then connect conditional reconstruction to the accuracy of estimated
+fate proportions, separating model error from finite-sampling uncertainty.
+Key words.
+lineage tracing, single-cell trajectory inference, cell fate prediction, conditional generative
+modeling, flow matching, Mean Flow, Wasserstein distance
+MSC codes. 92C37, 68T07, 49Q22, 65C05
+∗Submitted to the editors .
+Funding: L.Z. was supported by the National Natural Science Foundation of China (No. 12225102, T2321001,
+and 12288101) and the National Key Research and Development Program of China 2024YFA0919500.
+†School of Mathematical Sciences, Peking University, Beijing, China (yangbowen@stu.pku.edu.cn)
+‡Beijing International Center for Mathematical Research, Peking University, Beijing, China
+§Center for Quantitative Biology, Peking University, Beijing, China
+¶Center for Quantitative Biology, Center for Machine Learning Research, National Engineering Laboratory for
+Big Data Analysis and Applications, AI for Science Institute, Peking University, Beijing, China.
+∥School of Mathematical Sciences, Beijing International Center for Mathematical Research, Center for Quanti-
+tative Biology, Center for Machine Learning Research, Institute for Artificial Intelligence, Peking University, Beijing
+100871, China (zhangl@math.pku.edu.cn)
+1
+arXiv:2611.25917v1  [cs.LG]  19 Nov 2026
+
+
+2
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+1. Introduction. Understanding how an early cell state constrains its future fate is a
+central problem in developmental biology and cellular reprogramming. Single-cell RNA se-
+quencing provides detailed molecular snapshots, but its destructive nature generally prevents
+repeated measurements of the same cell. Trajectory inference must therefore reconstruct devel-
+opmental relationships from population snapshots and additional assumptions [13]. Lineage-
+tracing technologies provide an experimental source of such information. Methods such as
+CellTagging and LARRY recover heritable barcodes together with transcriptomic states, link-
+ing clonal ancestry to subsequent outcomes [1, 22]. These observations motivate models that
+use lineage information to predict not only a likely terminal distribution, but also the proba-
+bilities of cellular fates.
+A shared barcode does not, however, generally determine a unique pairing between in-
+dividual cells observed at different times. When several source and terminal cells belong to
+the same clone, their molecular correspondence remains only partially specified. We repre-
+sent the true endpoint relationship by an unknown coupling π⋆and distinguish it from the
+lineage-informed coupling π constructed for training. The prediction target is the conditional
+law
+K⋆(x, A) = Pπ⋆(Y ∈A | X = x),
+where x is the observed initial state and A is a region of terminal state space. Different source-
+descendant relationships can have identical marginals but imply different fate probabilities.
+Recovering this law requires more than matching the endpoint populations.
+Probabilistic models of cellular differentiation range from fate mapping on observed states
+to continuous descriptions of population dynamics. Palantir estimates terminal fate prob-
+abilities from transitions on the transcriptomic manifold [15], while CellRank 2 integrates
+multiple sources of directional and temporal information through Markov state modeling [21].
+Waddington-OT estimates probabilistic couplings between successive populations while ac-
+counting for growth and death [14], and PRESCIENT learns stochastic cell-state dynamics
+from expression time series [24]. These approaches already represent heterogeneous outcomes
+and, in several cases, provide fate probabilities. Without explicit lineage constraints, the in-
+ferred fate relationships depend on assumptions or constraints used by each method, but they
+need not coincide with those supported by lineage observations.
+Explicit incorporation of lineage information provides additional constraints on these re-
+lationships. LineageOT uses lineage trees to inform ancestral-state estimation and transport
+coupling [3]; CoSpar reconstructs transition maps from sparse clonal observations using spar-
+sity and local coherence [20]; and moslin combines expression similarity with lineage geometry
+through fused Gromov–Wasserstein transport [9]. LineageVAE further uses variational latent
+dynamics to reconstruct historical states toward unobserved common progenitors [11]. These
+studies establish lineage observations as valuable information for both transition inference
+and state reconstruction. Nevertheless, an endpoint transition map does not uniquely specify
+intermediate paths. Estimating a lineage-informed coupling and constructing a continuous
+generator that retains its conditional structure are thus separate, complementary tasks.
+Generative modeling provides tools for constructing continuous conditional models. Flow
+matching learns time-dependent velocity fields without numerical integration during training
+[10, 17], and Mean Flow addresses sampling cost by learning interval-average velocities for
+
+
+LIFT
+3
+one-step generation [4], but a deterministic flow initialized solely at the observed cell state
+produces only one outcome from that state.
+Augmented Bridge Matching addresses cou-
+pling preservation by retaining the initial sample in the conditioning [2], while Variational
+Rectified Flow Matching uses latent variables to represent multimodal velocity directions [5].
+For lineage-informed applications, the remaining task is to combine one-to-many conditional
+representation with direct time-dependent sampling. This combination motivates the LIFT
+framework developed below.
+We introduce LIFT, a latent flow framework that combines conditional representation,
+efficient generation, and error control for this task.
+Building on variational inference and
+conditional latent-variable modeling [7, 16], an encoder infers latent codes from training pairs,
+while a conditional prior predicts their distribution from the initial state alone. We formulate
+Flow Matching and Mean Flow reconstruction surrogates and use the Mean Flow decoder for
+direct generation. Its average velocity parameterization [4] allows only one decoder evaluation
+per sampling, and keeping the latent code fixed across time defines a continuous generated
+path. The coupling can incorporate geometric or clonal information without changing the
+sampling architecture.
+Our theoretical analysis makes the conditional prediction objective explicit. We charac-
+terize the best deterministic approximation by its irreducible conditional-variance error and
+establish reconstruction bounds for both FM and Mean Flow decoders. Under the stated
+regularity and prior-scale assumptions, the total conditional Wasserstein error is bounded by
+the discrepancy between π and π⋆, reconstruction under encoder samples, and mismatch be-
+tween the aggregated posterior and the sampling prior. We further translate this bound into
+fate-probability estimates, including the effects of classification boundaries and finite Monte
+Carlo sampling. These results concern a fitted model and do not identify the true coupling or
+a unique intermediate biological trajectory.
+The experiments follow the same conditional prediction perspective. A synthetic branching
+system tests recovery of both population distributions and branching probabilities. Compar-
+isons across numerical sampling budgets assess the balance between one-step efficiency and
+prediction accuracy. Finally, mouse hematopoiesis and direct reprogramming demonstrate the
+use of lineage information for cell fate prediction, with improved probability scores relative to
+LIFT trained with geometric couplings.
+We organize this paper as follows. Section 2 formulates the reconstruction problem, Sec-
+tion 3 develops LIFT, and Section 4 establishes its error estimates. Section 5 presents the
+experiments, followed by Section 6 on conclusions and future work.
+2. Problem Formulation and Conditional Fate Reconstruction. We consider trajectory
+reconstruction from barcode-resolved cell populations observed at two time points. The end-
+point measures are given, but the correspondence between individual source and terminal
+states remains unknown. We distinguish the true lineage-compatible coupling, denoted by π⋆,
+from the coupling π used for training. Our objective is to recover the conditional transition
+structure of π⋆.
+2.1. Barcode-resolved observations and the target dynamics. Consider two observation
+times, rescaled to 0 and 1, and M distinct barcodes. For each barcode i = 1, 2, · · · , M, let
+µi
+0, µi
+1 be the observed nonnegative finite measures on Rd describing its source and terminal cell
+
+
+4
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+populations. Assume that these measures have finite second moments. The total population
+measures are
+(2.1)
+µ0 =
+M
+X
+i=1
+µi
+0,
+µ1 =
+M
+X
+i=1
+µi
+1,
+where we assume µi
+0(Rd) = µi
+1(Rd) = wi, P wi = 1, so that µ0, µ1 are probability measures,
+and π⋆becomes a probability measure as well.
+The true endpoint relationship is represented by an unknown coupling π⋆with marginals
+µ0 and µ1. Since barcode identity is preserved, this coupling permits no transport between
+different barcodes. More precisely, it admits a decomposition
+(2.2)
+π⋆=
+M
+X
+i=1
+πi
+⋆,
+πi
+⋆∈Π(µi
+0, µi
+1),
+where Π(µi
+0, µi
+1) denotes the finite nonnegative measures on Rd × Rd with the indicated
+marginals. Equation (2.2) is a block-diagonal constraint with respect to barcode labels, as all
+blocks with distinct labels vanish.
+Define the set of lineage compatible couplings by
+(2.3)
+Clin =
+( M
+X
+i=1
+γi : γi ∈Π(µi
+0, µi
+1)
+)
+⊆Π(µ0, µ1).
+The observations specify this constraint set, but do not generally identify its true member
+π⋆. In practice, training sampling uses a constructed coupling π ∈Π(µ0, µ1), chosen from Clin
+when the barcode constraints are enforced.
+Because the two couplings have the same marginals, we can write their conditional de-
+compositions as follows.
+(2.4)
+π⋆(dx, dy) = µ0(dx)K⋆(x, dy),
+π(dx, dy) = µ0(dx)Kπ(x, dy).
+Here, K⋆(x, ·) is the true distribution of terminal states conditioned on the observed molecular
+state x, whereas Kπ(x, ·) is the corresponding conditional distribution induced by the training
+coupling. For a measurable partition {B1, . . . , BK} of the terminal state space into distinct
+fates, the true fate probabilities are
+(2.5)
+p⋆
+k(x) = K⋆(x, Bk).
+To reconstruct continuous dynamics, we seek a probability law on Ω= C([0, 1]; Rd) whose
+initial-terminal joint distribution is π⋆. Writing et(γ) = γ(t) for the evaluation map, the ideal
+endpoint requirement is
+(2.6)
+(e0, e1)#P = π⋆.
+
+
+LIFT
+5
+The endpoint coupling does not uniquely determine intermediate paths; their construction
+therefore requires additional dynamical assumptions.
+For probability measures P, Q with finite second moments, we can define the Wassernstein
+distance
+W 2
+2 (P, Q) =
+inf
+λ∈Π(P,Q)
+Z
+∥a −b∥2 λ(da, db),
+where Π(P, Q) contains all pairings with marginals P and Q, to evaluate the distance between
+two measures. For a learned path law bP with initial marginal µ0, define
+bK0,t(x, A) = bP(et ∈A | e0 = x),
+bK1 = bK0,1.
+Assuming that the generated terminal distribution has a finite second moment, we measure
+the true conditional reconstruction error by
+(2.7)
+E2
+⋆( bK1) =
+Z
+W 2
+2
+
+K⋆(x, ·), bK1(x, ·)
+
+µ0(dx)
+The Wasserstein triangle inequality and Minkowski’s inequality yield
+E⋆( bK1) ≤εcpl + Eπ( bK1).
+where
+(2.8)
+E2
+π( bK1) =
+Z
+W 2
+2
+
+Kπ(x, ·), bK1(x, ·)
+
+µ0(dx), ε2
+cpl =
+Z
+W 2
+2 (K⋆(x, ·), Kπ(x, ·)) µ0(dx)
+represent two sources of E⋆. This discrepancy compares future distributions while holding the
+initial state fixed. In particular, matching the terminal marginal µ1 does not ensure recovery
+of the true conditional relationship.
+Before analyzing training objectives, we examine a representational limitation that persists
+even if the true coupling were available.
+2.2. Limitations of deterministic mappings. A deterministic state generator produces
+an endpoint bY = T(X), so its terminal conditional law is bK1(x, ·) = δT(x). This includes
+deterministic ODE models with unique solutions when the initial condition is fully specified by
+the observed state x. Their ability to recover the target coupling is limited by the conditional
+variability under π⋆.
+Let
+m⋆(x) = Eπ⋆[Y | X = x],
+Σ⋆(x) = Covπ⋆(Y | X = x)
+denote the true conditional mean and covariance.
+Proposition 2.1 (Irreducible conditional error of deterministic maps).
+For every measurable
+T ∈L2(µ0; Rd),
+(2.9)
+E2
+⋆(T) :=
+Z
+W 2
+2
+ K⋆(x, ·), δT(x)
+
+µ0(dx)
+=
+Z
+tr Σ⋆(x) µ0(dx) +
+Z
+∥m⋆(x) −T(x)∥2 µ0(dx).
+
+
+6
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Consequently,
+(2.10)
+inf
+T∈L2(µ0;Rd) E2
+⋆(T) =
+Z
+tr Σ⋆(x) µ0(dx),
+with the minimum attained by T = m⋆.
+Moreover, an exact deterministic realization
+π⋆= (Id, T)#µ0
+exists if and only if K⋆(x, ·) is a Dirac measure for µ0-almost every x.
+We provide proof of the proposition in SM1.
+The proposition separates deterministic
+reconstruction error into the true conditional variability and the error in approximating the
+true conditional mean. Improving a deterministic model can reduce the second component,
+but not the first.
+Crucially, this limitation is conditional rather than marginal. A deterministic flow can
+produce a terminal population by sending different initial states to different regions. However,
+it produces only one endpoint from each fixed initial state. Its fate probabilities under the
+prescribed partition are therefore
+bpk(x) = 1Bk(T(x)),
+which cannot equal a true probability 0 < p⋆
+k(x) < 1 without additional randomization.
+Motivated by these observations, we introduce a latent representation,
+Z ∼pη(· | x),
+bY = Fθ(x, Z),
+whose terminal conditional law is
+bK1(x, ·) = Fθ(x, ·)#pη(· | x).
+Unlike a deterministic state map, this representation allows multiple future outcomes from
+the same observed state. The following sections develop this representation into continuous
+dynamics and relate its training error to the conditional reconstruction objective.
+3. Variational Learning of Latent Cell Dynamics. We now construct a probabilistic dy-
+namical model from the training coupling π. A latent variable represents alternative outcomes
+from the same observed initial state, while a time-dependent decoder generates the correspond-
+ing cell-state trajectories. We first derive a variational reconstruction objective, then introduce
+flow matching and Mean Flow as simulation-free training strategies. Throughout this section,
+training expectations are taken under π, whereas the true conditional reconstruction error
+remains defined relative to π⋆as in (2.7).
+3.1. Variational formulation. Let Z ∈Rdz be a latent variable. The generative model
+consists of a conditional prior pη(dz | x) and a decoder Fθ(x, z), giving
+(3.1)
+Z ∼pη(· | x),
+bY = Fθ(x, Z).
+
+
+LIFT
+7
+Its terminal conditional distribution is
+(3.2)
+bK1(x, ·) = Fθ(x, ·)#pη(· | x).
+During training, an encoder qϕ(dz | x, y) uses both endpoints to infer latent representations
+compatible with the observed pair. During inference, the terminal state is unavailable, and
+latent variables are drawn from pη(· | x).
+We parameterize the encoder and conditional prior by diagonal Gaussian distributions,
+(3.3)
+qϕ(· | x, y) = N
+ mϕ(x, y), diag(s2
+ϕ(x, y))
+
+,
+pη(· | x) = N
+ mη(x), diag(s2
+η(x))
+
+,
+with strictly positive standard deviations. The means and standard deviations are outputs of
+neural networks. Define the training joint distribution
+(3.4)
+Qϕ(dx, dy, dz) = π(dx, dy)qϕ(dz | x, y).
+To derive a variational objective, introduce the auxiliary observation model
+(3.5)
+pτ
+θ(y | x, z) = N
+ y; Fθ(x, z), τ 2Id
+
+,
+τ > 0,
+where τ is fixed. Its conditional likelihood is
+pτ
+θ,η(y | x) =
+Z
+pτ
+θ(y | x, z)pη(z | x) dz.
+Following variational inference [7, 16], Jensen’s inequality gives
+(3.6)
+log pτ
+θ,η(y | x) = log Eqϕ(·|x,y)
+pτ
+θ(y | x, Z)pη(Z | x)
+qϕ(Z | x, y)
+
+≥Eqϕ(·|x,y) log pτ
+θ(y | x, Z) −DKL(qϕ(· | x, y)∥pη(· | x)) .
+Define the reconstruction error and prior-matching penalty by
+(3.7)
+Dπ(θ, ϕ) = EQϕ∥Y −Fθ(X, Z)∥2,
+RKL(ϕ, η) = EπDKL(qϕ(· | X, Y )∥pη(· | X)) .
+Substituting the Gaussian observation model into (3.6) and averaging over π yields
+(3.8)
+−Eπ log pτ
+θ,η(Y | X) ≤d
+2 log(2πτ 2) + Dπ(θ, ϕ)
+2τ 2
++ RKL(ϕ, η).
+Dropping the parameter-independent constant gives the negative evidence lower bound ob-
+jective
+(3.9)
+LVI =
+1
+2τ 2 Dπ + RKL.
+The Gaussian model in (3.5) provides a likelihood-based interpretation of the reconstruc-
+tion objective. The generator considered below remains (3.1), without additional observation
+noise.
+Direct evaluation of Dπ can be expensive when Fθ is defined through a differential equation.
+We therefore seek simulation-free objectives that control this reconstruction error without
+solving the learned dynamics during training.
+
+
+8
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+3.2. Flow matching and Mean Flow decoders. Both training strategies use endpoint
+pairs drawn from π and latent variables drawn from the encoder. For (X, Y, Z) ∼Qϕ, define
+the reference interpolation
+(3.10)
+Xt = (1 −t)X + tY,
+V = Y −X.
+The latent variable is held fixed along each reference path. The interpolation specifies a train-
+ing path between the endpoints, and is not assumed to be an observed biological trajectory.
+Flow matching. Flow matching trains a time-dependent velocity field by regression against
+velocities of prescribed reference paths, avoiding numerical integration during training [10, 17].
+In our latent formulation, the decoder is defined by
+(3.11)
+d
+dtφz
+θ,t(x) = vθ(φz
+θ,t(x), z, t),
+φz
+θ,0(x) = x,
+with terminal map
+F FM
+θ
+(x, z) = φz
+θ,1(x).
+The conditional flow-matching objective is
+(3.12)
+LFM(θ, ϕ) = E(X,Y,Z)∼Qϕ
+t∼U[0,1]
+∥vθ(Xt, Z, t) −V ∥2 .
+Its inputs and regression targets are available directly from (3.10). For a fixed encoder, the
+unrestricted squared-loss minimizer is
+vϕ(ξ, z, t) = EQϕ[V | Xt = ξ, Z = z].
+Conditioning on Z allows the regression to distinguish different outcomes that may overlap in
+the observed state space.
+The FM loss is evaluated along the prescribed reference paths, whereas generation follows
+the learned ODE. Under suitable regularity assumptions, the former controls the endpoint
+reconstruction error of the latter. See Theorem 4.1 in Section 4.
+Mean Flow. Mean Flow replaces instantaneous velocity with an interval-average velocity,
+allowing direct prediction of finite-time displacements [4]. Using a forward-time convention,
+consider a trajectory satisfying ˙xs = v(xs, z, s) and define
+(3.13)
+u(xr, z; r, t) =
+1
+t −r
+Z t
+r
+v(xs, z, s) ds = xt −xr
+t −r ,
+r < t.
+Consequently,
+xt = xr + (t −r)u(xr, z; r, t).
+Differentiating along the trajectory with respect to the starting time r gives
+(3.14)
+u(xr, z; r, t) = v(xr, z, r) + (t −r) [∂ru + Dxu v(xr, z, r)] ,
+where all derivatives on the right are evaluated at (xr, z; r, t).
+
+
+LIFT
+9
+We parameterize the average velocity by uθ and use the reference velocity V to construct
+the training target. Define the directional derivative
+(3.15)
+Druθ = ∂ruθ(Xr, Z; r, t) + Dxuθ(Xr, Z; r, t)V
+and the target
+Tθ = V + (t −r)Druθ.
+The Mean Flow loss is
+(3.16)
+LMF(θ, ϕ) = E
+(X,Y,Z)∼Qϕ
+t∼U[0,1], r|t∼U[0,t]
+∥uθ(Xr, Z; r, t) −sg(Tθ)∥2 ,
+where sg denotes the stop-gradient operation. The directional derivative is computed by a
+Jacobian vector product, without constructing a full Jacobian. Detaching the target avoids
+differentiating through this derivative when updating the model.
+The numerical value of (3.16) is the squared residual of the reference-path identity:
+LMF = E ∥uθ(Xr, Z; r, t) −V −(t −r)Druθ∥2 .
+This observation allows its value to be related to reconstruction error independently of the
+stop-gradient update rule.
+The learned conditional path and endpoint map are
+(3.17)
+Gθ,t(x, z) = x + t uθ(x, z; 0, t),
+F MF
+θ
+(x, z) = Gθ,1(x, z).
+We use the Mean Flow loss as a simulation-free surrogate for the variational reconstruction
+term. Its control of the one-step endpoint error is established in Theorem 4.2. Thus, the
+resulting training objective is motivated by the variational formulation, but is not algebraically
+identical to the negative evidence lower bound.
+3.3. Training and sampling. We use the Mean Flow decoder for direct conditional gener-
+ation. In addition to the prior-matching penalty, we regularize the encoder against a standard
+Gaussian:
+(3.18)
+R0(ϕ) = EπDKL(qϕ(· | X, Y )∥N(0, Idz)) .
+The full training objective is
+(3.19)
+LLIFT(θ, ϕ, η) = C LMF(θ, ϕ) + RKL(ϕ, η) + β R0(ϕ),
+where C > 0 and β ≥0. The KL terms are evaluated analytically for the Gaussian parameter-
+ization, while the Mean Flow term is estimated from sampled endpoint pairs, latent variables,
+and times.
+Latent samples are obtained by reparameterization:
+(3.20)
+Z = mϕ(X, Y ) + sϕ(X, Y ) ⊙ϵ,
+ϵ ∼N(0, Idz),
+
+
+10
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Algorithm 3.1 LIFT training
+Require: Training coupling π, batch size B, weights C, β.
+1: Initialize encoder ϕ, conditional prior η, and Mean Flow decoder θ.
+2: while the training budget is not exhausted do
+3:
+Sample {(xb, yb)}B
+b=1 independently from π.
+4:
+for b = 1, . . . , B do
+5:
+Evaluate qb = qϕ(· | xb, yb) and pb = pη(· | xb).
+6:
+Sample ϵb ∼N(0, Idz) and set zb = mϕ(xb, yb) + sϕ(xb, yb) ⊙ϵb.
+7:
+Sample tb ∼U[0, 1] and rb ∼U[0, tb].
+8:
+Set xrb = (1 −rb)xb + rbyb and Vb = yb −xb.
+9:
+Evaluate Ub = uθ(xrb, zb; rb, tb).
+10:
+Compute Jb = ∂ruθ + DxuθVb at (xrb, zb; rb, tb) using a Jacobian–vector product.
+11:
+Set Tb = sg(Vb + (tb −rb)Jb).
+12:
+Compute ℓb = C∥Ub −Tb∥2 + DKL(qb∥pb) + βDKL(qb∥N(0, Idz)).
+13:
+end for
+14:
+Update (θ, ϕ, η) using B−1 PB
+b=1 ℓb and the specified stop-gradient rule.
+15: end while
+16: return Trained parameters (θ, ϕ, η).
+which permits joint updates of the encoder, prior, and decoder. Gradients through Z are
+retained in the direct decoder evaluation; the Mean Flow regression target is detached as in
+(3.16).
+Endpoint pairs are sampled according to the prescribed coupling π. When π = P
+i πi is
+lineage-compatible, this can be implemented by sampling barcode i with probability wi and
+then sampling a pair from πi/wi, for wi > 0. Thus, barcode information enters through the
+training coupling without requiring barcode labels as network inputs.
+At inference, only the conditional prior and Mean Flow decoder are required. Given an
+initial state x, draw Z ∼pη(· | x) and evaluate
+(3.21)
+b
+Xt = x + t uθ(x, Z; 0, t).
+The same latent sample is used at all queried times to represent one realization of a path. A
+different latent sample produces another possible realization from the same initial state.
+If uθ is continuous in time, the map t 7→b
+Xt is continuous and satisfies b
+X0 = x. This
+construction defines a conditional path law. It does not require an independently trained
+instantaneous velocity field or numerical ODE integration.
+After evaluating the conditional prior, sampling requires one decoder evaluation per real-
+ization and requested time point. For a terminal fate region Bk, its model probability can be
+estimated by
+(3.22)
+bp(N)
+k
+(x) = 1
+N
+N
+X
+n=1
+1Bk
+
+b
+X(n)
+1
+
+.
+This estimates bK1(x, Bk); increasing N reduces Monte Carlo error but does not remove cou-
+
+
+LIFT
+11
+Algorithm 3.2 LIFT conditional sampling
+Require: Initial state x, query times {tℓ}L
+ℓ=1 ⊆[0, 1], number of realizations N, trained
+parameters (θ, η).
+1: Evaluate m = mη(x) and s = sη(x).
+2: for n = 1, . . . , N do
+3:
+Sample ϵn ∼N(0, Idz) and set zn = m + s ⊙ϵn.
+4:
+for ℓ= 1, . . . , L do
+5:
+Set b
+X(n)
+tℓ
+= x + tℓuθ(x, zn; 0, tℓ).
+6:
+end for
+7: end for
+8: return Sampled states { b
+X(n)
+tℓ}n,ℓ.
+pling or model approximation errors.
+The resulting model is trained using the available coupling π and sampled through the
+learned conditional prior. Section 4 relates its training losses to reconstruction under the
+unknown coupling π⋆and to the accuracy of the resulting fate-probability estimates.
+4. Error Analysis of Conditional Dynamics and Fate Prediction. We analyze how the
+training objectives control conditional reconstruction and fate prediction. The analysis pro-
+ceeds in three steps. First, the FM and MF losses control reconstruction under the training
+coupling π. Second, reconstruction and latent distribution matching are related to the true
+conditional error under π⋆. Finally, this error is translated into fate-probability error and
+combined with the uncertainty of finite Monte Carlo sampling.
+Throughout this section, the model parameters are fixed, and all training losses denote
+expectations under the prescribed training distribution rather than individual minibatch es-
+timates. The couplings π and π⋆have the same marginals µ0 and µ1. We retain the notation
+Qϕ(dx, dy, dz) = π(dx, dy)qϕ(dz | x, y)
+from Section 3. All proofs of the results in this section are provided in SM2.
+4.1. Reconstruction guarantees for flow matching and Mean Flow. For either decoder,
+the training reconstruction error is
+(4.1)
+Dπ = EQϕ∥Y −Fθ(X, Z)∥2.
+Recall that the training reference path is
+Xt = (1 −t)X + tY,
+V = Y −X.
+The following results connect the regression losses evaluated along this reference path to the
+endpoint produced by the learned decoder.
+Flow matching. For the FM decoder, let
+d
+dt
+b
+Xt = vθ( b
+Xt, Z, t),
+b
+X0 = X,
+
+
+12
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+and set F FM
+θ
+(X, Z) = b
+X1. Its training loss is
+LFM = EQϕ
+Z 1
+0
+∥vθ(Xt, Z, t) −V ∥2 dt.
+Although this loss is evaluated on the reference interpolation, the reconstruction error concerns
+the solution of the learned ODE. A stability estimate bridges this difference.
+Theorem 4.1 (Reconstruction control by flow matching).
+Assume that vθ is measurable in
+time and globally Lx-Lipschitz in its state argument, uniformly in z and t. Assume also that
+t 7→vθ(0, z, t) is integrable on [0, 1] for almost every latent variable under the training law, so
+that the generated ODE has a unique solution. If LFM < ∞, then
+(4.2)
+DFM
+π
+:= EQϕ∥Y −F FM
+θ
+(X, Z)∥2 ≤CLxLFM,
+where
+(4.3)
+CLx =
+
+
+
+e2Lx −1
+2Lx
+,
+Lx > 0,
+1,
+Lx = 0.
+The estimate accounts for the accumulation of local regression errors along the generated
+trajectory. It concerns the exact ODE solution; a numerical implementation introduces an
+additional integration error.
+Mean Flow. For the Mean Flow decoder,
+F MF
+θ
+(x, z) = x + uθ(x, z; 0, 1).
+Define the residual along the reference path by
+(4.4)
+Rr,t = uθ(Xr, Z; r, t) −V
+−(t −r) [∂ruθ(Xr, Z; r, t) + Dxuθ(Xr, Z; r, t)V ] .
+The numerical value of the Mean Flow loss is
+(4.5)
+LMF = E
+(X,Y,Z)∼Qϕ
+t∼U[0,1], r|t∼U[0,t]
+∥Rr,t∥2.
+The stop-gradient operation used in training changes the parameter update but not this
+residual value.
+Theorem 4.2 (Reconstruction control by Mean Flow).
+Assume that, for Qϕ-almost every
+(X, Y, Z) and every t ∈(0, 1], the map
+r 7−→uθ(Xr, Z; r, t)
+is absolutely continuous on [0, t], with derivative
+∂ruθ(Xr, Z; r, t) + Dxuθ(Xr, Z; r, t)V
+
+
+LIFT
+13
+almost everywhere.
+Assume further that t 7→uθ(X, Z; 0, t) is Lipschitz as a map into L2(Qϕ; Rd):
+(4.6)
+∥uθ(X, Z; 0, t) −uθ(X, Z; 0, s)∥L2(Qϕ) ≤LT |t −s|,
+s, t ∈[0, 1].
+If LMF < ∞, then
+(4.7)
+DMF
+π
+:= EQϕ∥Y −F MF
+θ
+(X, Z)∥2 ≤max
+n
+3LMF, (3LT LMF)2/3o
+.
+For a unified notation, define
+(4.8)
+ΨFM(a) = CLxa,
+ΨMF(a) = max{3a, (3LT a)2/3}.
+Then, for either decoder dec ∈{FM, MF},
+(4.9)
+Ddec
+π
+≤Ψdec(Ldec).
+These estimates control endpoint reconstruction under π.
+They do not by themselves
+establish fidelity to the unknown coupling π⋆, nor do they identify the true intermediate
+biological paths. The next result addresses the former question.
+4.2. Total conditional reconstruction error. There are two additional discrepancies be-
+tween training reconstruction and the desired conditional generation. First, the training cou-
+pling π may differ from π⋆. Second, training uses the encoder qϕ(· | x, y), whereas sampling
+uses the conditional prior pη(· | x).
+Recall the conditional decompositions
+π⋆(dx, dy) = µ0(dx)K⋆(x, dy),
+π(dx, dy) = µ0(dx)Kπ(x, dy),
+and write the conditional coupling discrepancy as
+(4.10)
+ε2
+cpl =
+Z
+W 2
+2 (K⋆(x, ·), Kπ(x, ·)) µ0(dx).
+To describe the training latent distribution conditioned only on the initial state, define
+the aggregated posterior
+(4.11)
+qϕ(dz | x) =
+Z
+qϕ(dz | x, y)Kπ(x, dy).
+Its discrepancy from the sampling prior is
+(4.12)
+∆2
+Z =
+Z
+W 2
+2
+ qϕ(· | x), pη(· | x)
+
+µ0(dx).
+The generated terminal kernel is
+bK1(x, ·) = Fθ(x, ·)#pη(· | x).
+Its true conditional error is
+E2
+⋆( bK1) =
+Z
+W 2
+2
+
+K⋆(x, ·), bK1(x, ·)
+
+µ0(dx).
+
+
+14
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Theorem 4.3 (Total conditional reconstruction error).
+Assume that
+∥Fθ(x, z) −Fθ(x, z′)∥≤LZ∥z −z′∥
+for µ0-almost every x and all z, z′. Assume that the required second moments and the quantities
+below are finite. Then
+(4.13)
+E⋆( bK1) ≤εcpl +
+p
+Dπ + LZ∆Z.
+Suppose additionally that the encoder and prior are diagonal Gaussians as in (3.3), and
+that their prior standard deviations satisfy
+0 < sη,j(x) ≤S
+for every latent coordinate j and µ0-almost every x. Then
+(4.14)
+∆2
+Z ≤2S2RKL,
+where
+RKL = EπDKL(qϕ(· | X, Y )∥pη(· | X)) .
+Consequently, under the assumptions of the corresponding reconstruction theorem,
+(4.15)
+E⋆( bK1) ≤εcpl +
+p
+Ψdec(Ldec) +
+√
+2 LZS
+p
+RKL.
+The three terms in (4.13) have distinct interpretations. The coupling discrepancy measures
+the difference between the training relationships and the unknown target. The reconstruction
+term measures how accurately the decoder reproduces training endpoints from encoder sam-
+ples. The final term measures the effect of replacing the training latent distribution with the
+prior used for generation.
+These are conditional error guarantees for a fitted model. For later use, denote the upper
+bound in (4.15) by
+(4.16)
+Bdec = εcpl +
+p
+Ψdec(Ldec) +
+√
+2 LZS
+p
+RKL.
+4.3. Fate-probability estimation. Let {B1, . . . , BK} be the fixed partition of terminal
+state space into fates. The true and model fate probabilities are
+(4.17)
+p⋆
+k(x) = K⋆(x, Bk),
+bpk(x) = bK1(x, Bk).
+Estimating p⋆
+k(x) by generated samples involves two different errors: the discrepancy between
+bpk(x) and p⋆
+k(x), and the finite-sampling error in estimating bpk(x).
+From conditional distributions to fate probabilities. A small displacement can change a hard
+fate label when the terminal state lies near a classification boundary. Define
+Γ =
+K
+[
+k=1
+∂Bk,
+Γρ = {y : dist(y, Γ) ≤ρ},
+ρ > 0.
+The next bound separates this boundary effect from the endpoint reconstruction error.
+
+
+LIFT
+15
+Proposition 4.4 (Stability of fate probabilities).
+For every ρ > 0,
+(4.18)
+max
+1≤k≤K ∥p⋆
+k −bpk∥L1(µ0) ≤µ1(Γρ) + E2
+⋆( bK1)
+ρ2
+≤µ1(Γρ) + B2
+dec
+ρ2 ,
+where the second inequality holds under the assumptions of Theorem 4.3.
+The estimate follows the geometry of a label change: a coupled pair of endpoints can
+have different fates only if the true endpoint lies near a boundary or the displacement be-
+tween the endpoints is sufficiently large. The radius ρ balances these two possibilities. In
+particular, if µ1(Γ) = 0, vanishing conditional reconstruction error implies vanishing aver-
+age fate-probability error. Furthermore, we combine the results above with standard results
+of Monte-Carlo sampling[6], we can obtain the following end-to-end fate probability error
+estimation.
+Corollary 4.5 (End-to-end fate-probability error).
+Suppose
+µ0 =
+n
+X
+a=1
+ωaδxa,
+ωa > 0,
+n
+X
+a=1
+ωa = 1.
+Under the assumptions of Theorem 4.3, with probability at least 1 −δ over the Monte Carlo
+samples,
+(4.19)
+max
+1≤k≤K
+n
+X
+a=1
+ωa
+bp(N)
+k
+(xa) −p⋆
+k(xa)
+ ≤inf
+ρ>0
+
+µ1(Γρ) + B2
+dec
+ρ2
+
++
+r
+log(2nK/δ)
+2N
+.
+5. Experimental Validation and Lineage-Informed Applications. We evaluate LIFT on
+synthetic and real-world datasets. We first use a synthetic branching benchmark to assess its
+ability to reconstruct population distributions and branching probabilities. We then examine
+whether one-step generation combines computational efficiency with accurate conditional pre-
+diction. Finally, we evaluate how LIFT incorporates lineage information to predict cell fate
+probabilities in two real datasets. Across all experiments, we compare LIFT with baselines
+including conditional flow matching (CFM), Mean Flow (MF) and score matching (SM, here
+we use an implementation of SF2M[19]) to analyze the ability of LIFT. Detailed experimen-
+tal settings, model-component ablations, hyperparameter sensitivity analyses, and additional
+results are provided in Supplementary Section SM3.
+5.1. Recovering conditional fate distributions in a synthetic dataset.
+Dataset construction. We sample 1,000 source states xi ∼N(0, I2) and assign a branch by
+(5.1)
+Sj
+i = sign(v⊤xi + αϵj
+i),
+v = (1, 2)⊤,
+ϵj
+i ∼N(0, 1),
+j = 1, 2, · · · , 5.
+For each source state xi, five targets yj
+i are generated conditional on its sampled branch Sj
+i .
+Specifically, we construct yj
+i = xi + Sj
+i · 3v + 0.3 · ηj
+i , ηj
+i ∼N(0, I2). Thus, these five targets
+
+
+16
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Table 1: Results on the synthetic branching benchmark. Lower values are better. PE is the
+sum in (5.3).
+α = 0.5
+α = 1
+α = 2
+Method
+W2
+PE
+W2
+PE
+W2
+PE
+CFM
+0.238
+1.370
+0.275
+2.678
+0.305
+5.002
+Mean Flow
+0.470
+1.370
+1.011
+2.678
+1.101
+5.002
+SM
+0.463
+0.282
+0.478
+1.500
+0.460
+3.580
+LIFT
+0.266
+0.121
+0.268
+0.457
+0.280
+0.809
+share the same barcode label, but may have different fate labels. For α > 0, the population
+probability of the positive branch is
+(5.2)
+pbr
+α (x) = Φ
+v⊤x
+α
+
+,
+where Φ is the standard Gaussian distribution function.
+This analytic reference permits
+evaluation beyond the particular branch labels realized in the finite training sample.
+The principal experiment uses α ∈{0.5, 1, 2}. Branch probabilities are evaluated at nq
+uniformly spaced query states along the segment from (−1, −1) to (1, 1).
+We define the
+probability error convention,
+(5.3)
+PE =
+nq
+X
+a=1
+bp+(xa) −pbr
+α (xa)
+ .
+Here we choose nq = 21. Population level accuracy is measured by W2 between generated and
+reference terminal samples.
+LIFT recovers both distribution and branching probabilities. Table 1 shows that LIFT can
+achieve the lowest branching probability error across all tested noise levels while maintain-
+ing competitive population reconstruction. In contrast, accurate marginal reconstruction by
+CFM does not translate into accurate branching probabilities, illustrating the distinction be-
+tween these two objectives. Note that the CFM and MF probability errors coincide with
+the minimum error attainable by hard branch assignments on the evaluation grid, because
+deterministic methods can only provide 0-1 predictions. Figure 1(b) further shows that LIFT
+successfully captures the conditional branching probabilities, whereas the deterministic base-
+lines produce hard branch assignments.
+Conditional distributions at a fixed initial state. Figure 1(c) examines the generated end-
+point distributions with the initial state held fixed. At low noise, the predicted outcomes
+are concentrated in one branch. As α increases, probability mass is distributed across both
+branches, producing a bimodal conditional distribution. This qualitative transition illustrates
+that LIFT can capture changes in branching uncertainty.
+5.2. Efficient one-step conditional generation. We assess the accuracy-cost trade-off on
+the synthetic branching benchmark by varying the number of function evaluations (NFE) for
+
+
+LIFT
+17
+(a) Dataset
+(b) Predicted Upper Probability
+(c) Conditional endpoint distribu-
+tions
+Figure 1: Conditional reconstruction in the branching system. (a) Source and terminal popu-
+lations. (b) Predicted branch probabilities along the query segment. (c) Generated endpoint
+distributions at a fixed initial state as α varies.
+CFM and SM. We compare these iterative configurations with one-step MF and LIFT, eval-
+uating population reconstruction, branching probability error, and inference time at several
+noise levels.
+Table 2: Effect of NFE on the synthetic branching benchmark. Inference times are averaged
+over 100 timing measurements. Lower values are better for W2, PE, and inference time. The
+best values in each metric column are highlighted in bold.
+α = 0.5
+α = 1
+α = 2
+Method
+NFE Time (ms)
+W2
+PE
+W2
+PE
+W2
+PE
+CFM
+1,000
+401.09
+0.238
+1.370
+0.275
+2.678
+0.305
+5.002
+100
+40.26 0.238
+1.370
+0.282
+2.678
+0.305
+5.002
+10
+3.87
+0.270
+1.370
+0.367
+2.678
+0.369
+5.002
+SM
+1,000
+855.93
+0.463
+0.282
+0.478
+1.500
+0.460
+3.580
+100
+86.74
+0.531
+0.382
+0.548
+1.556
+0.558
+3.619
+10
+9.65
+0.628
+0.623
+0.656
+1.501
+0.719
+3.834
+MF
+1
+0.56
+0.470
+1.370
+1.011
+2.678
+1.101
+5.002
+LIFT
+1
+0.96
+0.266
+0.121
+0.268
+0.457
+0.280
+0.809
+LIFT balances generation efficiency and conditional accuracy. Table 2 shows that LIFT
+achieves the lowest branching probability error across all tested noise levels while sampling
+faster than every iterative configuration considered. Its population reconstruction remains
+competitive, although CFM with larger integration budgets attains a smaller W2 in the lowest-
+noise setting. Increasing NFE improves the marginal reconstruction of the iterative baselines
+but does not consistently improve their branching probabilities; in particular, the reported
+CFM probability error remains high as it can give only 0-1 prediction.
+Although unaug-
+
+
+18
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+mented MF is slightly faster than LIFT, it has larger errors in both metrics. These results
+show that LIFT combines efficient one-step sampling with accurate branching probabilities.
+Specifically, lower inference time makes it convenient to predict fate probabilities through
+large-scale Monte-Carlo sampling.
+5.3. Lineage-informed cell fate prediction in real datasets. We evaluate LIFT on two
+lineage-traced scRNA-seq datasets: mouse hematopoiesis measured by LARRY [22] and di-
+rect fibroblast reprogramming measured by CellTagging [1]. The hematopoietic task predicts
+monocyte (Mo) and neutrophil (Neu) outcomes from Day 2 to Day 6, while the reprogramming
+task predicts induced endoderm progenitor (iEP) and dead-end outcomes from Day 15 to Day
+28. Both datasets use two-dimensional SPRING state representations. We compare geometric
+and lineage-informed couplings, denoted by Geo and Lin, respectively. The lineage-informed
+construction uses uniform pairing within each barcode for hematopoiesis and within-clone OT
+for reprogramming. Population reconstruction is measured by W2, while fate prediction is as-
+sessed by mean probability error (MeanPE) and Pearson correlation r against lineage-derived
+reference probabilities.
+Table 3: Results on the two lineage-traced datasets. Geo and Lin indicate geometric and
+lineage-informed coupling variants, respectively. Here SM relies on entropic optimal transport
+coupling as [19], so SM does not have different couplings. Lower W2 and MeanPE and higher
+Pearson correlation r are better. The best value in each column is highlighted in bold.
+Hematopoiesis
+Reprogramming
+Method
+W2
+MeanPE
+r
+W2
+MeanPE
+r
+CFM–Geo
+0.301
+0.336
+0.657
+1.013
+0.288
+0.729
+CFM–Lin
+0.539
+0.366
+0.728
+3.393
+0.268
+0.729
+MF–Geo
+0.370
+0.343
+0.643
+1.846
+0.261
+0.746
+MF–Lin
+0.549
+0.349
+0.689
+3.946
+0.363
+0.701
+SM
+0.190
+0.296
+0.735
+1.191
+0.213
+0.763
+LIFT–Geo
+0.247
+0.223
+0.705
+0.936
+0.211
+0.727
+LIFT–Lin
+0.269
+0.119
+0.803
+0.959
+0.191
+0.795
+LIFT improves fate prediction with lineage information. Table 3 shows that LIFT-Lin can
+achieve the lowest MeanPE and highest correlation on both datasets. Compared with LIFT-
+Geo, incorporating lineage information improves fate-probability prediction even though the
+population Wasserstein distance does not decrease. Supplying lineage-informed couplings to
+deterministic CFM or MF does not produce comparable probability accuracy. These results
+indicate that accurate fate prediction requires pairing lineage-informed couplings with a sto-
+chastic generator capable of representing one-to-many transitions.
+LIFT captures graded fate bias in hematopoiesis. Figure 2 presents mouse hematopoiesis
+as a representative example. In the highlighted region, the lineage-derived reference contains
+mixed Mo and Neu outcomes with a preference toward Mo. Hard assignments replace this
+mixture with a sharp partition, whereas LIFT retains intermediate probabilities with a modest
+Mo bias. The resulting probability map therefore captures graded lineage-associated fate bias.
+
+
+LIFT
+19
+(a) Lineage reference fate information
+(b) Hard Division
+(c) Soft Division
+Figure 2: Representative fate prediction in mouse hematopoiesis. (a) Lineage-derived reference
+fate information. (b) Hard fate assignments. (c) Mo fate probabilities predicted by LIFT.
+The highlighted region contains mixed Mo and Neu clonal outcomes with a bias toward Mo.
+LIFT represents this region through intermediate fate probabilities rather than exclusively
+binary assignments.
+This qualitative agreement complements the quantitative results across both datasets.
+6. Discussion and Conclusion. Lineage tracing links molecular states to clonal ancestry,
+but does not generally reveal unique cell-to-cell pairings across destructively sampled popu-
+lations. This motivates a conditional-generation problem: the same observed state may be
+compatible with multiple future outcomes, whereas a deterministic state map assigns it a single
+endpoint. Consequently, reproducing the terminal population distribution alone does not en-
+sure accurate fate probabilities. A model must also represent the one-to-many relationships
+supported by the available lineage information.
+LIFT addresses this mismatch through a variational latent representation of conditional
+variability. An encoder learns latent distributions from endpoint pairs, a conditional prior
+predicts them from the initial state, and a Mean Flow decoder generates alternative outcomes
+without numerical integration. Under the stated regularity and prior-scale assumptions, we
+bound the true conditional distribution error by the discrepancy in the training coupling,
+decoder reconstruction error, and latent training-sampling mismatch. The analysis further
+connects these errors to fate-probability estimation, providing a theoretical basis for the con-
+ditional prediction objective.
+The experiments show that LIFT combines accurate branching-probability prediction with
+competitive population distribution reconstruction and efficient one-step sampling. In mouse
+hematopoiesis and direct reprogramming, lineage-informed training improves fate prediction
+relative to the geometric-coupling variant. The hematopoietic example further illustrates how
+graded predictions represent mixed clonal outcomes instead of imposing hard assignments.
+Together, these results support the use of LIFT for efficient prediction of differentiation and
+
+
+20
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+reprogramming probabilities from molecular states and lineage information.
+The current framework nevertheless has several limitations. Its generative dynamics do
+not explicitly model unbalanced effects such as proliferation and cell death, and its predic-
+tions remain dependent on the supplied coupling and chosen state representation. Endpoint
+constraints also do not uniquely identify intermediate biological paths or the sources of condi-
+tional variability. Future work will extend the framework to unbalanced dynamics, incorporate
+additional observation times and biological constraints. These extensions could improve both
+the biological fidelity of generated trajectories and the reliability of fate predictions.
+Appendix A. Mathematical and Computational Background.
+This appendix introduces the concepts connecting barcode-resolved observations, condi-
+tional generation, and fate-probability estimation.
+Probabilistic modeling of cell dynamics. A probability measure µt describes the relative
+abundance of cell states at time t. Population evolution can therefore be modeled as a con-
+tinuous family of distributions connecting µ0 and µ1, rather than as a single representative
+trajectory. Waddington-OT infers probabilistic couplings between observed populations, ac-
+counting for proliferation and death [14]. TrajectoryNet learns continuous paths using neural
+ordinary differential equations and optimal-transport regularization [18], while PRESCIENT
+models population evolution through stochastic dynamics [24].
+These approaches connect
+snapshot observations through assumed dynamics. A coupling additionally specifies how ini-
+tial and terminal states are paired; lineage information constrains these relationships [3]. The
+conditional law K⋆(x, ·) then describes the possible outcomes of a fixed initial state, which are
+not determined by the endpoint population measures alone.
+Variational inference and variational autoencoders. Latent-variable models generate obser-
+vations through auxiliary variables whose values are not directly measured. Inferring their
+posterior distribution is often computationally difficult. Variational inference replaces this
+posterior with a tractable approximation and optimizes a lower bound on the data log likeli-
+hood. Variational autoencoders (VAEs) implement this idea using neural encoder and decoder
+networks [7, 8]. Their objective balances reconstruction against a Kullback–Leibler (KL) di-
+vergence penalty, which compares the encoder distribution with the prior.
+In conditional
+generation [16], the model also receives an input x. LIFT uses qϕ(z | x, y) during training
+and samples pη(z | x) at inference. Different latent samples allow the same initial state to
+generate different outcomes.
+The latent variable represents conditional variability, not an
+automatically identified biological mechanism.
+Flow matching and Mean Flow. Flow matching trains a velocity field by regression against
+velocities of easily sampled reference paths [10, 17]. For the linear path Xt = (1 −t)X + tY ,
+the reference velocity is Y −X.
+Training therefore avoids solving the learned differential
+equation, although generation with an FM decoder still requires numerical integration. Mean
+Flow instead learns velocity averaged over a time interval [4]. For r < t, its average velocity
+along a trajectory satisfies
+u(xr, z; r, t) = xt −xr
+t −r ,
+xt = xr + (t −r)u(xr, z; r, t).
+Here, the average is over time along a trajectory, not over alternative fates. Learning this
+quantity allows LIFT to predict each requested state directly, with a latent code held fixed
+
+
+LIFT
+21
+along a sampled path.
+Wasserstein distance. Wasserstein distance compares distributions by the displacement
+required to move probability mass from one to the other [12]. For probability measures P, Q
+with finite second moments,
+W 2
+2 (P, Q) =
+inf
+λ∈Π(P,Q)
+Z
+∥a −b∥2 λ(da, db),
+where Π(P, Q) contains all pairings with marginals P and Q. On finite cell populations, these
+pairings are nonnegative matrices with prescribed row and column sums. Unlike comparing
+population means, this distance measures differences in the locations and spread of probability
+mass. Our conditional error applies it separately at each initial state and averages the squared
+distances, distinguishing correct future-state distributions from terminal population matching.
+Further reading. Biological observations and trajectory inference. Biddy et al. [1] introduce
+the CellTagging reprogramming application; Weinreb et al. [22] connect hematopoietic state
+and fate using LARRY. Saelens et al. [13] compare trajectory-inference methods and their
+assumptions.
+Lineage-informed endpoint relationships. LineageOT [3] explains how lineage trees inform
+transport couplings, while CoSpar [20] combines sparse clonal observations with state-space
+structure to infer transition maps.
+Latent generation and flow-based computation. Kingma and Welling [7] and Sohn et al.
+[16] develop variational and conditional generative models. Kingma and Welling also provide
+a tutorial on VAEs and variational training [8]. Lipman et al. [10] introduce flow-matching
+training, and Geng et al. [4] explain the average-velocity formulation underlying Mean Flow.
+Optimal transport: Peyr´e and Cuturi provide a computational introduction to couplings,
+Wasserstein distances, and their applications [12].
+Finite-sample probability estimates. Hoeffding [6] provides the concentration inequality
+used to bound the sampling error of the estimated fate probabilities.
+Appendix B. Declarations.
+Authorship and Contributorship. All authors have made substantial intellectual contri-
+butions to the study conception, execution, and design of the work. All authors have read
+and approved the final manuscript. In addition, the following contributions occurred: Con-
+ceptualization: B. Yang; Methodology: B. Yang, J. Ying, and Y. Wang; Formal analysis
+and investigation: B. Yang, J. Ying, and Y. Wang; Writing – original draft preparation: B.
+Yang; Writing – review and editing: P. Zhou and L. Zhang; Funding acquisition: L. Zhang;
+Resources: L. Zhang; Supervision: P. Zhou and L. Zhang.
+Conflicts of Interest. The authors declare there are no conflicts of interest
+Data & Code Availability. The datasets analyzed in this study are derived from previously
+published lineage-tracing studies, including the LARRY hematopoiesis dataset[22] and the
+CellTagging direct reprogramming dataset[1]. The original datasets are available from the
+sources cited in the corresponding publications.
+The code used to generate the results presented in this study are publicly available in
+https://github.com/van-genshin-wander/LIFT.
+
+
+22
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Ethics. This study involves computational analyses of previously published and publicly
+available single-cell lineage-tracing datasets. No new experiments involving human partici-
+pants or animals were conducted as part of this study.
+Funding. L. Zhang was supported by the National Natural Science Foundation of China
+(Nos. 12225102, T2321001, and 12288101) and the National Key Research and Development
+Program of China (No. 2024YFA0919500).
+Use of AI Tools. AI tools were used only to assist with language translation, editing, and
+polishing during the preparation of this manuscript. All authors have checked and verified
+the accuracy of all parts of this work and assume responsibility for all content.
+
+
+SUPPLEMENTARY MATERIALS: LIFT: Latent Flow Matching for
+Probabilistic Cell Fate Dynamics with Single Cell Snapshots
+Bowen Yang , Junda Ying , Yuxuan Wang , Peijie Zhou , and Lei Zhang
+SM1. Proof of Proposition2.1 .
+Proof. There is only one coupling between K⋆(x, ·) and δT(x). Hence, by definition,
+W 2
+2
+ K⋆(x, ·), δT(x)
+
+=
+Z
+∥y −T(x)∥2K⋆(x, dy).
+Integrating over the source marginal yields
+E2
+⋆(T) = Eπ⋆∥Y −T(X)∥2.
+Decompose
+Y −T(X) = Y −m⋆(X) + m⋆(X) −T(X).
+The cross term vanishes because
+Eπ⋆[Y −m⋆(X) | X] = 0.
+Therefore,
+Eπ⋆∥Y −T(X)∥2 = Eπ⋆∥Y −m⋆(X)∥2 + Eπ⋆∥m⋆(X) −T(X)∥2.
+The first term equals
+R
+tr Σ⋆(x) µ0(dx), proving (2.9). The second term is nonnegative and
+vanishes for T = m⋆, which proves (2.10).
+Finally, a deterministic realization has conditional law δT(x) almost everywhere.
+Con-
+versely, if K⋆(x, ·) is a Dirac measure almost everywhere, its point of concentration is m⋆(x),
+and
+π⋆= (Id, m⋆)#µ0.
+SM2. Proofs of the Error Estimates. We provide the proofs of the results in Section 4.
+Throughout the appendix, the model parameters are fixed, and
+Qϕ(dx, dy, dz) = π(dx, dy)qϕ(dz | x, y).
+All statements about conditional distributions are understood to hold for µ0-almost every
+initial state. We write
+Xt = (1 −t)X + tY,
+V = Y −X,
+for the reference path and its velocity. Norms without a subscript are Euclidean norms. The
+finite second moments of the endpoint measures imply that V ∈L2(Qϕ; Rd).
+SM1
+
+
+SM2
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+SM2.1. Proof of Theorem 4.1.
+Proof. Fix a triple (X, Y, Z) for which the generated ODE has a solution and the reference-
+path regression residual is square-integrable in time. These properties hold Qϕ-almost surely
+under the theorem’s assumptions. Let
+˙b
+Xt = vθ( b
+Xt, Z, t),
+b
+X0 = X,
+and define
+et = b
+Xt −Xt,
+at = vθ(Xt, Z, t) −V.
+The difference between the generated and reference paths satisfies
+˙et = vθ( b
+Xt, Z, t) −vθ(Xt, Z, t) + at,
+e0 = 0.
+The state-space Lipschitz assumption gives the integral inequality
+∥et∥≤
+Z t
+0
+(Lx∥es∥+ ∥as∥) ds.
+Gronwall’s inequality therefore yields
+(SM2.1)
+∥et∥≤
+Z t
+0
+eLx(t−s)∥as∥ds.
+At t = 1, the Cauchy–Schwarz inequality implies
+∥b
+X1 −Y ∥2 ≤
+Z 1
+0
+eLx(1−s)∥as∥ds
+2
+≤
+Z 1
+0
+e2Lx(1−s) ds
+ Z 1
+0
+∥as∥2 ds
+
+.
+The first factor equals
+Z 1
+0
+e2Lx(1−s) ds =
+
+
+
+e2Lx −1
+2Lx
+,
+Lx > 0,
+1,
+Lx = 0.
+Taking expectation under Qϕ gives
+DFM
+π
+≤CLx EQϕ
+Z 1
+0
+∥vθ(Xs, Z, s) −V ∥2 ds = CLxLFM.
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM3
+SM2.2. Proof of Theorem 4.2. The proof first relates the Mean Flow residual to a
+direct prediction error at each terminal time. The time-regularity assumption then converts
+an integrated error bound into control at t = 1.
+Lemma SM2.1 (Integrated Mean Flow residual). Under the absolute-continuity assumption
+of Theorem 4.2, define
+Gθ,t(X, Z) = X + t uθ(X, Z; 0, t).
+Then, for every t ∈(0, 1],
+(SM2.2)
+Gθ,t(X, Z) −Xt =
+Z t
+0
+Rr,t dr
+Qϕ-almost surely.
+In particular, if
+A(t) = EQϕ
+1
+t
+Z t
+0
+∥Rr,t∥2 dr
+
+,
+then
+(SM2.3)
+EQϕ∥uθ(X, Z; 0, t) −V ∥2 ≤A(t),
+and
+(SM2.4)
+EQϕ∥Gθ,t(X, Z) −Xt∥2 ≤t2A(t).
+Proof. Fix t ∈(0, 1] and a triple for which the assumed absolute continuity holds. Write
+Ut(r) = uθ(Xr, Z; r, t),
+Ht(r) = Xr + (t −r)Ut(r).
+The chain rule along the reference path gives
+U′
+t(r) = ∂ruθ(Xr, Z; r, t) + Dxuθ(Xr, Z; r, t)V
+for almost every r. Consequently,
+H′
+t(r) = V −Ut(r) + (t −r)U′
+t(r) = −Rr,t.
+Since Ht is absolutely continuous and
+Ht(0) = Gθ,t(X, Z),
+Ht(t) = Xt,
+the fundamental theorem of calculus proves (SM2.2).
+Using Xt = X + tV and dividing by t yields
+uθ(X, Z; 0, t) −V = 1
+t
+Z t
+0
+Rr,t dr.
+The Cauchy–Schwarz inequality gives
+∥uθ(X, Z; 0, t) −V ∥2 ≤1
+t
+Z t
+0
+∥Rr,t∥2 dr.
+Taking expectation proves (SM2.3). Multiplication by t2 gives (SM2.4). These inequalities
+remain valid with an infinite right-hand side at exceptional times.
+
+
+SM4
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Proof of Theorem 4.2. Let
+H = L2(Qϕ; Rd),
+g(t) = uθ(X, Z; 0, t) −V ∈H,
+J = LMF.
+Because t is uniform on [0, 1] and r | t is uniform on [0, t], Tonelli’s theorem and Lemma SM2.1
+imply
+(SM2.5)
+Z 1
+0
+∥g(t)∥2
+H dt ≤
+Z 1
+0
+A(t) dt = J.
+The value assigned to the conditional time distribution at t = 0 has no effect on this integral.
+The time-regularity assumption gives
+∥g(t) −g(s)∥H ≤LT |t −s|.
+Set
+a = ∥g(1)∥H =
+q
+DMF
+π
+.
+The reverse triangle inequality yields
+(SM2.6)
+∥g(t)∥H ≥max{0, a −LT (1 −t)}.
+If a = 0, the conclusion is immediate. If LT = 0, then g is constant, and (SM2.5) gives a2 ≤J,
+which is stronger than the claimed estimate. It remains to consider a > 0 and LT > 0.
+If a < LT , integration over the interval where the lower bound in (SM2.6) is positive gives
+J ≥
+Z 1
+1−a/LT
+ a −LT (1 −t)
+2 dt
+= a3
+3LT
+.
+Hence a2 ≤(3LT J)2/3.
+If a ≥LT , the lower bound is nonnegative throughout [0, 1], and
+J ≥
+Z 1
+0
+ a −LT (1 −t)
+2 dt
+= a2 −aLT + L2
+T
+3 ≥a2
+3 .
+The last inequality follows from
+a2 −aLT + L2
+T
+3 −a2
+3 = (a −LT )(2a −LT )
+3
+≥0.
+Thus a2 ≤3J in this case. Combining the cases proves
+DMF
+π
+≤max{3LMF, (3LT LMF)2/3}.
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM5
+Sharpness of the small-loss exponent.. The exponent 2/3 is attained by a simple decoder
+satisfying the stated assumptions. Let X = Y = 0 and, for fixed L > 0 and 0 < a < L, take
+a scalar decoder independent of its state, latent, and starting-time arguments:
+uθ(ξ, z; r, t) =
+ a −L(1 −t)
+
++,
+b+ = max{b, 0}.
+Its reference-path derivative with respect to r vanishes, so Rr,t = uθ(t). Therefore,
+LMF = a3
+3L,
+DMF
+π
+= a2 = (3LLMF)2/3.
+As a ↓0 with L fixed, no uniformly stronger small-loss power can replace 2/3 under these
+assumptions alone.
+SM2.3. Proof of Theorem 4.3. We first record an elementary Gaussian comparison. The
+proof uses an explicit coupling and will therefore also apply after mixing encoder distributions
+over terminal states.
+Lemma SM2.2 (Gaussian coupling and relative entropy).
+Let
+q = N(mq, diag(s2
+q)),
+p = N(mp, diag(s2
+p))
+be diagonal Gaussians on Rdz with strictly positive standard deviations. If sp,j ≤S for every
+coordinate, then
+(SM2.7)
+W 2
+2 (q, p) ≤∥mq −mp∥2 + ∥sq −sp∥2
+≤2S2DKL(q∥p).
+Proof. For a common standard Gaussian vector ϵ ∼N(0, Idz), set
+Z = mq + sq ⊙ϵ,
+Z′ = mp + sp ⊙ϵ.
+These variables have marginals q and p, and their coupling cost is
+E∥Z −Z′∥2 = ∥mq −mp∥2 + ∥sq −sp∥2.
+This proves the first inequality.
+For the second, set αj = sq,j/sp,j > 0. The Gaussian relative entropy is
+2DKL(q∥p) =
+dz
+X
+j=1
+"
+(mq,j −mp,j)2
+s2
+p,j
++ α2
+j −1 −2 log αj
+#
+.
+For every α > 0,
+α2 −1 −2 log α −(α −1)2 = 2(α −1 −log α) ≥0.
+Consequently, for each coordinate,
+(mq,j −mp,j)2 + (sq,j −sp,j)2
+≤s2
+p,j
+"
+(mq,j −mp,j)2
+s2
+p,j
++ α2
+j −1 −2 log αj
+#
+≤S2
+"
+(mq,j −mp,j)2
+s2
+p,j
++ α2
+j −1 −2 log αj
+#
+.
+Summing over coordinates proves the result.
+
+
+SM6
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Proof of Theorem 4.3. We separate reconstruction under encoder samples from the change
+of latent distribution at inference.
+Step 1: Reconstruction under the aggregated posterior.. Define
+eK1(x, ·) = Fθ(x, ·)#qϕ(· | x)
+and the conditional reconstruction cost
+dπ(x) =
+Z Z
+∥y −Fθ(x, z)∥2qϕ(dz | x, y)Kπ(x, dy).
+Then
+R
+dπ(x) µ0(dx) = Dπ. For fixed x, sample Y ∼Kπ(x, ·) and then Z ∼qϕ(· | x, Y ).
+The pair (Y, Fθ(x, Z)) is a coupling of Kπ(x, ·) and eK1(x, ·), because the marginal law of Z is
+qϕ(· | x). It follows that
+(SM2.8)
+W2
+
+Kπ(x, ·), eK1(x, ·)
+
+≤
+p
+dπ(x).
+Step 2: Replacing the aggregated posterior by the prior.. Fix x and take any coupling of
+qϕ(· | x) and pη(· | x). Pushing both components through Fθ(x, ·) gives a coupling of eK1(x, ·)
+and bK1(x, ·). By the latent-variable Lipschitz assumption, its squared cost is at most L2
+Z
+times the original cost. Taking the infimum over latent couplings yields
+(SM2.9)
+W2
+
+eK1(x, ·), bK1(x, ·)
+
+≤LZW2
+ qϕ(· | x), pη(· | x)
+
+.
+The Wasserstein triangle inequality, followed by (SM2.8) and (SM2.9), gives
+W2
+
+K⋆(x, ·), bK1(x, ·)
+
+≤W2(K⋆(x, ·), Kπ(x, ·)) +
+p
+dπ(x)
++ LZW2
+ qϕ(· | x), pη(· | x)
+
+.
+Taking the L2(µ0) norm and applying Minkowski’s inequality proves
+(SM2.10)
+E⋆( bK1) ≤εcpl +
+p
+Dπ + LZ∆Z.
+In particular, this is a triangle-inequality estimate, not an orthogonal decomposition of squared
+errors.
+Step 3: Gaussian control of the latent discrepancy.. Fix x and sample Y ∼Kπ(x, ·) and an
+independent ϵ ∼N(0, Idz). Define
+Z = mϕ(x, Y ) + sϕ(x, Y ) ⊙ϵ,
+Z′ = mη(x) + sη(x) ⊙ϵ.
+The marginal law of Z is the aggregated posterior, and the marginal law of Z′ is the prior.
+Hence,
+W 2
+2
+ qϕ(· | x), pη(· | x)
+
+≤
+Z 
+∥mϕ(x, y) −mη(x)∥2 + ∥sϕ(x, y) −sη(x)∥2
+Kπ(x, dy)
+≤2S2
+Z
+DKL(qϕ(· | x, y)∥pη(· | x)) Kπ(x, dy),
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM7
+where the second inequality follows from Lemma SM2.2. Integration with respect to µ0 gives
+∆2
+Z ≤2S2RKL.
+This argument does not assume that the aggregated posterior is Gaussian; it explicitly couples
+the mixture to the Gaussian prior.
+Finally, substitute this estimate and
+Dπ ≤Ψdec(Ldec)
+from the appropriate reconstruction theorem into (SM2.10). This yields
+E⋆( bK1) ≤εcpl +
+p
+Ψdec(Ldec) +
+√
+2 LZS
+p
+RKL,
+as claimed.
+SM2.4. Proof of Proposition 4.4.
+Proof. Fix a fate k and a radius ρ > 0. Recall
+Γ =
+K
+[
+j=1
+∂Bj,
+Γρ = {y : dist(y, Γ) ≤ρ}.
+For any y, by ∈Rd,
+(SM2.11)
+|1Bk(y) −1Bk(by)| ≤1Γρ(y) + 1{∥y−by∥>ρ}.
+Indeed, if y /∈Γρ and ∥y −by∥≤ρ, the line segment joining the two points does not intersect
+∂Bk. Membership in Bk cannot change along this segment, so the two indicators agree. No
+smoothness of the boundary is required for this observation.
+For fixed x, let λ be any coupling of K⋆(x, ·) and bK1(x, ·). Using (SM2.11),
+|p⋆
+k(x) −bpk(x)| ≤
+Z
+|1Bk(y) −1Bk(by)| λ(dy, dby)
+≤K⋆(x, Γρ) + λ{∥y −by∥> ρ}
+≤K⋆(x, Γρ) + 1
+ρ2
+Z
+∥y −by∥2λ(dy, dby).
+Taking the infimum over λ gives the pointwise estimate
+(SM2.12)
+|p⋆
+k(x) −bpk(x)| ≤K⋆(x, Γρ) + W 2
+2 (K⋆(x, ·), bK1(x, ·))
+ρ2
+.
+This pointwise argument does not require selecting optimal couplings measurably as a function
+of x.
+Integrating against µ0 and using the true terminal marginal,
+Z
+K⋆(x, Γρ) µ0(dx) = µ1(Γρ),
+
+
+SM8
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+we obtain
+∥p⋆
+k −bpk∥L1(µ0) ≤µ1(Γρ) + E2
+⋆( bK1)
+ρ2
+.
+The right-hand side is independent of k, so the same estimate holds after taking the maximum
+over fates. Theorem 4.3 gives the further bound obtained by replacing E⋆with Bdec.
+Finally, Γ is closed because it is a finite union of boundaries. Therefore Γρ ↓Γ as ρ ↓0,
+and
+µ1(Γρ) −→µ1(Γ).
+If µ1(Γ) = 0, first choose ρ so that the boundary mass is small, and then let the conditional
+reconstruction error tend to zero with this ρ fixed. This proves the stated convergence of the
+average fate probabilities.
+SM2.5. Proof of Monte-Carlo error bound.
+Proposition SM2.3 (Monte Carlo estimation error).
+For each a and k, the estimator
+(SM2.13)
+bp(N)
+k
+(xa) = 1
+N
+N
+X
+ℓ=1
+1Bk(bYa,ℓ).
+is unbiased for bpk(xa) and satisfies
+(SM2.14)
+EMC
+bp(N)
+k
+(xa) −bpk(xa)
+
+2
+= bpk(xa)(1 −bpk(xa))
+N
+≤
+1
+4N .
+Moreover, for any δ ∈(0, 1), with probability at least 1 −δ,
+(SM2.15)
+max
+1≤a≤n
+1≤k≤K
+bp(N)
+k
+(xa) −bpk(xa)
+ ≤ϵMC,
+where
+(SM2.16)
+ϵMC =
+r
+log(2nK/δ)
+2N
+.
+Proof. Condition on the fitted model and the query states. For fixed a and k, set
+Iℓ= 1Bk(bYa,ℓ),
+p = bpk(xa).
+The variables I1, . . . , IN are independent Bernoulli variables with success probability p. Thus,
+EMCbp(N)
+k
+(xa) = p,
+and independence gives
+EMC
+bp(N)
+k
+(xa) −p
+
+2
+= VarMC
+ 
+1
+N
+N
+X
+ℓ=1
+Iℓ
+!
+= p(1 −p)
+N
+≤
+1
+4N .
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM9
+For completeness, we give the exponential-moment argument for the required concentra-
+tion bound. For a Bernoulli variable I with success probability p, define
+H(λ) = log Eeλ(I−p) = log(1 −p + peλ) −pλ.
+Then H(0) = H′(0) = 0, and
+H′′(λ) = ϑλ(1 −ϑλ) ≤1
+4,
+ϑλ =
+peλ
+1 −p + peλ .
+Taylor’s formula therefore implies
+Eeλ(I−p) ≤eλ2/8
+for every λ ∈R.
+By independence and exponential Markov’s inequality, for ε > 0 and λ > 0,
+PMC
+ 
+1
+N
+N
+X
+ℓ=1
+Iℓ−p ≥ε
+!
+≤exp
+
+−Nλε + Nλ2
+8
+
+.
+Choosing λ = 4ε gives the upper-tail bound e−2Nε2. Applying the same argument to the
+negative centered sum gives
+(SM2.17)
+PMC
+bp(N)
+k
+(xa) −bpk(xa)
+ > ε
+
+≤2e−2Nε2.
+This is the Bernoulli form of Hoeffding’s inequality.
+A union bound over the nK pairs (a, k) gives
+PMC
+
+max
+a,k
+bp(N)
+k
+(xa) −bpk(xa)
+ > ε
+
+≤2nKe−2Nε2.
+Set
+ε = ϵMC =
+r
+log(2nK/δ)
+2N
+.
+The right-hand side then equals δ, proving the claimed simultaneous bound. Independence
+between indicators of different fates is not needed for this union-bound step.
+SM2.6. Proof of Corollary 4.5.
+Proof. Let Aδ be the event
+max
+a,k
+bp(N)
+k
+(xa) −bpk(xa)
+ ≤ϵMC.
+By Proposition SM2.3, PMC(Aδ) ≥1 −δ. On this event, for every fate k,
+n
+X
+a=1
+ωa
+bp(N)
+k
+(xa) −p⋆
+k(xa)
+
+≤
+n
+X
+a=1
+ωa |bpk(xa) −p⋆
+k(xa)| +
+n
+X
+a=1
+ωa
+bp(N)
+k
+(xa) −bpk(xa)
+
+≤∥bpk −p⋆
+k∥L1(µ0) + ϵMC,
+
+
+SM10
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+Table SM1: Experimental datasets. Here we use low dimension representation of real datasets
+deduced from standard SPRING[SM23] method.
+Dataset
+Time interval
+Source cells
+Target cells
+Synthetic branching
+0 →1
+1,000
+5,000
+Hematopoiesis
+Day 2→Day 6
+1144
+6477
+Reprogramming
+Day 15→Day 28
+1897
+5945
+where we used µ0 = P
+a ωaδxa and P
+a ωa = 1. Proposition 4.4 now implies that, on the same
+event and for every ρ > 0,
+max
+k
+n
+X
+a=1
+ωa
+bp(N)
+k
+(xa) −p⋆
+k(xa)
+ ≤µ1(Γρ) + B2
+dec
+ρ2
++ ϵMC.
+Taking the infimum over ρ > 0 and substituting the expression for ϵMC proves
+max
+k
+n
+X
+a=1
+ωa
+bp(N)
+k
+(xa) −p⋆
+k(xa)
+
+≤inf
+ρ>0
+
+µ1(Γρ) + B2
+dec
+ρ2
+
++
+r
+log(2nK/δ)
+2N
+.
+The event Aδ does not depend on ρ. Thus, taking this infimum introduces no additional
+probability penalty.
+SM3. Additional Experimental Details and Results. This section provides the implemen-
+tation settings, numerical-integration comparisons, hyperparameter sensitivity results, and
+additional hematopoietic reconstruction scores. We also present qualitative comparisons of
+the learned fields, latent representations, and baseline fate maps. Population reconstruction
+and fate-probability accuracy are reported separately throughout.
+SM3.1. Experimental setup and evaluation protocol.
+Data and implementation. The controlled benchmark is a two-dimensional branching sys-
+tem with an analytically specified branch probability. The biological applications use barcode-
+resolved hematopoietic data from LARRY [SM22] and direct-reprogramming data from CellT-
+agging [SM1]. Dataset sizes and the correspondence between experimental and rescaled times
+are recorded in Table SM1.
+The reported LIFT implementation uses multilayer perceptrons with ReLU activations
+for the encoder, conditional prior, and decoder, with a two-dimensional latent variable in
+the principal experiments. Training uses Adam and the objective introduced in Section 3.3.
+Our timing results were obtained on an Intel i7-13700 CPU. Dataset-specific network widths,
+optimization parameters, and sensitivity results are contained below.
+Training couplings and comparison methods. We compare geometric endpoint couplings with
+lineage-informed couplings, denoted by πgeo and πlin. The latter use shared barcodes to restrict
+the admissible source–target relationships; the reprogramming experiment additionally uses
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM11
+OT within each retained clone. During LIFT sampling, only the molecular state is provided
+to the conditional prior. Barcode labels and terminal states are not inputs to the sampling
+network.
+The primary comparisons include deterministic CFM and Mean Flow, the score-matching
+baseline denoted SM. We also compare latent decoders sharing the encoder–prior construction:
+a static MLP, an FM decoder, and the Mean Flow decoder used by LIFT. These experiments
+distinguish changes in the coupling from changes in the generator.
+Evaluation and data separation. Population reconstruction is assessed by a Wasserstein
+distance in the evaluation state representation. Conditional evaluation uses analytic branch
+probabilities in the controlled benchmark and lineage derived outcome information in the bi-
+ological applications. LIFT probabilities are estimated using 1,000 independent prior samples
+per initial state. The terminal fate assignment rule is shared across methods and is specified
+by using the convex hull as fate region. Throughout evaluated datasets, convex hulls of dif-
+ferent labeled fates do not intersect so this assignment is well-defined. As for evaluation, we
+randomly separate cells from 20% barcodes as test set.
+SM3.2. LIFT implementation. The encoder, conditional prior, and Mean Flow decoder
+are multilayer perceptrons with ReLU activations. The encoder receives the concatenated
+endpoint pair (x, y) and parameterizes a diagonal Gaussian latent posterior. The conditional
+prior parameterizes a diagonal Gaussian using x alone. The decoder receives the state, latent
+variable, starting time, and terminal time, and returns the interval-average velocity.
+The
+networks are trained jointly with Adam. Table SM2 lists the dataset-specific architecture
+and optimization settings; the real-data configuration is shared by the hematopoiesis and
+reprogramming experiments.
+Table SM2: LIFT architecture and training parameters.
+Widths specify hidden layers in
+order. The real-data column applies to both lineage-traced scRNA-seq applications. ReLU
+activations and Adam optimization are used throughout.
+Parameter
+Synthetic
+Real data
+Encoder widths
+32, 64, 32
+32, 128, 128, 32
+Prior widths
+32, 64, 32
+32, 128, 128, 32
+Decoder widths
+32, 64, 32
+32, 64, 128, 64, 32
+Latent dimension dz
+2
+2
+Regularization weight β
+10
+2
+Reconstruction weight C
+1
+10
+Learning rate
+10−3
+10−4
+Batch size
+1,000
+1,024
+Training iterations
+5,000
+20,000
+Training pairs are sampled from the prescribed coupling π, and latent variables are sampled
+from qϕ(· | x, y) using reparameterization. The time variables are sampled as t ∼U[0, 1] and
+r | t ∼U[0, t]. The directional derivative in the Mean Flow target is computed by a Jacobian–
+
+
+SM12
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+vector product, and the target is detached during parameter updates. The KL divergences
+between diagonal Gaussians are evaluated analytically. These operations follow the training
+algorithm in the main article.
+At inference, the encoder is not used. Given an initial state x, we sample Z ∼pη(· | x)
+and evaluate
+b
+Xt = x + t uθ(x, Z; 0, t).
+The same latent realization is retained across requested times along one generated path. Fate
+probabilities are estimated from 1,000 independent latent samples per initial state. The real-
+data experiments use the two-dimensional SPRING representations described in the main
+article. Barcode information is incorporated through the coupling rather than as an input to
+the sampling network. Timing measurements are obtained on an Intel i7-13700 CPU.
+SM3.3. Hyperparameter sensitivity. We vary the latent dimension dz, reconstruction
+weight C, and standard-Gaussian regularization weight β on the synthetic branching bench-
+mark. One parameter is varied at a time, with the others fixed at the default values (dz, C, β) =
+(2, 1, 10). Table SM3 gives the complete results for α ∈{0.5, 1, 2}.
+Table SM3: Hyperparameter sensitivity on the synthetic branching benchmark. The default
+setting is (dz, C, β) = (2, 1, 10). Lower values are better for W2 and PE.
+α = 0.5
+α = 1
+α = 2
+Parameter
+Value
+W2
+PE
+W2
+PE
+W2
+PE
+Latent dimension dz
+1
+0.417
+0.135
+0.288
+0.577
+0.302
+1.212
+2
+0.266
+0.121
+0.268
+0.457
+0.280
+0.809
+4
+0.277
+0.122
+0.306
+0.334
+0.379
+1.095
+Reconstruction weight C
+0.5
+0.250
+0.179
+0.279
+0.537
+0.261
+0.936
+1
+0.266
+0.121
+0.268
+0.457
+0.280
+0.809
+2
+0.272
+0.199
+0.286
+0.446
+0.279
+0.569
+4
+0.290
+0.207
+0.335
+0.431
+0.367
+0.670
+Regularization weight β
+1
+0.367
+0.362
+0.294
+0.538
+0.309
+1.175
+3
+0.259
+0.198
+0.303
+0.367
+0.279
+0.840
+5
+0.257
+0.216
+0.286
+0.382
+0.275
+0.936
+10
+0.266
+0.121
+0.268
+0.457
+0.280
+0.809
+These results support the default configuration as a balanced choice across the tested
+regimes, rather than a uniformly optimal setting.
+SM3.4. Ablation on LIFT components.
+Separating representation from decoding. We next keep the encoder and conditional prior
+and change the decoder: a static latent MLP, a latent FM decoder, or the latent Mean Flow
+decoder. The FM decoder in this ablation includes Z and should not be confused with the
+unaugmented CFM baseline in Table 1.
+The results in Table SM4 show a trade-off rather than uniform dominance. Latent FM
+gives the lowest population W2 in all three settings, while latent Mean Flow gives the lowest
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM13
+Table SM4: Latent-decoder ablation. FM uses 100 Euler steps. Times are milliseconds per
+batch of 1,000 points on the reported CPU, averaged over 100 timing measurements. All three
+variants retain latent conditioning.
+α = 0.5
+α = 1
+α = 2
+Decoder
+Time
+W2
+PE
+W2
+PE
+W2
+PE
+Latent FM
+43.16
+0.201
+0.928
+0.234
+0.805
+0.267
+1.714
+Latent MLP
+0.8516
+0.280
+0.350
+0.413
+0.813
+0.379
+1.325
+Latent Mean Flow 0.9607
+0.259
+0.198
+0.268
+0.457
+0.280
+0.809
+PE and avoids iterative integration. The static MLP is slightly faster than Mean Flow but has
+larger probability errors. Thus, the advantage of the proposed decoder is not that one-step
+generation is unique to Mean Flow, but that it combines low sampling cost with accurate
+conditional fate prediction in these experiments.
+SM3.5. Additional qualitative comparisons.
+Conditioned prediction fields. Figure SM1 displays the instantaneous velocity fields of CFM
+and the interval-average velocity outputs of the unaugmented Mean Flow model. Both exhibit
+a low-magnitude region separating the two branch-directed regimes.
+In Figure SM2, the
+location of this separating region changes with the latent code in LIFT. For a fixed code, the
+prediction remains deterministic, but different codes allow the same observed state to receive
+different predictions. This provides a qualitative illustration of latent conditioning; it is not a
+proof of nonintersection or of a topological property of the learned dynamics.
+Posterior and conditional-prior representations. Figure SM3 compares posterior means mϕ(x, y)
+and conditional-prior means mη(x) for the hematopoietic application. Endpoint pairs associ-
+ated with Mo and Neu outcomes occupy different regions in the posterior representation. The
+encoder receives the terminal state, so this separation illustrates how endpoint information
+is encoded, rather than an independent prediction made from the initial state. The prior
+representation uses the initial state alone and also shows fate-associated structure. Fate prob-
+abilities, however, are obtained by sampling the full prior and applying the decoder, not by
+assigning a fate to the prior mean. These visualizations characterize learned representations
+without identifying a latent biological mechanism.
+Baseline fate maps. Figures SM4 provide the complete baseline fate maps for the hematopoiesis
+applications. The maps compare geometric and lineage-informed couplings for CFM and Mean
+Flow, together with SM. They complement the numerical population and probability scores
+by showing where the spatial patterns of predicted fates differ. Gray regions in the baseline
+visualizations mark predictions outside the assigned fate regions, rather than an additional
+biological fate. The maps should be read together with the quantitative comparisons, since
+visually separated outcomes do not by themselves establish accurate conditional probabilities
+or irreversible fate commitment.
+REFERENCES
+
+
+SM14
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+Figure SM1: Vector fields derived by standard conditional flow matching (a-c) and mean
+vector fields derived by standard mean flow (d-f).
+[1] B. A. Biddy, W. Kong, K. Kamimoto, C. Guo, S. E. Waye, T. Sun, and S. A. Morris, Single-cell
+mapping of lineage and identity in direct reprogramming, Nature, 564 (2018), pp. 219–224, https:
+//doi.org/10.1038/s41586-018-0744-4.
+[2] V. De Bortoli, G.-H. Liu, T. Chen, E. A. Theodorou, and W. Nie, Augmented bridge matching,
+2023, https://doi.org/10.48550/arXiv.2311.06978.
+[3] A. Forrow and G. Schiebinger, LineageOT is a unified framework for lineage tracing and trajectory
+inference, Nature Communications, 12 (2021), p. 4940, https://doi.org/10.1038/s41467-021-25133-1.
+[4] Z. Geng, M. Deng, X. Bai, J. Z. Kolter, and K. He, Mean flows for one-step generative model-
+ing, in Advances in Neural Information Processing Systems, vol. 38, 2025, https://doi.org/10.52202/
+085713-2534.
+[5] P. Guo and A. Schwing, Variational rectified flow matching, in Proceedings of the 42nd International
+Conference on Machine Learning, vol. 267 of Proceedings of Machine Learning Research, PMLR,
+2025, pp. 20921–20940, https://proceedings.mlr.press/v267/guo25i.html.
+[6] W. Hoeffding, Probability inequalities for sums of bounded random variables, Journal of the American
+Statistical Association, 58 (1963), pp. 13–30, https://doi.org/10.1080/01621459.1963.10500830.
+[7] D. P. Kingma and M. Welling, Auto-encoding variational Bayes, in International Conference on
+Learning Representations, 2014, https://arxiv.org/abs/1312.6114.
+[8] D. P. Kingma and M. Welling, An introduction to variational autoencoders, Foundations and Trends
+in Machine Learning, 12 (2019), pp. 307–392, https://doi.org/10.1561/2200000056.
+[9] M. Lange, Z. Piran, M. Klein, B. Spanjaard, D. Klein, J. P. Junker, F. J. Theis, and M. Nitzan,
+Mapping lineage-traced cells across time points with moslin, Genome Biology, 25 (2024), p. 277,
+https://doi.org/10.1186/s13059-024-03422-4.
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM15
+(a)
+(b)
+(c)
+Figure SM2: Vector fields derived by LIFT with different latent variable z.
+(a)
+(b)
+Figure SM3: Latent representations in the hematopoietic experiment. (a) Posterior means
+mϕ(x, y), which use both endpoints. (b) Conditional-prior means mη(x), which use the initial
+state only. Colors indicate the Mo and Neu fate annotations associated with the displayed
+observations.
+[10] Y. Lipman, R. T. Q. Chen, H. Ben-Hamu, M. Nickel, and M. Le, Flow matching for generative
+modeling, in International Conference on Learning Representations, 2023, https://arxiv.org/abs/2210.
+02747.
+[11] K. Majima, Y. Kojima, K. Minoura, K. Abe, H. Hirose, and T. Shimamura, LineageVAE: recon-
+structing historical cell states and transcriptomes toward unobserved progenitors, Bioinformatics, 40
+(2024), p. btae520, https://doi.org/10.1093/bioinformatics/btae520.
+[12] G. Peyr´e and M. Cuturi, Computational optimal transport with applications to data sciences, Founda-
+tions and Trends in Machine Learning, 11 (2019), pp. 355–607, https://doi.org/10.1561/2200000073.
+[13] W. Saelens, R. Cannoodt, H. Todorov, and Y. Saeys, A comparison of single-cell trajec-
+tory inference methods, Nature Biotechnology, 37 (2019), pp. 547–554, https://doi.org/10.1038/
+s41587-019-0071-9.
+[14] G. Schiebinger, J. Shu, M. Tabaka, B. Cleary, V. Subramanian, A. Solomon, J. Gould,
+S. Liu, S. Lin, P. Berube, L. Lee, J. Chen, J. Brumbaugh, P. Rigollet, K. Hochedlinger,
+
+
+SM16
+B. YANG, J. YING, Y. WANG, P. ZHOU AND L. ZHANG
+(a) MF-Geo
+(b) MF-Lin
+(c) CFM-Geo
+(d) CFM-Lin
+(e) SM
+Figure SM4:
+Visualization of cell fate probabilities for other baseline methods on the
+hematopoiesis dataset. Colors match the main text.
+R. Jaenisch, A. Regev, and E. S. Lander, Optimal-transport analysis of single-cell gene ex-
+pression identifies developmental trajectories in reprogramming, Cell, 176 (2019), pp. 928–943.e22,
+https://doi.org/10.1016/j.cell.2019.01.006.
+[15] M. Setty, V. Kiseliovas, J. Levine, A. Gayoso, L. Mazutis, and D. Pe’er, Characterization of
+cell fate probabilities in single-cell data with Palantir, Nature Biotechnology, 37 (2019), pp. 451–460,
+https://doi.org/10.1038/s41587-019-0068-4.
+[16] K. Sohn, H. Lee, and X. Yan, Learning structured output representation using deep conditional
+generative models, in Advances in Neural Information Processing Systems, vol. 28, 2015, https:
+//papers.nips.cc/paper files/paper/2015/hash/8d55a249e6baa5c06772297520da2051-Abstract.html.
+[17] A. Tong, K. Fatras, N. Malkin, G. Huguet, Y. Zhang, J. Rector-Brooks, G. Wolf,
+and Y. Bengio, Improving and generalizing flow-based generative models with minibatch optimal
+transport, Transactions on Machine Learning Research, (2024), https://openreview.net/forum?id=
+CD9Snc73AW.
+[18] A. Tong, J. Huang, D. Wolf, Guyand van Dijk, and S. Krishnaswamy, Trajectorynet: A dynamic
+optimal transport network for modeling cellular dynamics, in Proceedings of the 37th International
+Conference on Machine Learning, vol. 119 of Proceedings of Machine Learning Research, PMLR,
+2020, pp. 9526–9536, https://proceedings.mlr.press/v119/tong20a.html.
+[19] A. Y. Tong, N. Malkin, K. Fatras, L. Atanackovic, Y. Zhang, G. Huguet, G. Wolf, and
+Y. Bengio, Simulation-free Schr¨odinger bridges via score and flow matching, in Proceedings of The
+27th International Conference on Artificial Intelligence and Statistics, vol. 238 of Proceedings of
+Machine Learning Research, PMLR, 02–04 May 2024, pp. 1279–1287, https://proceedings.mlr.press/
+v238/tong24a.html.
+[20] S.-W. Wang, M. J. Herriges, K. Hurley, D. N. Kotton, and A. M. Klein, CoSpar identifies
+
+
+SUPPLEMENTARY MATERIALS: LIFT
+SM17
+early cell fate biases from single-cell transcriptomic and lineage information, Nature Biotechnology,
+40 (2022), pp. 1066–1074, https://doi.org/10.1038/s41587-022-01209-1.
+[21] P. Weiler, M. Lange, M. Klein, et al., CellRank 2: unified fate mapping in multiview single-cell
+data, Nature Methods, 21 (2024), pp. 1196–1205, https://doi.org/10.1038/s41592-024-02303-9.
+[22] C. Weinreb, A. Rodriguez-Fraticelli, F. D. Camargo, and A. M. Klein, Lineage tracing on
+transcriptional landscapes links state to fate during differentiation, Science, 367 (2020), p. eaaw3381,
+https://doi.org/10.1126/science.aaw3381.
+[23] C. Weinreb, S. Wolock, and A. M. Klein, SPRING: a kinetic interface for visualizing high dimen-
+sional single-cell expression data, Bioinformatics, 34 (2018), pp. 1246–1248, https://doi.org/10.1093/
+bioinformatics/btx792, https://doi.org/10.1093/bioinformatics/btx792.
+[24] G. H. T. Yeo, S. D. Saksena, and D. K. Gifford, Generative modeling of single-cell time series with
+PRESCIENT enables prediction of cell trajectories with interventions, Nature Communications, 12
+(2021), p. 3222, https://doi.org/10.1038/s41467-021-23518-w.

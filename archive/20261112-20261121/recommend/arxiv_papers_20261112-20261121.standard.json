@@ -1,0 +1,192 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-21T18:41:20.964663+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 2,
+    "deep_cap": 7,
+    "deep_selected": 2,
+    "quick_candidates": 2,
+    "quick_skim_target": 12,
+    "quick_selected": 2
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-11-19-767979-v1",
+      "source": "biorxiv",
+      "title": "Combinatorial perturbation structure enables graded inference of signaling activity by CIRCE",
+      "abstract": "Cells decode external inputs into intracellular activities of varying magnitude, and inferring both input identity and strength is crucial for cell-fate engineering. However, perturbation-response models typically treat all cells exposed to a given input as a discrete class, ignoring cell-to-cell variation in response magnitude. Here, we introduce a structured-label framework that infers both input identity and strength from combinatorial perturbation screens without dose-resolved training labels. We represent each perturbation combination in a binary combinatorial space and replace one-hot supervision with a Boltzmann distribution that decays with the Hamming distance between combinations. This approach preserves classification accuracy while improving calibration and resolving continuous pathway activities across individual cells. Importantly, intermediate scores primarily reflect ambiguity in cellular response states rather than insufficient model knowledge. Applied to engineered and natural tissues, the calibrated model successfully recovered graded activities. These results establish combinatorial perturbation screens as a self-calibrating framework for decoding graded cellular responses.",
+      "authors": [
+        "Hutchins, N. T.",
+        "Maffa, S.",
+        "Lu, C.",
+        "Li, P."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-20T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.19.767979v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "perturbation-response modeling with graded inference of perturbation identity and strength",
+      "llm_evidence_cn": "扰动响应建模，可分级推断扰动身份与强度",
+      "llm_evidence": "扰动响应建模，可分级推断扰动身份与强度",
+      "canonical_evidence": "扰动响应建模，可分级推断扰动身份与强度",
+      "llm_tldr_en": "Perturbation-response models treat cells under one input as a single class, ignoring response magnitude. CIRCE uses a binary combinatorial label space with Boltzmann-distributed soft supervision to infer both input identity and strength from combinatorial screens.",
+      "llm_tldr_cn": "现有扰动响应模型通常把同一输入下的细胞当作单一离散类别，忽略响应强度的细胞间差异。作者提出CIRCE，用二元组合空间表示扰动组合，并以随汉明距离衰减的玻尔兹曼分布替代one-hot监督，从而在无剂量标签的组合筛选中同时推断输入身份与强度。结果表明该结构化标签框架在保持分类性能的同时实现了响应强度的分级推断。这为细胞命运工程中的扰动建模提供了更细致的监督范式。",
+      "llm_tldr": "现有扰动响应模型通常把同一输入下的细胞当作单一离散类别，忽略响应强度的细胞间差异。作者提出CIRCE，用二元组合空间表示扰动组合，并以随汉明距离衰减的玻尔兹曼分布替代one-hot监督，从而在无剂量标签的组合筛选中同时推断输入身份与强度。结果表明该结构化标签框架在保持分类性能的同时实现了响应强度的分级推断。这为细胞命运工程中的扰动建模提供了更细致的监督范式。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation modeling",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-1101-2024-11-22-624797-v2",
+      "source": "biorxiv",
+      "title": "Mapping whole-tissue spatial multi-omics at single-cell resolution with STEP",
+      "abstract": "Spatial omics technologies have revolutionized our ability to map transcriptomic, proteomic, or metabolomic profiles within tissue contexts. However, existing spatial multi-omics approaches emphasize clustering or domain identification from measured profiles, while a general framework for whole-slice mapping in measured and unmeasured areas at single-cell resolution across additional omics layers remains lacking. Here we introduce STEP, a computational framework that integrates probabilistic inference with deep learning for flexible integration of histology, spatially resolved transcriptomics (SRT), single-cell, and/or multi-omics data. We validated STEP's advantages across diverse applications. Furthermore, STEP enables tri-modal integration of Xenium, CITE-seq, and imaging mass cytometry to map transcriptome-wide gene expression and protein profiles from a small gene panel. Through quadra-modal integration of SRT, histology, single-nucleus RNA sequencing, and inCITE-seq, STEP reconstructs a 3D multi-omics brain cell atlas from six low-resolution SRT sections. Collectively, STEP provides a cost-effective tool for exploring spatial biology by integrating diverse, complementary modalities.",
+      "authors": [
+        "Hu, Z.",
+        "Zhu, Z.",
+        "Cai, L.",
+        "Zhan, Y.",
+        "Yan, X.",
+        "Wang, Z.",
+        "Chen, J.",
+        "Sun, B.",
+        "Jiang, S.",
+        "Du, S.",
+        "Wang, H.",
+        "Li, X.",
+        "Wang, F.",
+        "Wang, G.",
+        "Zou, Q.",
+        "Du, Y.",
+        "Yuan, Z.",
+        "Zhang, Y."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-20T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.1101/2024.11.22.624797v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Integrates histology with spatial transcriptomics and single-cell data for whole-slice molecular mapping",
+      "llm_evidence_cn": "整合组织学图像与空间转录组、单细胞数据进行全切片分子图谱映射",
+      "llm_evidence": "整合组织学图像与空间转录组、单细胞数据进行全切片分子图谱映射",
+      "canonical_evidence": "整合组织学图像与空间转录组、单细胞数据进行全切片分子图谱映射",
+      "llm_tldr_en": "STEP integrates histology, spatial transcriptomics and single-cell data through probabilistic inference and deep learning to map whole-tissue spatial multi-omics at single-cell resolution.",
+      "llm_tldr_cn": "空间组学技术可在组织环境中绘制转录组、蛋白组等图谱，但现有方法多聚焦聚类或区域识别，缺乏在测量与未测量区域进行全切片单细胞分辨率多组学映射的通用框架。作者提出STEP计算框架，将概率推断与深度学习结合，灵活整合组织学图像、空间转录组、单细胞与多组学数据。在多种应用中验证了其优势，并支持三模态整合。",
+      "llm_tldr": "空间组学技术可在组织环境中绘制转录组、蛋白组等图谱，但现有方法多聚焦聚类或区域识别，缺乏在测量与未测量区域进行全切片单细胞分辨率多组学映射的通用框架。作者提出STEP计算框架，将概率推断与深度学习结合，灵活整合组织学图像、空间转录组、单细胞与多组学数据。在多种应用中验证了其优势，并支持三模态整合。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2611.25584v1",
+      "source": "arxiv",
+      "title": "An Explainable and Scalable Hierarchical Tensor Framework for Integrating Multi-Omics and Digital Pathomics",
+      "abstract": "Background: Precision oncology requires integration of heterogeneous molecular and pathology data, yet many fusion models offer limited biologically grounded interpretability and struggle with missing modalities.   Methods: We present Hierarchical Interpretable Tensor Fusion (HIT-Fuse), integrating six modalities: somatic copy number variation, DNA methylation, RNA sequencing, microRNA expression, RPPA protein abundance, and vision transformer-derived pathomics across four TCGA cohorts (glioma, lung adenocarcinoma, breast, and kidney cancer). Modality-specific autoencoders compress high-dimensional inputs, followed by two-stage CP tensor decomposition. Missing latent modalities are reconstructed using clinical covariates and observed omics to expand cohorts and retrain downstream models. A mathematical traceback mechanism enables global and local xAI attributions.   Results: HIT-Fuse identifies distinct latent subgroups with significant survival stratification in glioma, breast, and kidney cohorts, both with complete and reconstructed modalities. Cohort expansion yields cohort-specific gains, including a 56.4% relative increase in weighted F1 for glioma. Biological validation against DepMap CRISPR screens, miRTarBase and RPPA annotations supports decoded drivers across all four cohorts. Essential gene rates range from 6.2% in glioma to 7.6% in lung cancer; example drivers include ANAPC11, SNRPD1, PLK1 and RPL14. Of decoded miRNAs, 71-92% have miRTarBase regulatory support, while 77-84% of selected genes are covered in DepMap.   Conclusions: HIT-Fuse combines hierarchical tensor fusion, missing-modality reconstruction and traceable attributions to support interpretable multi-omics and digital pathology-based cancer prognosis across heterogeneous cohorts.",
+      "authors": [
+        "Ahmad Hussein",
+        "Ali Anaissi",
+        "Mukesh Prasad",
+        "Ali Braytee"
+      ],
+      "primary_category": "q-bio.GN",
+      "categories": [
+        "q-bio.GN",
+        "cs.AI"
+      ],
+      "published": "2026-11-19T06:27:17+00:00",
+      "link": "https://arxiv.org/pdf/2611.25584v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "multimodal fusion of pathomics image features with transcriptomic and other omics data",
+      "llm_evidence_cn": "病理图像特征与转录组等多组学的多模态融合",
+      "llm_evidence": "病理图像特征与转录组等多组学的多模态融合",
+      "canonical_evidence": "病理图像特征与转录组等多组学的多模态融合",
+      "llm_tldr_en": "Fusion models for precision oncology often lack interpretability and break with missing modalities. HIT-Fuse compresses six molecular and pathomics modalities with autoencoders and applies two-stage CP tensor decomposition, reconstructing missing latent modalities across four TCGA cohorts.",
+      "llm_tldr_cn": "精准肿瘤学需要整合分子与病理数据，但许多融合模型可解释性不足且难以处理模态缺失。作者提出HIT-Fuse，对拷贝数变异、DNA甲基化、RNA测序、microRNA、RPPA蛋白与ViT病理组学六种模态分别用自编码器降维，再做两阶段CP张量分解，并借助临床协变量重建缺失的潜在模态。在四个TCGA队列上实现了可解释且可扩展的多组学与数字病理融合。该框架展示了图像与基因表达等多模态联合建模的可行路径。",
+      "llm_tldr": "精准肿瘤学需要整合分子与病理数据，但许多融合模型可解释性不足且难以处理模态缺失。作者提出HIT-Fuse，对拷贝数变异、DNA甲基化、RNA测序、microRNA、RPPA蛋白与ViT病理组学六种模态分别用自编码器降维，再做两阶段CP张量分解，并借助临床协变量重建缺失的潜在模态。在四个TCGA队列上实现了可解释且可扩展的多组学与数字病理融合。该框架展示了图像与基因表达等多模态联合建模的可行路径。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2611.25917v1",
+      "source": "arxiv",
+      "title": "LIFT: Latent Flow Matching for Probabilistic Cell Fate Dynamics with Single Cell Snapshots",
+      "abstract": "Lineage tracing links cell states through clonal ancestry, but does not generally identify unique source-descendant pairings. Learning from such data therefore requires a model of conditional outcomes, rather than only the terminal population distribution. We introduce LIFT, a latent flow framework for probabilistic cell-state generation from lineage-informed couplings. Variational inference encodes alternative outcomes in a latent space, while a conditional prior enables sampling from the initial state alone. A Mean Flow decoder predicts future cell state directly, requiring one decoder evaluation per sampling, which makes it convenient to predict cell fate through large scale Monte-Carlo sampling. This construction combines a representation of one-to-many relationships with efficient sampling and an analysis of conditional prediction error. Experiments on synthetic and real datasets demonstrate LIFT's ability to recover both population distribution and cell fate probabilities.",
+      "authors": [
+        "Bowen Yang",
+        "Junda Ying",
+        "Yuxuan Wang",
+        "Peijie Zhou",
+        "Lei Zhang"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-11-19T11:04:01+00:00",
+      "link": "https://arxiv.org/pdf/2611.25917v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "probabilistic model predicting future cell states from single-cell snapshots",
+      "llm_evidence_cn": "从单细胞快照预测未来细胞状态的概率模型",
+      "llm_evidence": "从单细胞快照预测未来细胞状态的概率模型",
+      "canonical_evidence": "从单细胞快照预测未来细胞状态的概率模型",
+      "llm_tldr_en": "LIFT is a latent flow framework that models conditional cell-state outcomes from lineage-informed couplings, enabling one-step decoding for large-scale Monte-Carlo prediction of cell fate.",
+      "llm_tldr_cn": "谱系追踪能连接细胞状态的克隆祖先，但通常无法确定唯一源-后代配对，因此需要建模条件性结局而非仅终端群体分布。作者提出LIFT潜变量流框架，用变分推断在潜空间编码多种可能结局，并以条件先验支持仅从初始状态采样。Mean Flow解码器直接预测未来细胞状态，每次采样仅需一次解码评估，便于大规模蒙特卡洛模拟。该工作为单细胞层面的细胞命运与状态转变预测提供了高效概率建模工具。",
+      "llm_tldr": "谱系追踪能连接细胞状态的克隆祖先，但通常无法确定唯一源-后代配对，因此需要建模条件性结局而非仅终端群体分布。作者提出LIFT潜变量流框架，用变分推断在潜空间编码多种可能结局，并以条件先验支持仅从初始状态采样。Mean Flow解码器直接预测未来细胞状态，每次采样仅需一次解码评估，便于大规模蒙特卡洛模拟。该工作为单细胞层面的细胞命运与状态转变预测提供了高效概率建模工具。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

@@ -1,0 +1,2592 @@
+Mapping whole-tissue spatial multi-omics at single-cell resolution with STEP 
+1 
+Author Information 
+2 
+Zheqi Hu1,2,6,†, Zirui Zhu1,†, Linghan Cai1,†, Yangen Zhan1, Xiangming Yan1,3, Zhikang Wang2, Jingyun Chen1, Bingqian 
+3 
+Sun1, Songhan Jiang1, Sijing Du1, Hongpeng Wang1, Xiangtao Li4, Fang Wang5, Guohua Wang3, Qi Zou2, Yixuan Du2, 
+4 
+Zhiyuan Yuan2,6,*, and Yongbing Zhang1,7,*. 
+5 
+ 
+6 
+1 School of Computer Science and Technology, Harbin Institute of Technology (Shenzhen), Shenzhen, China 
+7 
+2 Institute of Science and Technology for Brain-Inspired Intelligence, Center for Medical Research and Innovation, 
+8 
+Shanghai Pudong Hospital, Fudan University Pudong Medical Center, Fudan University, Shanghai, China 
+9 
+3 Faculty of Computing, Harbin Institute of Technology, Harbin, China 
+10 
+4 School of Artificial Intelligence, Jilin University, Changchun, China 
+11 
+5 AI for Life Science Lab, Tencent, Shenzhen, China 
+12 
+6 Shanghai Academy of Artificial Intelligence for Science, Shanghai, China 
+13 
+7 Pengcheng Laboratory, Shenzhen, China 
+14 
+ 
+15 
+† These authors contributed equally to this work. 
+16 
+# Corresponding Author: 
+17 
+Zhiyuan Yuan (zhiyuan@fudan.edu.cn), Yongbing Zhang (ybzhang08@hit.edu.cn). 
+18 
+ 
+ 
+19 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+2 
+ 
+ 
+Abstract 
+20 
+Spatial omics technologies have revolutionized our ability to map transcriptomic, proteomic, or metabolomic profiles 
+21 
+within tissue contexts. However, existing spatial multi-omics approaches emphasize clustering or domain identification 
+22 
+from measured profiles, while a general framework for whole-slice mapping in measured and unmeasured areas at single-
+23 
+cell resolution across additional omics layers remains lacking. Here we introduce STEP, a computational framework that 
+24 
+integrates probabilistic inference with deep learning for flexible integration of histology, spatially resolved 
+25 
+transcriptomics (SRT), single-cell, and/or multi-omics data. We validated STEP’s advantages across diverse applications. 
+26 
+Furthermore, STEP enables tri-modal integration of Xenium, CITE-seq, and imaging mass cytometry to map 
+27 
+transcriptome-wide gene expression and protein profiles from a small gene panel. Through quadra-modal integration of 
+28 
+SRT, histology, single-nucleus RNA sequencing, and inCITE-seq, STEP reconstructs a 3D multi-omics brain cell atlas 
+29 
+from six low-resolution SRT sections. Collectively, STEP provides a cost-effective tool for exploring spatial biology by 
+30 
+integrating diverse, complementary modalities. 
+31 
+Introduction 
+32 
+Spatial omics technologies have transformed our understanding of biological systems by mapping transcriptomic, 
+33 
+proteomic, or metabolomic profiles in their native tissue context1–3. By preserving spatial information lost in non-spatial 
+34 
+assays, they reveal cellular organization, function, and interactions. An ideal goal is to efficiently construct whole-tissue 
+35 
+multi-omics maps across many sections at single-cell resolution. However, achieving this goal remains significantly 
+36 
+challenging4–6. 
+37 
+ 
+38 
+Spatially resolved transcriptomics (SRT) has advanced fastest among spatial omics technologies, but current platforms 
+39 
+remain limited7–9. Early sequencing-based SRT provides transcriptome-wide coverage but lacks single-cell resolution 
+40 
+because each spot contains multiple cells8. Recent platforms achieve transcriptome-wide single-cell profiling10,11, yet 
+41 
+some suffer from molecular lateral diffusion12 and others cannot cover entire tissue sections13. These shortcomings hinder 
+42 
+the integration and joint analysis of such data with other spatial modalities, such as whole-slide spatially precise 
+43 
+proteomics data. Notably, although some platforms claim subcellular resolution, analyses often aggregate signals at the 
+44 
+cell level for robust interpretation (Supplementary Note 1). Imaging-based SRT offers single-cell resolution but requires 
+45 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+3 
+ 
+ 
+predefined gene panels and lengthy cyclic imaging8. Single-cell RNA sequencing (scRNA-seq) provides comprehensive 
+46 
+single-cell transcriptomes without spatial context14. Recent advances in spatial multi-omics technologies offer a promising 
+47 
+route toward this ideal15–18, but achieving robust single-cell resolution remains challenging, and high costs and technical 
+48 
+complexity limit widespread adoption. Computational integration of complementary single-modality data thus offers a 
+49 
+practical, scalable way to approximate the ideal experiment19. 
+50 
+ 
+51 
+Existing computational approaches have primarily focused on the pairwise integration of these modalities. Gene 
+52 
+imputation combines imaging-based SRT with scRNA-seq for transcriptome-wide coverage20–22, while deconvolution 
+53 
+combines sequencing-based SRT with scRNA-seq to improve cell typing23–25. Other methods enhance SRT resolution to 
+54 
+the subspot level26, predict gene expression from hematoxylin and eosin (H&E) images at spot or pixel resolution27,28, or 
+55 
+infer cellular composition and expression from SRT data29,30. Many of these approaches do not fully exploit 
+56 
+complementary information across modalities, limiting comprehensive multi-modal inference. Multi-omic spatial-domain 
+57 
+identification methods31,32 improve niche discovery, but do not infer missing modalities or generate whole-slice single-cell 
+58 
+maps. Recent tri-modal efforts have demonstrated single-cell spatial multi-omics33 but often omit histology, a valuable 
+59 
+source of morphological context. OmiCLIP34 partially addresses this gap by aligning histology with SRT through CLIP-
+60 
+based contrastive learning35, but remains limited to patch-level bi-modal integration without single-cell resolution or 
+61 
+multi-omics fusion. 
+62 
+ 
+63 
+We developed STEP, a hybrid computational framework that integrates probabilistic inference with deep learning. 
+64 
+Building on methods that jointly consider histology, SRT, single-cell, and/or multi-omics data36,37, STEP provides a 
+65 
+generalizable, platform-agnostic framework for diverse spatial multi-omics integration scenarios. By combining 
+66 
+morphology with spatial omics information, STEP links SRT measurements to individual cells and supports both 
+67 
+sequencing- and imaging-based SRT. For sequencing-based SRT, STEP extends single-cell mapping from the sequenced 
+68 
+area to the whole tissue section; for imaging-based SRT, it expands gene coverage from a few hundred genes to the whole 
+69 
+transcriptome. In a tri-modal integration of Xenium, CITE-seq, and imaging mass cytometry (IMC) data, it infers 
+70 
+transcriptome-wide gene expression and protein profiles in human breast cancer at single-cell resolution. In quadra-modal 
+71 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+4 
+ 
+ 
+integration of SRT, histology, single-nucleus RNA sequencing (snRNA-seq), and inCITE-seq, STEP reconstructs a high-
+72 
+resolution 3D multi-omics brain cell atlas using only six sections measured by low-resolution SRT, enabling cost-efficient 
+73 
+single-cell 3D mapping. Overall, STEP provides a flexible and generalizable framework for reconstructing high-resolution 
+74 
+spatial multi-omics information across diverse experimental platforms and integration scenarios. 
+75 
+Results  
+76 
+1. Overview of the STEP workflow 
+77 
+STEP is a hyper-modal computational framework that supports flexible integration of diverse spatially resolved 
+78 
+transcriptomics (SRT) data with single-cell reference data to generate whole-slice maps at single-cell resolution with 
+79 
+expanded omics layers (Fig. 1). It accommodates sequencing- and imaging-based SRT, optional histological features, and 
+80 
+transcriptomic or multi-omic references (Fig. 1a–c). Depending on the input settings, STEP generates whole-
+81 
+transcriptomic or multi-omic maps at single-cell resolution across the whole slice (Fig. 1d).  
+82 
+ 
+83 
+The STEP workflow comprises Data Pre-processing and three core modules: Cell Identification, Spatial Diffusion, and 
+84 
+Omics Enhancement (Fig. 1b, Supplementary Notes 2–9 and Methods). Data Pre-processing performs specific operations 
+85 
+on different data inputs, including cell segmentation38, optional morphological feature extraction from histology, 
+86 
+informative gene selection39, and batch/platform effect removal using an adjusted conditional variational autoencoder 
+87 
+(CVAE)40 (Supplementary Figs. 1 and 2). Cell Identification uses probabilistic inference to assign cell types to segmented 
+88 
+cells within sequenced areas by linking cell types, gene expression, and optional morphological features (Supplementary 
+89 
+Fig. 3). Spatial Diffusion uses a graph attention network (GAT)41 to propagate information to unsequenced areas, inferring 
+90 
+cell types and informative gene expression across the whole slice (Supplementary Fig. 4). Omics Enhancement then uses 
+91 
+scRNA-seq or single-cell multi-omics references to infer whole-transcriptome or multi-omic profiles, respectively 
+92 
+(Supplementary Fig. 5). 
+93 
+ 
+94 
+STEP supports multi-modal integration by dynamically adjusting its module usage to accommodate specific modality 
+95 
+combinations, including bi-modal, tri-modal and quadra-modal configurations (Fig. 1d and Supplementary Figs. 6–9). For 
+96 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+5 
+ 
+ 
+sequencing-based SRT data, STEP infers cell-type annotations and recovers gene expression profiles in unsequenced 
+97 
+areas, while for imaging-based SRT data, STEP does not invoke the Spatial Diffusion module, but instead directly 
+98 
+performs Cell Identification and Omics Enhancement, yielding whole-transcriptomic maps at single-cell resolution. When 
+99 
+single-cell multi-omic reference data are available, STEP executes multi-omic mapping following transcriptomic mapping 
+00 
+during omics enhancement, delivering tissue-wide, single-cell-resolution multi-omic maps or even reconstructing 3D 
+01 
+multi-omic atlases (Supplementary Notes 10–13 and Supplementary Table 1).  
+02 
+2. Histological cellular features guide single-cell mapping 
+03 
+Human Pancreatic Ductal Adenocarcinoma (PDAC) is widely studied to understand cellular heterogeneity and the tumor 
+04 
+microenvironment. We collected data from two PDAC tissue slices24,42, PDAC-A and PDAC-B, generated by Spatial 
+05 
+Transcriptomics (spot-level resolution, whole-transcriptome coverage, and matched H&E images), together with InDrop 
+06 
+scRNA-seq profiles as the single-cell reference, to evaluate STEP’s performance in cell-type identification and gene 
+07 
+expression prediction at single-cell resolution (Fig. 2a, Supplementary Fig. 10, Supplementary Note 14 and Methods).  
+08 
+ 
+09 
+Since accurate cell-type identification at the single-cell level is crucial for analyses of SRT data, we benchmarked 
+10 
+methods designed for similar tasks on the PDAC data, which fall into two categories: spot-level cell type deconvolution 
+11 
+methods including SpaDecon43, CellDART23, CARD24, and Cell2location25, which predict the cell type proportions within 
+12 
+each spatial spot, and single-cell-level cell type inference methods including STEP, STIE30, and SpatialScope29, which 
+13 
+infer the cell type of each segmented cell (Methods). Following the benchmarking procedure described in Methods, we 
+14 
+evaluated cell identification using tissue-region annotations and the known regional enrichment of cell types, with 
+15 
+separate comparisons against spot-level deconvolution and single-cell-level inference methods. STEP achieved higher 
+16 
+performance across multiple evaluation metrics in both comparisons (Fig. 2b,c, Supplementary Figs. 10–14 and 
+17 
+Supplementary Notes 15 and 16). 
+18 
+ 
+19 
+We further qualitatively visualized cell identification results from different methods (Fig. 2e and Supplementary Figs. 15–
+20 
+18). As shown in Fig. 2e and Supplementary Fig. 17, STEP provided accurate, fine-grained spatial distribution predictions 
+21 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+6 
+ 
+ 
+of normal pancreatic regions with well-defined boundaries for acinar cells, which are responsible for the pancreas's 
+22 
+exocrine function. This advantage is attributed to STEP's ability to model and leverage the gaps between sequenced spots, 
+23 
+which preserves tissue continuity (Methods). Conversely, SpatialScope is confined to each spot, and STIE extends tissue 
+24 
+coverage only to a limited degree (Fig. 2e, Supplementary Figs. 17 and 19). Additionally, ductal high-hypoxic cells are 
+25 
+typically sparsely distributed within hypoxic microenvironments44. Consistently, in our results they accounted for only 
+26 
+1.21% of cells, making them challenging to detect using deconvolution methods (Fig. 2e, Supplementary Fig. 15). By 
+27 
+contrast, the enhanced spatial resolution of STEP allows for precise characterization of these rare cells, successfully 
+28 
+capturing their distribution along the periphery of cancerous areas (Fig. 2e). Note that STEP divided the cancer region into 
+29 
+two sub-regions: an upper subregion dominated by cancer clone A cells and a lower subregion dominated by cancer clone 
+30 
+B cells (Fig. 2e). Moreover, STEP demonstrated robustness in cell identification and showed resilience to experimental 
+31 
+artifacts (e.g., staining artifacts), whereas STIE could not achieve (Supplementary Fig. 18). These findings collectively 
+32 
+establish STEP as a reliable framework for cell identification, capable of capturing intricate spatial patterns and 
+33 
+overcoming limitations inherent in other methods. 
+34 
+ 
+35 
+To evaluate whether cell identification by STEP is consistent with known morphological differences, we examined the 
+36 
+distributions of morphological features across predicted cell types (Fig. 2d and Supplementary Fig. 20). We found that the 
+37 
+morphological features of cancer cells identified by STEP were significantly different from those of other cell types, 
+38 
+which aligns with the biological expectations (Fig. 2d and Supplementary Fig. 20). For instance, cancer cells are known to 
+39 
+exhibit marked nuclear structure and chromatin distribution due to their altered proliferative and metabolic states45,46. 
+40 
+These changes often result in nuclear enlargement and an increase in the maximum nuclear diameter, further manifested 
+41 
+by an increase in eosinophilic optical density in the cytoplasm (Cohen’s  =0.699,  < 0.0001) and a higher nucleus-to-cell 
+42 
+area ratio (Cohen’s  =0.512,  < 0.0001) (Fig. 2d and Supplementary Fig. 20). Additionally, the morphological feature 
+43 
+distribution of rare ductal high-hypoxic cells, as determined by STEP, closely mirrors that of cancer cells with a similar 
+44 
+trend in the Nucleus Area (92.3% overlap coefficient) and Hematoxylin optical density in the Nucleus (93.9% overlap 
+45 
+coefficient), which is consistent with the prevailing biological consensus47–49 (Fig. 2d). 
+46 
+ 
+47 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+7 
+ 
+ 
+Since STEP not only identifies cell types at the single-cell level but also predicts gene expression at single-cell resolution, 
+48 
+we further benchmarked its performance in super-resolution gene expression prediction against BayesSpace, SpatialScope, 
+49 
+iStar, and XFuse (Fig. 2f and Supplementary Figs. 21 and 22). Among these methods, BayesSpace26 primarily subdivides 
+50 
+spots into multiple sub-spots, while SpatialScope is limited to predicting gene expression of individual cells within a 
+51 
+given spot (Supplementary Fig. 22). iStar’s27 results lack cell-level features and suffer from significant blurring artifacts, 
+52 
+while XFuse28 can identify cell outlines but has low accuracy in gene prediction (Fig. 2g). This blurring presumably stems 
+53 
+from their image-to-gene regression frameworks that average signals across entire patches without explicit cell-instance 
+54 
+constraints (Fig. 2g). STEP addresses these limitations by providing fine-grained predictions of gene expression at the 
+55 
+single-cell level across the whole slice (Fig. 2f). This characteristic allows for more comprehensive spatial mapping of 
+56 
+biomarkers, facilitating the exploration of complex cellular microenvironments.  
+57 
+ 
+58 
+We further assessed the spatial enrichment of representative marker genes and their correspondence with predicted cell 
+59 
+types, supporting the spatial and cell-type consistency of STEP’s gene expression predictions (Fig. 2h,i and 
+60 
+Supplementary Note 17). 
+61 
+ 
+62 
+Beyond PDAC, we additionally constructed Visium-like pseudo-spots from single-cell-resolution Xenium datasets of 
+63 
+human breast cancer and human colorectal cancer. These supplementary benchmarks enabled direct comparison against 
+64 
+the original Xenium profiles and annotations, and showed that STEP maintained improvement in both cell identification 
+65 
+and gene prediction across additional cancer contexts (Supplementary Figs. 23–29).  
+66 
+3. Robust cell identification across diverse settings 
+67 
+Human breast cancer is a prevalent disease with significant clinical impact, making it a critical focus for research across 
+68 
+multiple platforms and modalities50. Therefore, we selected the BRCA-A dataset generated by 10x Visium (spot-level 
+69 
+resolution, whole-transcriptome coverage, and matched H&E images), together with 10x Chromium scRNA-seq profiles51 
+70 
+as the single-cell reference, to validate STEP’s robustness in cell identification. 
+71 
+ 
+72 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+8 
+ 
+ 
+First, we evaluated STEP’s robustness to different scRNA-seq references. Building upon the 10x Chromium reference 
+73 
+used above, we further incorporated two additional breast cancer scRNA-seq references: an independent 10x Chromium 
+74 
+reference52 and one reference generated using the InDrop platform53 (Fig. 3a–c, Supplementary Figs. 30–34, 
+75 
+Supplementary Note 18 and Methods). Despite differences in cell-type composition and gene expression patterns across 
+76 
+these three single-cell references, STEP still clearly distinguishes between the various cell types (Fig. 3a–c and 
+77 
+Supplementary Fig. 35). Using the InDrop single-cell reference, STEP predicted an enrichment of Prolactin-Inducible 
+78 
+Protein (PIP)-expressing mammary luminal cells in cancerous regions, with 92.3% of these cells located within cancer 
+79 
+regions (Fig. 3c). Notably, PIP is a clinically relevant breast cancer marker associated with well-differentiated, less 
+80 
+aggressive tumors, underscoring translational relevance54. Consistently, analyses based on the independent 10x Chromium 
+81 
+single-cell reference (Methods) assigned cancer-associated populations to tumor regions and immune-associated 
+82 
+populations to immune regions (Supplementary Fig. 35).  
+83 
+ 
+84 
+Next, we evaluated STEP’s robustness to interventions of the single-cell reference. We first performed a comparative 
+85 
+analysis against random gene-drop on a single-cell reference (Supplementary Fig. 36). STEP retained over 92.0% of its 
+86 
+original performance even after removing 30.0% of the genes, confirming that our gene selection strategy based on 
+87 
+differentially expressed genes (DEGs)39 enables effective utilization of global expression heterogeneity (Fig. 3d,e and 
+88 
+Supplementary Table 2a). Building on this, we conducted additional robustness analyses on the single-cell reference by 
+89 
+merging, removing, subdividing, or unbalancing selected cell types (Methods). Across these interventions, STEP 
+90 
+maintained consistent delineation of functional regions (Supplementary Figs. 37 and 38), demonstrating robustness to 
+91 
+reference composition. Collectively, these results validate STEP’s compatibility with both 10x Chromium and InDrop 
+92 
+references, support reliable cross-platform predictions at the cell-type and regional levels, and highlight its potential to 
+93 
+facilitate spatially resolved studies in breast cancer.  
+94 
+ 
+95 
+As STEP also takes SRT data and histological images as inputs, we evaluated its robustness to variation in both 
+96 
+modalities. Using simulated BRCA-A data with varying spot sizes and sparsity, we found that STEP maintained robust 
+97 
+cell identification across SRT resolutions (Fig. 3f–i and Supplementary Note 19). STEP also maintained robust cell 
+98 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+9 
+ 
+ 
+identification across histological styles and feature representations in the BRCA-A dataset (Fig. 3j–m and Supplementary 
+99 
+Note 20). 
+00 
+ 
+01 
+4. Revealing tumor heterogeneity in unsequenced tissue 
+02 
+While tumor tissues can be analyzed with SRT, the field of view covered by current platforms is often limited, leaving 
+03 
+substantial regions with only histological images. Inferring gene expression in these unsequenced areas from sequenced 
+04 
+areas is therefore important, as it enables more accurate modeling of tumor heterogeneity and microenvironmental 
+05 
+interactions, which are critical for understanding cancer progression and therapeutic resistance. 
+06 
+ 
+07 
+Using spot masking and transfer experiments on human breast cancer sections, we evaluated STEP’s ability to reconstruct 
+08 
+spatial profiles in unsequenced tissue. STEP maintained cell identification and gene expression prediction under reduced 
+09 
+spatial sampling and enabled reconstruction across adjacent sections and different patients (Fig. 4a–g, Supplementary 
+10 
+Figs. 48–60 and Supplementary Notes 21 and 22). 
+11 
+ 
+12 
+We next leveraged these high-resolution expression maps to dissect the molecular heterogeneity of breast cancer subtypes. 
+13 
+By analyzing STEP-predicted expression levels of key markers including estrogen receptor 1 (ESR1), progesterone 
+14 
+receptor (PGR), and ERBB255, we classified the tumor regions into distinct molecular subtypes (Fig. 4i, Supplementary 
+15 
+Fig. 61 and Supplementary Note 23). The analysis revealed inter-tumor heterogeneity: BRCA-A was dominated by 
+16 
+Luminal B and HER2-enriched subtypes, whereas BRCA-B1 and BRCA-B2 exhibited aggressive Triple-Negative Breast 
+17 
+Cancer (TNBC) regions alongside Luminal B cells50,56,57. Given that TNBC is associated with poor prognosis58, STEP’s 
+18 
+ability to spatially resolve these aggressive subclones within a heterogeneous tumor mass provides critical insights. 
+19 
+ 
+20 
+Beyond broad subtyping, STEP’s resolution enabled a fine-grained comparison of the tumor microenvironment between 
+21 
+invasive ductal carcinoma (IDC) and non-invasive lesions, including ductal carcinoma in situ (DCIS) and lobular 
+22 
+carcinoma in situ (LCIS). We observed distinct spatial patterns at the tumor boundaries: the edges surrounding invasive 
+23 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+10 
+ 
+ 
+IDC regions (tumor_edge_2) displayed a significantly more complex distribution of cancer subtypes compared to those of 
+24 
+DCIS/LCIS (tumor_edge_1) (Fig. 4j and Supplementary Figs. 62 and 63). This suggests that the transition from non-
+25 
+invasive to invasive states is marked by specific alterations in the peripheral cellular neighborhood59. These findings 
+26 
+highlight STEP’s capacity to not only identify cell types but also to reveal the spatial nuances of tumor invasiveness, 
+27 
+offering potential markers for distinguishing high-risk lesions (Fig. 4i,j). 
+28 
+5. Application across diverse SRT platforms 
+29 
+Existing SRT techniques can be broadly categorized into two major classes: sequencing-based and imaging-based 
+30 
+platforms. Many sequencing-based SRT platforms have relatively low spatial resolution, such as 10x Visium. In contrast, 
+31 
+imaging-based SRT platforms, including MERFISH60 and osmFISH61, offer single-cell resolution but are restricted to a 
+32 
+limited gene panel. Additionally, the sequencing area of many platforms is limited, such that only a subset of large tissue 
+33 
+sections is typically profiled. In this context, STEP compensates for the limitations of diverse SRT techniques, providing a 
+34 
+solid foundation for an array of downstream analyses (Supplementary Notes 24–26).  
+35 
+ 
+36 
+For sequencing-based spatially resolved transcriptomics, we evaluated STEP using a mouse cortex dataset derived from 
+37 
+two serial sections generated by 10x Visium with spot-level resolution, whole-transcriptome coverage, and matched H&E 
+38 
+images29,62. Following the workflow in Fig. 5a, we performed cell identification and gene prediction on section 2 (Fig. 5b). 
+39 
+To further assess STEP’s predictive capability in another species under limited tissue coverage, we applied a well-trained 
+40 
+STEP model from Section 2 to an H&E-only Section 1. Remarkably, despite using only this partial dataset, STEP 
+41 
+demonstrated superior performance in identifying cell types and predicting gene expression, successfully revealing 
+42 
+distinct layer-specific distribution patterns within the cortex (Fig. 5c and Supplementary Figs. 64–67). 
+43 
+ 
+44 
+For imaging-based spatially resolved transcriptomics, where typically only a predefined panel of genes is measured, STEP 
+45 
+is able to impute unmeasured genes. Here, we conducted experiments following the workflow shown in Fig. 5d on a 
+46 
+mouse brain dataset profiled by MERFISH63 (Fig. 5e). Using all measured genes, STEP first inferred the cell type of each 
+47 
+cell on the tissue slice (Fig. 5d and Supplementary Figs. 68–80). Specifically, for both 10x Visium and MERFISH data, 
+48 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+11 
+ 
+ 
+STEP successfully reconstructed the spatial organization of the mouse cortex, showing that glutamatergic neurons 
+49 
+exhibited strong layer specificity ( < 0.001 for Moran's  and Geary's  tests), whereas GABAergic neurons and non-
+50 
+neuronal cells were distributed more sparsely across layers (Supplementary Figs. 68–80).  
+51 
+ 
+52 
+To assess the unmeasured gene imputation performance of STEP, we performed leave-one-out imputation on genes, 
+53 
+training on the remaining genes and imputing the spatial expression of the held-out gene. We compared STEP’s gene 
+54 
+imputation performance with three existing methods: gimVI20, Seurat21, and SpaGE22 (Fig. 5h). In addition to MERFISH, 
+55 
+we further incorporated mouse brain data of osmFISH for comprehensive evaluation60,61,63, with corresponding single-cell 
+56 
+reference data including both scRNA-seq and snRNA-seq60,64–66. Regarding spatial expression imputation, STEP 
+57 
+outperformed these methods by improving Spearman correlation across various SRT platforms and single-cell references 
+58 
+(scRNA-seq and snRNA-seq) (Fig. 5h, Supplementary Table 3). Most pairwise comparisons remained significant after 
+59 
+false discovery rate (FDR) correction (FDR < 0.05), with the only exception being the comparison between STEP and 
+60 
+gimVI on the AllenSSp dataset (FDR = 0.165). Compared to the state-of-the-art method SpaGE, STEP showed 
+61 
+comparable performance in imputing spatial gene expressions of cortical layer-specific markers64 (Fig. 5f,i and 
+62 
+Supplementary Figs. 68 and 69). Moreover, STEP used all measured genes to impute the spatial expression of 
+63 
+unmeasured marker genes, and the imputations were validated against in situ hybridization (ISH) images from the Allen 
+64 
+Brain Atlas67, confirming their accuracy and consistency (Fig. 5g). In contrast to the analysis at the spot resolution of 
+65 
+sequencing-based data and with a small gene panel of imaging-based data, the whole-transcriptome gene expression at 
+66 
+single-cell resolution inferred by STEP facilitates a series of downstream analyses, providing comprehensive insights into 
+67 
+cell-cell relationships.  
+68 
+ 
+69 
+We further tested the scalability of STEP on two cutting-edge SRT techniques (Fig. 5j and Supplementary Figs. 81–84): 
+70 
+large-scale sequencing-based platforms such as Visium HD and large-scale imaging-based platforms such as MERSCOPE, 
+71 
+which profile hundreds of thousands of cells. On the Visium HD dataset of human colorectal cancer11, STEP addressed 
+72 
+the platform's inherent constraint of limited sequencing area by reconstructing spatially resolved transcriptomes across 
+73 
+entire tissue slices, expanding from 124,399 cells to 426,954 cells (Supplementary Figs. 81 and 82). Simultaneously, on a 
+74 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+12 
+ 
+ 
+large-scale MERSCOPE dataset of human breast cancer containing 713,121 cells, STEP successfully imputed the 
+75 
+genome-wide expression of unmeasured genes (Supplementary Fig. 84). It is noteworthy that, potentially due to 
+76 
+algorithmic limitations or the lack of designed functionality for such data types, several benchmarked methods either 
+77 
+failed to complete the analysis or could not be applied altogether. 
+78 
+6. Tri-modal integration for single-cell spatial multi-omics 
+79 
+To further investigate the capability of STEP in multi-omics inference for imaging-based spatially resolved 
+80 
+transcriptomics, we performed a tri-modal integration of Xenium52, CITE-seq50, and imaging mass cytometry (IMC)68 data 
+81 
+from human breast cancer (Supplementary Fig. 85). These modalities were deliberately selected for their complementary 
+82 
+strengths: Xenium provides high-resolution single-cell information with spatial localization; CITE-seq offers paired 
+83 
+single-cell transcriptome and surface proteome profiles, bridging the gap between RNA and protein; and IMC captures 
+84 
+highly multiplexed protein expression. By integrating these modalities through STEP (Fig. 6a), we minimized information 
+85 
+redundancy while enhancing cross-modality consistency. Consequently, STEP enables the construction of a single-cell 
+86 
+spatial multi-omics map that provides a more comprehensive and biologically interpretable representation of breast cancer 
+87 
+compared to any single modality alone. 
+88 
+ 
+89 
+Using the proteomic integration result and Xenium cell-type annotations as labels, the UMAP visualization clearly 
+90 
+showed the differences in protein expression between cancer cells and normal cells (Fig. 6b). Due to the tissue of the IMC 
+91 
+reference not containing DCIS-type subclones, it can be observed that the model showed a mixture for cancer cell 
+92 
+(DCIS_1, DCIS_2, invasive tumor) in UMAP (Fig. 6b), unlike normal cell types. More similar physiological conditions 
+93 
+among the tissues of the referenced multi-omics would improve the model's ability to distinguish different cancer 
+94 
+subclones. We visualized the proteomic integration result for different cell types using heatmaps and found that CK5 
+95 
+(cytokeratin 5, a marker for basal epithelial cells) was enriched in myoepithelial cells (4.70-fold,  < 0.0001), whereas 
+96 
+CD15 (a carbohydrate antigen involved in cell adhesion and signaling) was enriched in all tumor categories (2.65-fold,  
+97 
+< 0.0001) (Fig. 6c and Supplementary Fig. 86). These results were consistent with existing research conclusion69,70. 
+98 
+ 
+99 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+13 
+ 
+ 
+To more clearly characterize spatial patterns and relationships across multiple modalities, we analyzed the spatial 
+00 
+distributions of cell types, genes, and proteins. First, STEP imputes gene expression for genes not measured in the 
+01 
+Xenium panel, yielding expression patterns with high spatial concordance with the corresponding Visium measurements 
+02 
+from an adjacent tissue section (Fig. 6d and Supplementary Fig. 87). We next incorporated protein-level information to 
+03 
+further examine cross-modality relationships. CD20 is a transmembrane protein primarily expressed on the surface of 
+04 
+mature B cells and plays a key role in regulating calcium signaling, B cell activation, and proliferation71. Consistent with 
+05 
+its known expression pattern, proteomics predictions generated by STEP align with the original CD20 
+06 
+immunofluorescence (IF) images in the dataset (Fig. 6e). The obvious colocalization (Fig. 6c) of the inferred protein map 
+07 
+with B cells demonstrates the robust performance of STEP. We also compared the predicted proteins with the coding gene 
+08 
+expression of the same name, and both omics data showed consistency with their corresponding cell types (Fig. 6f and 
+09 
+Supplementary Fig. 88). We observed variability in the concordance between predicted protein abundance and the 
+10 
+expression of their corresponding genes: 34.88% of protein-gene pairs showed Pearson correlation coefficients greater 
+11 
+than 0.1, whereas 37.21% showed negative Pearson correlations (Supplementary Figs. 89 and 90). This discrepancy likely 
+12 
+stems from inherent differences between transcript-level and protein-level modalities, such as post-transcriptional 
+13 
+regulation, post-translational modifications, and spatiotemporal shifts between mRNA production and protein 
+14 
+localization72,73. Collectively, these results demonstrate that the tri-modal integration framework enables coherent 
+15 
+integration of transcriptomic and proteomic information, supporting robust imputation of unmeasured genes and inference 
+16 
+of protein abundance at single-cell resolution.  
+17 
+7. Quadra-modal integration for cost-effective 3D mapping 
+18 
+Three-dimensional (3D) spatial omics data provide advantages for deciphering biological processes by capturing spatial 
+19 
+organization across tissue depth. However, the high cost and time-intensive nature of spatial omics experiments constrain 
+20 
+the number of tissue sections that can be measured, especially for 3D samples. To address this limitation, we 
+21 
+reconstructed a high-resolution 3D multi-omics brain cell atlas using just six tissue sections measured by low-resolution 
+22 
+spatially resolved transcriptomics. This was achieved by STEP, which learns relationships between H&E image features, 
+23 
+gene expression, and cell types from limited sections and successfully applies them to additional H&E-only sections. We 
+24 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+14 
+ 
+ 
+collected data from 35 coronal sections across the antero-posterior axis74 generated by Spatial Transcriptomics, with spot-
+25 
+level resolution, whole-transcriptome coverage, and matched H&E images, together with snRNA-seq25 and inCITE-seq 
+26 
+data75 for quadra-modal integration. After registering the sections to the Allen mouse brain atlas (CCFv3)76, we identified 
+27 
+each cell and its corresponding gene expression within the spatial atlas using the gene expression data from only 6 
+28 
+sections for model training (Fig. 7a and Supplementary Note 27). Representative sections were selected to ensure that 
+29 
+STEP was exposed to the gene expression patterns of all brain regions during training (Fig. 7b). Current methods cannot 
+30 
+achieve super-resolution multi-omics inference to adjacent H&E-only section, making 3D multi-omics cell atlas 
+31 
+construction particularly challenging. 
+32 
+ 
+33 
+The STEP prediction, based on only 6 spatially resolved transcriptomics sections and 29 H&E-only sections, was highly 
+34 
+consistent with the results obtained using all 35 spatially resolved transcriptomics sections. For sections without gene 
+35 
+expression data, we observed that non-biological factors such as registration errors and staining differences increased with 
+36 
+distance from the annotated section. Despite this, the overall spatial accuracy (sACC) remained up to 87.7%, using 6 (/35) 
+37 
+sections with gene expression for training (Fig. 7c). Increasing the number of sections used for training STEP further 
+38 
+improves accuracy. From the visualization results of different angles, we can see that STEP accurately identifies cells in 
+39 
+subcortical structures such as the hippocampus and striatum (Fig. 7d and Supplementary Fig. 91).  
+40 
+ 
+41 
+In the mouse brain, unlike the relatively smooth surface of the cortex studied previously, the hippocampus is a curved 
+42 
+structure with a distinct laminar organization, including the cornu ammonis (CA) regions, dentate gyrus (DG), and 
+43 
+subiculum. Because the thickness of the pyramidal and granule layer is approximately equal to the spot diameter, the 
+44 
+mouse hippocampus presents unique challenges for precise modeling using spatial gene expression techniques with a 
+45 
+resolution of around 100  in diameter, particularly in relatively narrow regions like CA277,78. Original Spatial 
+46 
+Transcriptomics data blur the details of interlayer connections, whereas STEP overcomes this limitation by operating at 
+47 
+single-cell resolution, enabling fine-grained spatial modeling of specific cortical regions. The 3D atlas of marker gene 
+48 
+expression by STEP presents refined boundaries between different subregions of the hippocampus. Single-cell gene 
+49 
+expression recovered the spatial patterns of various marker genes, which correctly matched the annotated hippocampal 
+50 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+15 
+ 
+ 
+regions CA and DG in the Allen Brain Atlas67 (Fig. 7e and Supplementary Fig. 92). STEP’s accurate modeling of fine-
+51 
+grained 3D gene expression atlas builds a bridge from multi-layer coarse-grained gene expression to spatially resolved 
+52 
+regional analysis. 
+53 
+ 
+54 
+Furthermore, we demonstrate the application of STEP for single-cell multi-omics studies within a 3D spatial atlas. After 
+55 
+inferring single-cell-level gene expression in spatial contexts, STEP employs a multi-omic mapping algorithm (Methods) 
+56 
+to construct a multi-omics map between gene and protein data (Fig. 7f and Supplementary Fig. 93). For Neuronal Nuclei 
+57 
+(NeuN), the reconstructed protein enrichment atlas aligns well with previous studies on the distribution of mature neurons. 
+58 
+For protein c-Fos, encoded by the immediate early gene Fos, the 3D reconstruction enables the investigation of the spatial 
+59 
+and temporal dynamics of neural circuits and provides insights into the propagation of pathological activity79 (Fig. 7f and 
+60 
+Supplementary Fig. 93). In summary, STEP’s attempt to reconstruct the multi-omics atlas of the mouse brain 
+61 
+hippocampus with the help of multi-omics inCITE-seq data as a reference is successful. It shows that combining the 
+62 
+single-omics fine-grained spatial map inferred by STEP with the reference multi-omics data to reconstruct a multi-omics 
+63 
+spatial atlas is effective, demonstrating STEP's excellent scalability to other omics data. 
+64 
+Discussion  
+65 
+Spatial omics reveals cellular organization and interactions within tissues, but comprehensive multi-omics mapping at 
+66 
+single-cell resolution remains challenging. To address this challenge, we developed STEP, a hybrid framework combining 
+67 
+probabilistic inference and deep learning to integrate SRT, histology and single-cell reference data. It extends sequencing-
+68 
+based SRT to whole-section profiling at single-cell resolution and expands imaging-based SRT to whole-transcriptome 
+69 
+coverage. Benchmarking of STEP’s basic functionality on PDAC and BRCA data demonstrated improved performance 
+70 
+over existing methods. Through tri-modal integration of Xenium, CITE-seq and IMC, STEP mapped gene and protein 
+71 
+expression in breast cancer at single-cell resolution. Quadra-modal integration further enabled reconstruction of a high-
+72 
+resolution 3D brain multi-omics atlas using gene expression data from only six sections for training, supporting cost-
+73 
+efficient spatial multi-omics profiling. 
+74 
+ 
+75 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+16 
+ 
+ 
+Although STEP demonstrates strong performance in multi-modal integration, several aspects could be further improved. 
+76 
+Refining the distance-based assumptions of local consistency and smoothness in its omics enhancement strategy could 
+77 
+help STEP better capture tissue heterogeneity. Developing computationally efficient generative models offers a promising 
+78 
+direction for improving omics enhancement in large-scale applications. As spatial omics technologies advance, 
+79 
+incorporating additional omics layers, such as epigenomics and metabolomics, could further expand STEP’s molecular 
+80 
+coverage. Combining these measurements with computational inference could help address the resolution–throughput 
+81 
+trade-off2 and advance the study of complex tissues in basic biology and precision medicine. 
+82 
+ 
+83 
+Gene–protein correspondence further highlights the limits of cross-modality inference. Variation in transcript–protein 
+84 
+concordance across proteins and cell types may reflect both biological regulation and uncertainty in protein inference. 
+85 
+Among immune-related proteins, activation markers and secreted molecules can undergo extensive post-transcriptional 
+86 
+and post-translational regulation, whereas some lineage-defining receptors may exhibit stronger transcript–protein 
+87 
+concordance. Transcript-based protein inference therefore captures only part of the regulatory hierarchy shaping cellular 
+88 
+phenotypes. Incorporating additional regulatory dimensions, such as RNA velocity80, translational control, and 
+89 
+proteostatic dynamics, could improve the biological realism of STEP and facilitate the study of context-dependent 
+90 
+transcript–protein divergence across tissues. 
+91 
+ 
+92 
+Finally, STEP provides a framework for multi-modal integration that could support large-scale efforts such as the Human 
+93 
+Cell Atlas and the BRAIN Initiative. By linking experimental measurements with computational inference, STEP may 
+94 
+help reduce data acquisition requirements while revealing molecular relationships beyond individual modalities. Such 
+95 
+integration could facilitate biological discovery and future applications in precision medicine. 
+96 
+ 
+97 
+Acknowledgements 
+98 
+The authors have no acknowledgements to declare. 
+99 
+ 
+00 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+17 
+ 
+ 
+Funding Statement 
+01 
+This work was supported by the National Natural Science Foundation of China (grant no. 62331011 to Yongbing Z.; grant 
+02 
+nos. 62303119 and 32470706 to Z.Y.); the Shenzhen Medical Research Fund (grant no. D2601018 to Yongbing Z.); the 
+03 
+Computational Biology Program of the Science and Technology Commission of Shanghai Municipality (STCSM; grant 
+04 
+no. 25JS2850200 to Z.Y.); the Shanghai QiYuan Innovation Foundation (to Z.Y.); and the Xuemin Institute of Advanced 
+05 
+Studies, Fudan University (to Z.Y.). 
+06 
+ 
+07 
+Author Contributions Statement 
+08 
+Z.H., Z.Z., L.C., Z.Y., and Yongbing Z. conceptualized the study and its design. Z.H., Z.Z., L.C., Z.Y., and Yongbing Z. 
+09 
+created the methodology. Yangen Z., X.Y., S.J., and S.D. conducted the investigation. Z.H., Yangen Z., and B.S. were 
+10 
+involved in data collection and pre-processing.  Z.H., Y.D., and J.C. performed the data analysis and visualized the study.  
+11 
+H.W., G.W., Z.Y., and Yongbing Z. completed the project administration. Z.H. and Z.Z. drafted the manuscript. L.C., 
+12 
+Z.W., X.L., F.W., Z.Y., Y.D., Q.Z., and Yongbing Z. critically reviewed, edited, and approved the manuscript. 
+13 
+ 
+14 
+Competing Interests Statement 
+15 
+The authors declare no competing interests. 
+16 
+ 
+17 
+Figure Legends 
+18 
+Fig. 1 | Overview of STEP. STEP is a hyper-modal computational framework that integrates diverse spatially resolved 
+19 
+transcriptomics (SRT) data with single-cell references to refine whole-slice spatial profiles to single-cell resolution and 
+20 
+expanded omics layers. a The first part of the STEP’s input data, including histological images, various spatially resolved 
+21 
+transcriptomics data. b Data pre-processing and STEP's main workflow, where the main workflow consists of three key 
+22 
+stages: Cell Identification, Spatial Diffusion, and Omics Enhancement. c The second part of the STEP’s input data, 
+23 
+including single-cell reference data. d Hyper-modal integrations enabled by STEP, including Spatial Gene Imputation for 
+24 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+18 
+ 
+ 
+imaging-based SRT, Single-cell Profile Inference for sequencing-based SRT, Single-cell Spatial Multi-Omics Mapping, 
+25 
+and 3D Multi-Omics Construction. 
+26 
+ 
+27 
+Fig. 2 | Cell identification and gene expression prediction at single-cell resolution by STEP. a Hematoxylin and eosin 
+28 
+(H&E)-stained histological image of a pancreatic ductal adenocarcinoma section (PDAC-A) from Spatial Transcriptomics 
+29 
+with manual pixel-level region labeling (top left) and spot-level labeling (bottom left). STEP’s cell identification results 
+30 
+on PDAC-A sections (right). The legend for PDAC-A cell types is shared within Fig. 2. See panel b for the legend of 
+31 
+region annotations. The remaining regions labeled at the pixel level were considered as Stroma. b Proportion of selected 
+32 
+cell types in annotated regions inferred by STEP. c Radar plot comparing the performance of various models at the spot 
+33 
+level and the single-cell level. STIE_1.0X and STIE_2.5X refer to the results of the STIE model when the spot diameter 
+34 
+was enlarged to 1x and 2.5x, respectively. d Violin plots showing heterogeneous morphological features statistically 
+35 
+classified by STEP, effect sizes (Cohen’s  ) and corresponding -values obtained by Mann-Whitney  Test (left). Violin 
+36 
+plots through various methods and the number in the bottom right corner representing the number of cells in the violin 
+37 
+plot (right). In STEP, the overlap coefficient shown above each panel quantifies the similarity of the morphological 
+38 
+feature distributions between cancer cells and ductal high-hypoxic cells. "Unmeasured" refers to cells not covered by the 
+39 
+algorithm, potentially containing the specified cell type. Center line represents median, lower and upper hinges represent 
+40 
+first and third quartiles, and whiskers extend from hinge to ±1.5× interquartile range (IQR). e Visualization of cell 
+41 
+identification results at different spatial resolution levels using representative methods and the same Region of Interest 
+42 
+(RoI). f Visualization of various marker genes at different spatial resolution levels using representative methods and the 
+43 
+same RoI displaying the unique molecular identifier (UMI) counts obtained by those methods. g Comparison of gene 
+44 
+expression prediction by STEP and pixel-level regression methods within the same RoI. h Lollipop plots comparing the 
+45 
+average expression of marker genes predicted by STEP versus the original gene expression in each region. The solid 
+46 
+arrow indicates the highest enrichment value (left). Bar plots show the fold change of each marker gene in the expected 
+47 
+domain versus other domains, where higher values indicate stronger domain specificity (right). i Heatmap showing the 
+48 
+correlation between selected cell types and their corresponding marker genes at single-cell resolution, as inferred by 
+49 
+STEP. 
+50 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+19 
+ 
+ 
+ 
+51 
+Fig. 3 | Robustness evaluation for STEP on different scenarios. a Hematoxylin and eosin (H&E)-stained histological 
+52 
+image of human breast cancer section BRCA-A from the 10x Visium platform with manual pixel-level region labels (left) 
+53 
+and STEP’s cell identification results (right). Cancer cells are expected to be enriched in cancer regions, while T cells, B 
+54 
+cells, and myeloid cells are expected to be localized in immune regions. The legend for BRCA-A cell types is shared 
+55 
+within Fig. 3. b UMAP visualization of single-cell RNA sequencing (scRNA-seq) data from breast cancer tissue using the 
+56 
+10x Chromium and inDrop platforms. c STEP’s cell identification results using scRNA-seq data collected with the inDrop 
+57 
+platform. The legend is shared with b. d STEP’s cell identification results after randomly dropping 30% of the selected 
+58 
+genes. e Radar plot comparing the performance of informative gene selection methods on scRNA-seq data. f Bar plot of 
+59 
+Adjusted Rand Index (ARI) performance on simulated spatially resolved transcriptomics (SRT) data of different 
+60 
+resolutions. g Cell identification results on simulated Spatial Transcriptomic platform’s data. h Radar plot comparing the 
+61 
+performance of different spatially resolved transcriptomics data. i Scatter plot displaying the unique molecular identifier 
+62 
+(UMI) counts at each spatial location for both the simulated Spatial Transcriptomic and 10x Visium platforms (left). The 
+63 
+UMI counts at single-cell resolution predicted by STEP (right). The color scale is normalized to the 0-1 range. j 
+64 
+Morphological features of cancer epithelial cells used as contributing factors for cell identification. The Integrated 
+65 
+Gradients algorithm was employed to extract the contribution of morphological features to cell recognition, with the top 
+66 
+contributing features for cancer epithelial cells selected. k Comparison of cell segmentation between the virtual frozen and 
+67 
+original sections within the same Region of Interest (RoI). l STEP’s cell identification results on the virtual frozen section. 
+68 
+m Radar plot comparing the performance between different histological image styles. 
+69 
+ 
+70 
+Fig. 4 | Reconstruction of spatial gene expression in unsequenced tissue with STEP. a Experimental results of STEP 
+71 
+with mask rate  	 0.7 (left) and the original data  	 0.0 (right). In the same Region of Interest (RoI), the model shows 
+72 
+superior accuracy in identifying Cancer Epithelial cells, while the accuracy of subtype classification in normal cells is 
+73 
+relatively lower. In the upper right diagram, masked spots are shown in red, while retained spots are shown in gray. b 
+74 
+Confusion matrix comparing the results of the masked data with the original data. Non-cancerous cells: Plasmablasts, B-
+75 
+cells, T-cells, Myeloid cells, Endothelial cells, cancer-associated fibroblasts (CAFs), perivascular-like (PVL) cells, and 
+76 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+20 
+ 
+ 
+Normal Epithelial cells. Cancerous cells: Cancer Epithelial cells (left). The spatial accuracy (sACC) per region under 
+77 
+different mask rates is shown in a line graph, with stars indicating cancerous regions and circles indicating non-cancerous 
+78 
+regions. The sACC computed over all regions under different mask rates is displayed in a bar plot (right). c Spearman 
+79 
+correlation between the single-cell gene expression results using the masked data and the original data for genes, along 
+80 
+with their corresponding measurement sparsity. d Hematoxylin and eosin (H&E)-stained histological image of human 
+81 
+breast cancer section BRCA-B1 from the 10x Visium platform with manual region labels. e Visualization of cell 
+82 
+identification and marker gene prediction on BRCA-B1 section, along with serial-section transferred results from BRCA-
+83 
+B2. f Heatmap displaying the estimated proportion of each cell type in each region by STEP. The color scale is 
+84 
+normalized to the 0-1 range. g Confusion matrix comparing the transferred results with the original results (left). The 
+85 
+spatial accuracy (sACC) by region is shown in a line graph, with the cumulative sACC displayed in a bar plot (right). h 
+86 
+Spearman correlation between the in-sample and out-of-sample predictions, along with their corresponding measurement 
+87 
+sparsity. i Subtype classification results at single-cell resolution for partial regions in BRCA-A and BRCA-B1. Refer to 
+88 
+panel j for the legend of breast cancer subtypes. j Proportion of breast cancer subtypes in partially annotated regions 
+89 
+inferred by STEP. 
+90 
+ 
+91 
+Fig. 5 | Application of STEP to diverse spatially resolved transcriptomics techniques. a The main workflow of 
+92 
+inferring a spatial whole-transcriptomics at single-cell resolution from sequencing-based spatially resolved 
+93 
+transcriptomics (SRT), single-cell RNA sequencing (scRNA-seq), and histological features through Cell Identification, 
+94 
+Spatial Diffusion, and Omics Enhancement. b Hematoxylin and eosin (H&E)-stained histological image of two adjacent 
+95 
+sections of the mouse brain cortex from the 10x Visium platform (left). White annotations indicate Regions of Interest 
+96 
+(RoI). STEP’s cell identification results using only the gene expression data from section 2 (right). c Cells identification 
+97 
+by STEP across multiple serial sections (top). The corresponding marker gene expressions, refined by STEP, are shown 
+98 
+below (bottom). d The main workflow of inferring a spatial whole-transcriptomics at single-cell resolution from imaging-
+99 
+based SRT, and scRNA-seq through Cell Identification, and Omics Enhancement. e STEP’s cell identification results for 
+00 
+the MERFISH mouse primary motor cortex dataset (top) and an anatomical reference image indicating the approximate 
+01 
+sampling 
+region 
+in 
+red 
+(bottom). 
+Image 
+credit: 
+Allen 
+Institute. 
+Source 
+image: 
+https://atlas.brain-
+02 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+21 
+ 
+ 
+map.org/atlas?atlas=602630314. f Visualization of measured and imputed expressions of layer-specific genes. g 
+03 
+Visualization of imputed expression of unmeasured genes by STEP (bottom) and corresponding reference in situ 
+04 
+hybridization (ISH) images from the Allen Mouse Brain Atlas (top). ISH images were cropped for display. Image credit: 
+05 
+Allen 
+Institute. 
+Source 
+images: 
+Nos1ap, 
+https://mouse.brain-map.org/experiment/show/77280574; 
+Esrrg, 
+06 
+https://mouse.brain-map.org/experiment/show/73616033; 
+Atp2b4, 
+https://mouse.brain-
+07 
+map.org/experiment/show/74735253; 
+Crispld1, 
+https://mouse.brain-map.org/experiment/show/72077456; 
+Htr4, 
+08 
+https://mouse.brain-map.org/experiment/show/72119658. h Boxplots displaying the Spearman correlations from the 
+09 
+leave-one-out cross-validation experiment across four scRNA-seq datasets and their corresponding spatially resolved 
+10 
+transcriptomics. The -values above the plots are the result of performing one-sided Wilcoxon rank sum tests. The 
+11 
+numbers of evaluated genes were  = 247 for MERFISH–MOp, 153 for MERFISH–Moffit, 33 for osmFISH–AllenSSp 
+12 
+and 33 for osmFISH–Zeisel, for each method. Each observation represents one gene; genes are not independent biological 
+13 
+replicates. For STEP versus SpaGE, Seurat and gimVI, respectively, the  values reported in the figure are 1.28 × 10 ² , 
+14 
+1.94 × 10 ³  and 3.15 × 10    for MERFISH–MOp; 1.44 × 10 ²¹, 3.36 × 10 ²¹ and 3.31 × 10 ²³ for MERFISH–
+15 
+Moffit; 0.0212, 7.18 × 10   and 0.165 for osmFISH–AllenSSp; and 2.21 × 10  , 8.15 × 10 ¹  and 4.34 × 10   for 
+16 
+osmFISH–Zeisel. Black dots represent the correlation values for individual genes. The boxplot’s center line, box limits, 
+17 
+and whiskers denote the median, first and third quartiles, and ±1.5× interquartile range (IQR), respectively. i Bar plots 
+18 
+showing the Spearman correlation of cortical layer-specific marker genes in predicting unmeasured spatial gene 
+19 
+expression patterns. j Experiments on large-scale spatially resolved transcriptomics datasets, including whole-slice spatial 
+20 
+transcriptome reconstruction on Visium HD data and genome-wide gene expression imputation on MERSCOPE data.  
+21 
+ 
+22 
+Fig. 6 | Proteomics profiling reconstruction using multi-omics reference data by STEP. a The main workflow of 
+23 
+inferring spatial multi-omics atlas at single-cell resolution through Xenium, CITE-seq and imaging mass cytometry (IMC) 
+24 
+data. b UMAP visualization of predicted proteomic data by STEP. c Heatmap displaying median proteomic profiles 
+25 
+associated with epithelial regions across cell types. d Comparison among predicted transcriptomics data at single-cell 
+26 
+resolution, the 10x Visium gene expression profile of the same name and corresponding cell types. The lower right corner 
+27 
+of the 10x Visium gene expression profile shows an enlarged region of interest (RoI) of transcripts. The far right shows 
+28 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+22 
+ 
+ 
+the UMAP of imputed gene. e Comparison among predicted proteomic data, immunofluorescence (IF) images and 
+29 
+corresponding cell types. The lower right corner of the IF image shows an enlarged RoI. The far right shows the UMAP of 
+30 
+predicted protein. f Comparison among predicted proteomic data, the gene expression profile of the same name and 
+31 
+corresponding cell types. The lower right corner of the gene expression profile shows an enlarged RoI of transcripts. The 
+32 
+far right shows the UMAP of predicted protein.  
+33 
+ 
+34 
+Fig. 7 | STEP’s 3D multi-omics analysis with minimum sequenced sections. a The main workflow of inferring a 3D 
+35 
+multi-omics atlas with minimum sequenced sections. Sections 6, 11, 18, 24, 27, and 32 were selected as representative 
+36 
+sections. b Different regions of the mouse brain in 35 coronal sections across the antero-posterior axis. c Bar plot showing 
+37 
+the spatial accuracy (sACC) of 35 coronal sections between using gene expression of 6 representative sections and using 
+38 
+gene expression of all 35 sections. Colors represent genes using the same representative sections. d 3D visualization of 
+39 
+hippocampus and other subcortical structures (top). 3D visualization of the corresponding cell types identified by STEP at 
+40 
+different angles (bottom). e Visualization of reference in situ hybridization (ISH) images from the Allen Mouse Brain 
+41 
+Atlas and gene expression predicted by STEP (top). 3D visualization of predicted gene expression at single-cell resolution 
+42 
+(bottom). ISH images were cropped and annotated for display. Image credit: Allen Institute. Source images: C1ql2, 
+43 
+https://mouse.brain-map.org/experiment/show/71587929; Wfs1, https://mouse.brain-map.org/experiment/show/74881161; 
+44 
+Meis2, https://mouse.brain-map.org/experiment/show/1231. f Visualization of predicted protein expression by STEP (top). 
+45 
+3D Visualization of predicted protein expression at single-cell resolution (bottom). 
+46 
+References 
+47 
+1.Carstens, J. L. et al. Spatial multiplexing and omics. Nat. Rev. Methods Primer 4, 54 (2024). 
+48 
+2.Bressan, D., Battistoni, G. & Hannon, G. J. The dawn of spatial omics. Science 381, eabq4964 (2023). 
+49 
+3.Moffitt, J. R., Lundberg, E. & Heyn, H. The emerging landscape of spatial profiling technologies. Nat. Rev. Genet. 23, 
+50 
+741–759 (2022). 
+51 
+4.Hu, B. et al. High-resolution spatially resolved proteomics of complex tissues based on microfluidics and transfer 
+52 
+learning. Cell 188, 734-748.e22 (2025). 
+53 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+23 
+ 
+ 
+5.Vandereyken, K., Sifrim, A., Thienpont, B. & Voet, T. Methods and applications for single-cell and spatial multi-omics. 
+54 
+Nat. Rev. Genet. 24, 494–515 (2023). 
+55 
+6.Cipurko, D., Ueda, T., Mei, L. & Chevrier, N. Repurposing large-format microarrays for scalable spatial 
+56 
+transcriptomics. Nat. Methods 22, 145–155 (2025). 
+57 
+7.De Jonghe, J. et al. scTrends: A living review of commercial single-cell and spatial’omic technologies. Cell Genomics 
+58 
+4, 100723 (2024). 
+59 
+8.Moses, L. & Pachter, L. Museum of spatial transcriptomics. Nat. Methods 19, 534–546 (2022). 
+60 
+9.Tian, L., Chen, F. & Macosko, E. Z. The expanding vistas of spatial transcriptomics. Nat. Biotechnol. 41, 773–782 
+61 
+(2023). 
+62 
+10.Chen, A. et al. Spatiotemporal transcriptomic atlas of mouse organogenesis using DNA nanoball-patterned arrays. Cell 
+63 
+185, 1777-1792. e21 (2022). 
+64 
+11.Oliveira, M. F. de et al. High-definition spatial transcriptomic profiling of immune cell populations in colorectal 
+65 
+cancer. Nat. Genet. 57, 1512–1523 (2025). 
+66 
+12.You, Y. et al. Systematic comparison of sequencing-based spatial transcriptomic methods. Nat. Methods 21, 1743–
+67 
+1754 (2024). 
+68 
+13.Ren, P. et al. Systematic benchmarking of high-throughput subcellular spatial transcriptomics platforms across human 
+69 
+tumors. Nat. Commun. 16, 9232 (2025). 
+70 
+14.Longo, S. K., Guo, M. G., Ji, A. L. & Khavari, P. A. Integrating single-cell and spatial transcriptomics to elucidate 
+71 
+intercellular tissue dynamics. Nat. Rev. Genet. 22, 627–644 (2021). 
+72 
+15.Liu, Y. et al. High-spatial-resolution multi-omics sequencing via deterministic barcoding in tissue. Cell 183, 1665–
+73 
+1681 (2020). 
+74 
+16.Liu, Y. et al. High-plex protein and whole transcriptome co-mapping at cellular resolution with spatial CITE-seq. Nat. 
+75 
+Biotechnol. 41, 1405–1409 (2023). 
+76 
+17.Vicari, M. et al. Spatial multimodal analysis of transcriptomes and metabolomes in tissues. Nat. Biotechnol. 42, 1046–
+77 
+1050 (2024). 
+78 
+18.Zhang, D. et al. Spatial epigenome–transcriptome co-profiling of mammalian tissues. Nature 616, 113–122 (2023). 
+79 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+24 
+ 
+ 
+19.Hao, Y. et al. Dictionary learning for integrative, multimodal and scalable single-cell analysis. Nat. Biotechnol. 42, 
+80 
+293–304 (2024). 
+81 
+20.Lopez, R. et al. A joint model of unpaired data from scRNA-seq and spatial transcriptomics for imputing missing gene 
+82 
+expression measurements. ArXiv Prepr. ArXiv190502269 (2019). 
+83 
+21.Stuart, T. et al. Comprehensive integration of single-cell data. cell 177, 1888–1902 (2019). 
+84 
+22.Abdelaal, T., Mourragui, S., Mahfouz, A. & Reinders, M. J. SpaGE: spatial gene enhancement using scRNA-seq. 
+85 
+Nucleic Acids Res. 48, e107 (2020). 
+86 
+23.Bae, S. et al. CellDART: Cell Type Inference by Domain Adaptation of Single-Cell and Spatial Transcriptomic Data. 
+87 
+Nucleic Acids Res. 50, e57–e57 (2022). 
+88 
+24.Ma, Y. & Zhou, X. Spatially Informed Cell-Type Deconvolution for Spatial Transcriptomics. Nat. Biotechnol. 40, 
+89 
+1349–1359 (2022). 
+90 
+25.Kleshchevnikov, V. et al. Cell2location maps fine-grained cell types in spatial transcriptomics. Nat. Biotechnol. 40, 
+91 
+661–671 (2022). 
+92 
+26.Zhao, E. et al. Spatial transcriptomics at subspot resolution with BayesSpace. Nat. Biotechnol. 39, 1375–1384 (2021). 
+93 
+27.Zhang, D. et al. Inferring super-resolution tissue architecture by integrating spatial transcriptomics with histology. Nat. 
+94 
+Biotechnol. 42, 1372–1377 (2024). 
+95 
+28.Bergenstråhle, L. et al. Super-resolved spatial transcriptomics by deep data fusion. Nat. Biotechnol. 40, 476–479 
+96 
+(2022). 
+97 
+29.Wan, X. et al. Integrating spatial and single-cell transcriptomics data using deep generative models with SpatialScope. 
+98 
+Nat. Commun. 14, 7848 (2023). 
+99 
+30.Zhu, S. et al. STIE: Single-cell level deconvolution, convolution, and clustering in in situ capturing-based spatial 
+00 
+transcriptomics. Nat. Commun. 15, 7559 (2024). 
+01 
+31.Varrone, M., Tavernari, D., Santamaria-Martínez, A., Walsh, L. A. & Ciriello, G. CellCharter reveals spatial cell 
+02 
+niches associated with tissue remodeling and cell plasticity. Nat. Genet. 56, 74–84 (2024). 
+03 
+32.Long, Y. et al. Deciphering spatial domains from spatial multi-omics with SpatialGlue. Nat. Methods 21, 1658–1667 
+04 
+(2024). 
+05 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+25 
+ 
+ 
+33.Chen, S. et al. Integration of spatial and single-cell data across modalities with weakly linked features. Nat. Biotechnol. 
+06 
+42, 1096–1106 (2024). 
+07 
+34.Chen, W. et al. A visual–omics foundation model to bridge histopathology with spatial transcriptomics. Nat. Methods 
+08 
+22, 1568–1582 (2025). 
+09 
+35.Radford, A. et al. Learning transferable visual models from natural language supervision. in International conference 
+10 
+on machine learning 8748–8763 (PmLR, 2021). 
+11 
+36.Comiter, C. Inference of Single Cell Profiles from Histology Stains with the Single-Cell Omics from Histology Analysis 
+12 
+Framework (SCHAF). (Massachusetts Institute of Technology, 2024). 
+13 
+37.Zhong, Y., Zhang, J. & Ren, X. Spatial transcriptomics prediction from histology images at single-cell resolution using 
+14 
+RedeHist. bioRxiv 2024.06. 17.599464 (2024). 
+15 
+38.Schmidt, U., Weigert, M., Broaddus, C. & Myers, G. Cell detection with star-convex polygons. in Medical Image 
+16 
+Computing and Computer Assisted Intervention–MICCAI 2018: 21st International Conference, Granada, Spain, 
+17 
+September 16-20, 2018, Proceedings, Part II 265–273 (Springer, 2018). doi:10.1007/978-3-030-00934-2_30. 
+18 
+39.Wang, L., Feng, Z., Wang, X., Wang, X. & Zhang, X. DEGseq: an R package for identifying differentially expressed 
+19 
+genes from RNA-seq data. Bioinformatics 26, 136–138 (2010). 
+20 
+40.Sohn, K., Lee, H. & Yan, X. Learning structured output representation using deep conditional generative models. Adv. 
+21 
+Neural Inf. Process. Syst. 28, 3483–3491 (2015). 
+22 
+41.Veličković, P. et al. Graph attention networks. ArXiv Prepr. ArXiv171010903 (2017). 
+23 
+42.Moncada, R. et al. Integrating microarray-based spatial transcriptomics and single-cell RNA-seq reveals tissue 
+24 
+architecture in pancreatic ductal adenocarcinomas. Nat. Biotechnol. 38, 333–342 (2020). 
+25 
+43.Coleman, K., Hu, J., Schroeder, A., Lee, E. B. & Li, M. SpaDecon: cell-type deconvolution in spatial transcriptomics 
+26 
+with semi-supervised learning. Commun. Biol. 6, 378 (2023). 
+27 
+44.Vaupel, P. & Mayer, A. Hypoxia in cancer: significance and impact on clinical outcome. Cancer Metastasis Rev. 26, 
+28 
+225–239 (2007). 
+29 
+45.Anderson, A. R., Weaver, A. M., Cummings, P. T. & Quaranta, V. Tumor morphology and phenotypic evolution 
+30 
+driven by selective pressure from the microenvironment. Cell 127, 905–915 (2006). 
+31 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+26 
+ 
+ 
+46.Kleeff, J. et al. Pancreatic cancer. Nat. Rev. Dis. Primer 2, 16022 (2016). 
+32 
+47.Mayer, P. et al. Restricted water diffusion in diffusion-weighted magnetic resonance imaging in pancreatic cancer is 
+33 
+associated with tumor hypoxia. Cancers 13, 89 (2021). 
+34 
+48.Nielsen, M. F. B., Mortensen, M. B. & Detlefsen, S. Key players in pancreatic cancer-stroma interaction: Cancer-
+35 
+associated fibroblasts, endothelial and inflammatory cells. World J. Gastroenterol. 22, 2678–2700 (2016). 
+36 
+49.Morvaridi, S., Dhall, D., Greene, M. I., Pandol, S. J. & Wang, Q. Role of YAP and TAZ in pancreatic ductal 
+37 
+adenocarcinoma and in stellate cells associated with cancer and chronic pancreatitis. Sci. Rep. 5, 16759 (2015). 
+38 
+50.Wu, S. Z. et al. A single-cell and spatially resolved atlas of human breast cancers. Nat. Genet. 53, 1334–1347 (2021). 
+39 
+51.Zheng, G. X. et al. Massively parallel digital transcriptional profiling of single cells. Nat. Commun. 8, 14049 (2017). 
+40 
+52.Janesick, A. et al. High resolution mapping of the tumor microenvironment using integrated single-cell, spatial and in 
+41 
+situ analysis. Nat. Commun. 14, 8353 (2023). 
+42 
+53.Li, M. et al. DISCO: a database of Deeply Integrated human Single-Cell Omics data. Nucleic Acids Res. 50, D596–
+43 
+D602 (2022). 
+44 
+54.Hassan, M. I., Waheed, A., Yadav, S., Singh, T. & Ahmad, F. Prolactin inducible protein in cancer, fertility and 
+45 
+immunoregulation: structure, function and its clinical implications. Cell. Mol. Life Sci. 66, 447–459 (2009). 
+46 
+55.Ma, Y. & Zhou, X. Accurate and efficient integrative reference-informed spatial domain detection for spatial 
+47 
+transcriptomics. Nat. Methods 21, 1231–1244 (2024). 
+48 
+56.Waks, A. G. & Winer, E. P. Breast cancer treatment: a review. Jama 321, 288–300 (2019). 
+49 
+57.Sun, Y.-S. et al. Risk factors and preventions of breast cancer. Int. J. Biol. Sci. 13, 1387–1397 (2017). 
+50 
+58.Foulkes, W. D., Smith, I. E. & Reis-Filho, J. S. Triple-negative breast cancer. N. Engl. J. Med. 363, 1938–1948 (2010). 
+51 
+59.Muggerud, A. A. et al. Molecular diversity in ductal carcinoma in situ (DCIS) and early invasive breast cancer. Mol. 
+52 
+Oncol. 4, 357–368 (2010). 
+53 
+60.Moffitt, J. R. et al. Molecular, spatial, and functional single-cell profiling of the hypothalamic preoptic region. Science 
+54 
+362, eaau5324 (2018). 
+55 
+61.Codeluppi, S. et al. Spatial organization of the somatosensory cortex revealed by osmFISH. Nat. Methods 15, 932–935 
+56 
+(2018). 
+57 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+27 
+ 
+ 
+62.Tasic, B. et al. Shared and distinct transcriptomic cell types across neocortical areas. Nature 563, 72–78 (2018). 
+58 
+63.Zhang, M. et al. Spatially resolved cell atlas of the mouse primary motor cortex by MERFISH. Nature 598, 137–143 
+59 
+(2021). 
+60 
+64.Biancalani, T. et al. Deep learning and alignment of spatially resolved single-cell transcriptomes with Tangram. Nat. 
+61 
+Methods 18, 1352–1362 (2021). 
+62 
+65.Chatterjee, S. et al. Nontoxic, double-deletion-mutant rabies viral vectors for retrograde targeting of projection 
+63 
+neurons. Nat. Neurosci. 21, 638–646 (2018). 
+64 
+66.Zeisel, A. et al. Cell types in the mouse cortex and hippocampus revealed by single-cell RNA-seq. Science 347, 1138–
+65 
+1142 (2015). 
+66 
+67.Lein, E. S. et al. Genome-wide atlas of gene expression in the adult mouse brain. Nature 445, 168–176 (2007). 
+67 
+68.Danenberg, E. et al. Breast tumor microenvironment structures are associated with genomic features and clinical 
+68 
+outcome. Nat. Genet. 54, 660–669 (2022). 
+69 
+69.Brooks, S. A. & Leathem, A. J. Expression of the CD15 antigen (Lewis x) in breast cancer. Histochem. J. 27, 689–693 
+70 
+(1995). 
+71 
+70.Böcker, W. et al. Common Adult Stem Cells in the Human Breast Give Rise to Glandular and Myoepithelial Cell 
+72 
+Lineages: A New Cell Biological Concept. Lab. Invest. 82, 737–746 (2002). 
+73 
+71.Pavlasova, G. & Mraz, M. The regulation and function of CD20: an “enigma” of B-cell biology and targeted therapy. 
+74 
+Haematologica 105, 1494–1506 (2020). 
+75 
+72.Schwanhäusser, B. et al. Global quantification of mammalian gene expression control. Nature 473, 337–342 (2011). 
+76 
+73.Mertins, P. et al. Proteogenomics connects somatic mutations to signaling in breast cancer. Nature 534, 55–62 (2016). 
+77 
+74.Ortiz, C. et al. Molecular atlas of the adult mouse brain. Sci. Adv. 6, eabb3446 (2020). 
+78 
+75.Chung, H. et al. Joint single-cell measurements of nuclear proteins and RNA in vivo. Nat. Methods 18, 1204–1212 
+79 
+(2021). 
+80 
+76.Wang, Q. et al. The allen mouse brain common coordinate framework: A 3D reference atlas. Cell 181, 936-953.e20 
+81 
+(2020). 
+82 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+28 
+ 
+ 
+77.Ogata, K. & Kosaka, T. Structural and quantitative analysis of astrocytes in the mouse hippocampus. Neuroscience 
+83 
+113, 221–233 (2002). 
+84 
+78.Hitti, F. L. & Siegelbaum, S. A. The hippocampal CA2 region is essential for social memory. Nature 508, 88–92 
+85 
+(2014). 
+86 
+79.Kovács, K. J. Measurement of immediate-early gene activation-c-fos and beyond. J. Neuroendocrinol. 20, 665–672 
+87 
+(2008). 
+88 
+80.Li, S. et al. A relay velocity model infers cell-dependent RNA velocity. Nat. Biotechnol. 42, 99–108 (2024). 
+89 
+ 
+90 
+Methods 
+91 
+Ethics statement 
+92 
+This study relies on the analysis of previously published data, adhering to ethical guidelines for human and mouse 
+93 
+samples. Data collection and analysis were not performed blind to the conditions of the experiments. 
+94 
+Data pre-processing 
+95 
+Cell segmentation and feature extraction. The QuPath81 plugin integrated with StarDist38,82 was employed for cell 
+96 
+segmentation (Supplementary Fig. 2). The StarDist model, originally introduced at MICCAI 2018, aims to train a robust 
+97 
+nucleus segmentation framework. Pre-trained weights of the StarDist from the MoNuSeg Challenge Dataset83 were 
+98 
+utilized for segmenting cells in H&E-stained images. Based on a QuPath RoI Manager tool, we expanded the nucleus 
+99 
+masks for their cell masks, and pathologist-friendly morphological features (Supplementary Table 4) were extracted for 
+00 
+each cell using the QuPath RoI Manager. To optimize memory usage, the large H&E images were divided into smaller 
+01 
+tiles of 2,0002,000 pixels. To prevent cells from being split at image boundaries, each tile included a 100-pixel margin 
+02 
+overlapping with its adjacent tiles. Overlapping cells in the margins were identified based on their location distances and 
+03 
+cell diameters. For downstream analysis, the larger cell from any pair of overlapping cells was retained. 
+04 
+ 
+05 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+29 
+ 
+ 
+Domain adaptation. In this study, we employ the Conditional Variational Autoencoder (CVAE)40 for generative domain 
+06 
+adaptation to address the platform effects caused by different technologies (Supplementary Fig. 1). For example, we 
+07 
+define  and  as the gene expression matrices for single-cell reference data and spatially resolved transcriptomics data, 
+08 
+respectively, representing two conditions, and select  differentially expressed genes as informative genes. To ensure that 
+09 
+the training data from the two conditions exhibit similar cell-type composition profiles, pseudo-spot data is generated 
+10 
+from the single-cell reference data, providing a broad spectrum of cell-type compositions for the single-cell reference 
+11 
+condition. The average number of cells present in a single spot, denoted as , is determined based on the results of cell 
+12 
+segmentation. Then,  cells are selected from the single-cell reference data and weighted according to the generated 
+13 
+weights to compute the gene expression of a pseudo-spot. Additionally, in spatially resolved transcriptomic datasets with 
+14 
+a limited number of real-spots, there may be significant differences in magnitude between real-spots and pseudo-spots. To 
+15 
+address this, we randomly mix spots to generate sufficient real-spot data. Details of the CVAE training and inference 
+16 
+procedures are provided in Supplementary Notes 2 and 28. 
+17 
+Cell identification 
+18 
+Probability distribution-based inference model (Supplementary Fig. 3). We employed a probability distribution-based 
+19 
+inference model for cell identification. STEP integrates spatially resolved transcriptomics data and single-cell reference 
+20 
+data as inputs. For single-cell reference data, which encompasses  cell types, we select genes specifically expressed in 
+21 
+these cell types and define the    cell-type-specific expression matrix , where  , represents the mean expression 
+22 
+level of an informative gene  in a specific cell type . For spatially resolved transcriptomics data, the gene expression 
+23 
+, of gene  at spot  was inferred from , using CVAE. We denote  as the    morphological features matrix, 
+24 
+where , represents the standardized value of feature  for cell  . The standardization is applied to each feature 
+25 
+individually, such that for each feature, the values are adjusted to have zero mean and unit variance across all cells. These 
+26 
+features include shape descriptors, color metrics, and other quantifiable, interpretable characteristics. We adopt an 
+27 
+inference model based on the Poisson distribution to identify the cell type of individual cells within these spots: 
+28 
+,|, Poisson&',(, log&,( 	 - . log /0 1,
+
+	
+,/ 0 1,
+
+	
+3 . 4,,#618
+ 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+30 
+ 
+ 
+where ' denotes the total number of unique molecular identifiers (UMIs) for spot , and , represents the relative 
+29 
+expression level of gene  at spot . The term 1,, derived from cell segmentation, indicates the area proportion of single 
+30 
+cell  in spot . We define the relative expression of an individual cell  for an informative gene  as ,. We assume that 
+31 
+the contribution of gene expression from single-cell  to spot  is proportional to the area proportion of this cell within the 
+32 
+corresponding spot. Additionally, we consider the random noise 4, '60, 9
+8, while - represents a spot-specific 
+33 
+effect accounting for variability in a gene set across different spots. 
+34 
+ 
+35 
+In cell identification processes, as implemented by methods such as RCTD84 and SpatialScope29, the gene expression 
+36 
+profiles of all cells belonging to the same type are generally assumed to be identical. However, this assumption often does 
+37 
+not hold in real-world scenarios. Even within the same cell type, individual cells can exhibit distinct gene expression 
+38 
+patterns that are usually associated with specific cellular characteristics. To address this limitation, we use , instead of 
+39 
+the average cell-type signature matrix  ,: 
+40 
+log&,( 	 log :0 ;, 
+ 	
+ ,< . 0 ,
+
+	
+=,.#628
+ 
+The entry ;,  of the one-hot matrix ; indicates the cell type of single cell : if cell  belongs to cell type , then ;,  	 1; 
+41 
+otherwise, ;,  	 0. The term =, represents a learnable correlation matrix that captures the effect of the morphological 
+42 
+feature  on the logarithm of the relative expression of gene  across cells. For sequencing-based SRT with matched 
+43 
+histology images, the latter term in Equation (2) is included; otherwise, it is omitted. 
+44 
+ 
+45 
+In practice, the expression of a specific gene  is typically influenced by only a limited number of morphological features. 
+46 
+Additionally, some pairs of morphological features may exhibit high correlation, leading to inflated regression 
+47 
+coefficients and potentially degrading prediction performance. Therefore, we employ a spike-and-slab prior85 on each =,, 
+48 
+effectively promoting sparsity and mitigating the impact of highly correlated morphological features on regression 
+49 
+coefficients. This approach addresses overfitting and multicollinearity while identifying significant correlations between 
+50 
+genes and morphological features: 
+51 
+=,|?, &1 @ ?,(A&=,( . ?,'&0,9
+(. #638
+ 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+31 
+ 
+ 
+The spike component A&=,( is a point mass distribution at =, 	 0, while the slab component '&0, 9
+( is a normal 
+52 
+distribution with a mean of 0 and variance 9
+ 	 1. The auxiliary binary variable ?, follows a Bernoulli distribution 
+53 
+CD&E(, where E is governed by a Beta distribution CDF6F, G8, with hyper-parameters F 	 0.5 and G 	 0.5. 
+54 
+ 
+55 
+When ?, 	 1, =, follows a normal distribution, indicating that the morphological feature  is associated with the 
+56 
+expression of gene , and the probability of =, being zero is effectively eliminated. Conversely, when ?, 	 0 and 
+57 
+=, 	 0, it means that the morphological feature  is unrelated to gene . 
+58 
+ 
+59 
+Spatial prior. Many deconvolution methods24,29 have demonstrated that spatially adjacent cells are often of the same type. 
+60 
+Moreover, in some cell segmentation tasks, cell types are identified solely based on cellular features. To leverage this 
+61 
+information, we combine these insights into a prior Potts model29 that explicitly uses both morphological similarity and 
+62 
+spatial proximity to regularize cell-type assignment. Specifically, under the assumption of spatial proximity, adjacent cells 
+63 
+with more similar morphological features have a higher probability of sharing the same cell type. As a prior, this model 
+64 
+incorporates the cell types and morphological features of neighboring cells to infer, for each cell, a probability distribution 
+65 
+over cell types. For the cell type ; of an individual cell , we have: 
+66 
+16;|;8 	 1
+I exp&@6;8(, 6;8 	 0 M
+ 
+N1 @ O6; 	 ; 8PQ, .#648
+ 
+Here, I is a normalization constant. The parameter M controls the smoothness of cell type labels, with larger values of M 
+67 
+enforcing stronger spatial consistency. @ denotes all the cells other than cell . ' denotes the set of neighbors for cell  
+68 
+and O6S8 is an indicator function that equals 1 when ; 	 ;  and 0 otherwise. The weight Q,  represents the similarity 
+69 
+of morphological features between cells  and , quantifying their resemblance: 
+70 
+log&Q, ( 	 TU6, 8 	
+ S  VV  V V
+. #658
+ 
+If morphology features are not available, Q is set to a matrix of ones. Details of model fitting and parameter estimation 
+71 
+are provided in Supplementary Note 29. 
+72 
+Spatial diffusion 
+73 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+32 
+ 
+ 
+Spatially resolved cellular networks based on graph attention mechanisms41 are designed for graph-structured data. By 
+74 
+stacking layers where nodes attend to the features of their neighbors, the networks allow for the implicit assignment of 
+75 
+different weights to neighboring nodes. This makes spatially resolved cellular networks well-suited for semi-supervised 
+76 
+learning tasks. In STEP, we employ a graph attention mechanism to propagate the cell types of identified cells in 
+77 
+sequenced areas to unidentified cells in unsequenced areas in a diffusion-like manner, referred to as spatial diffusion, 
+78 
+enabling cell identification across the whole slice and even across different slices (Supplementary Fig. 4 and 
+79 
+Supplementary Note 30). 
+80 
+ 
+81 
+Graph Attention Network (GAT). We first use the spatial coordinates of cells as inputs to construct a graph. In this 
+82 
+graph, each node represents a cell, and an edge connects two cells that are physically adjacent in space. We then assign 
+83 
+each node a feature vector derived from the cell’s morphology feature and perform semi-supervised learning, using the 
+84 
+cell types of already identified cells as labels, to infer the cell types of all nodes, i.e., all cells in the graph. The graph 
+85 
+structure is represented by a    adjacency matrix W, where  denotes the number of cells. In this matrix, W,  	 1 if 
+86 
+cell  is among the X-nearest neighbors of cell , and W,  	 0 otherwise. We then use the morphological feature matrix 
+87 
+ and the adjacency matrix W to construct a GAT model Y with multi-head attention: 
+88 
+Y	 	 Z&Y,W, -(, #668
+ 
+where  denotes the index of the graph attention layer, with Y 	  representing the initial input. The morphological 
+89 
+feature matrix serves as the input to this model. The activations at the   layer are denoted by Y 	 \]^	
+, \]^
+,… , \]^
+, 
+90 
+where \]^
+ is the feature vector of cell  at layer . The attention coefficient - of the   layer represents the attention 
+91 
+weights after softmax normalization: 
+92 
+-,  	
+exp `LeakyReLU aF^ bQ\]^
+VQ\]^
+ cde
+∑
+exp
+
+`LeakyReLU aF^ bQ\]^
+VQ\]^
+cde
+, #678
+ 
+where S represents transposition and V is the concatenation operation. Q is the weight matrix of the   layer. ' 
+93 
+represents the neighbors of cell . The propagation rule in the GAT can be written as: 
+94 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+33 
+ 
+ 
+\]^
+	 	 9 g
+0
+0 -,
+
+
+   
+Q\]^
+h,#(8)
+ 
+where "Attention" refers to the multi-head attention mechanism in the GAT. 
+95 
+The GAT model in STEP consists of multiple layers, propagating Y to Y, where Y represents the predicted cell 
+96 
+types for each cell, and the final layer predicts the cell types. The optimal weight matrices in the GAT can be learned by 
+97 
+minimizing the loss of predicted labels by GAT: 
+98 
+Q j argmin
+  n!6Q8 	 argmin
+  n"&;o
+!,;(.#698
+ 
+Here, n" is a cross-entropy loss function, while ; and ;o
+! denote the inferred cell-type labels used for supervision 
+99 
+and the corresponding GAT predictions for cells in sequenced areas, respectively. 
+00 
+Omics enhancement 
+01 
+Transcriptomic mapping / Multi-omic mapping (Supplementary Fig. 5). For sequencing-based techniques, although 
+02 
+gene expressions were predicted by STEP at single-cell resolution, due to the gene selection process, the predicted gene 
+03 
+expressions  only contains informative genes. Prior to cell type inference, the CVAE model was used to eliminate 
+04 
+platform effects between spatially resolved transcriptomics and single-cell reference data, and the predicted gene 
+05 
+expressions  conform to the distribution of single-cell reference data. The single-cell reference data, initially containing 
+06 
+ genes before gene selection, serve as the basis for STEP to impute the expression of all spatial genes (Supplementary 
+07 
+Note 31). 
+08 
+ 
+09 
+For a spatial cell , we define the X-nearest neighbors from the  dissociated single-cell reference cells, using cosine 
+10 
+distance. Next, we compute an array of q,, representing the weight between spatial cell  (of a certain cell type) and its 
+11 
+nearest neighbors r s '. We retain only those neighbors with a positive cosine similarity to cell  (i.e., cosine distance < 
+12 
+1), such that: 
+13 
+tr s ' and TU6, r8 u 1, q, 	 1 @
+TU6, r8
+∑TU6, r8
+
+, Q, 	
+q,
+D&q,( @ 1 .#(10)
+ 
+The expression ̂,# of gene w for cell  is calculated as a weighted average of the nearest dissociated cells22: 
+14 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+34 
+ 
+ 
+̂,# 	
+0
+Q,
+,
+$%,&	
+,#,#(11)
+ 
+where ,# represents the expression level of gene w in cell r from the single-cell reference. For imaging-based techniques, 
+15 
+the number of genes measured by spatially resolved transcriptomics is very limited. STEP imputes the expression of the 
+16 
+spatially unmeasured genes from the single-cell reference.  
+17 
+In multi-omics settings, this strategy can be directly generalized to other pairs of omics modalities. One modality serves as 
+18 
+the reference to define cell-wise similarity, while the other is mapped accordingly, following the same workflow 
+19 
+described above. 
+20 
+ 
+21 
+Spatial mapping. Spatially adjacent cells exhibit similar cell types and gene expressions. Therefore, we perform spatial 
+22 
+correction on the gene expression as obtained by spatial mapping. First, we identify X-nearest spots  s ' adjacent to cell 
+23 
+ and construct a Gaussian kernel: 
+24 
+;!6xx ,xx 8 	 exp y@ Vxx  @ xx V
+
+29
+z , #(12)
+ 
+where Vxx  @ xx V
+ is the squared Euclidean distance, and 9 is the length/scale parameter that characterizes the 
+25 
+size of the focal expression patterns. The Gaussian kernel function is infinitely differentiable. Since reasonable values of 9 
+26 
+yield almost identical results, we fix 9 to be 0.1 throughout the study. 
+27 
+ 
+28 
+We perform spatial mapping and conduct spatial correction based on the expression of spatially resolved transcriptomics 
+29 
+data and the Gaussian kernel function ;!6xx ,xx 8: 
+30 
+,#
+'( ( 	 0 ;!6xx ,xx 8,#
+
+, #(13)
+ 
+where ,# represents the expression level of gene w in spot  from the spatially resolved transcriptomics data. The spatial 
+31 
+correction ,#
+'( ( is incorporated into the gene expression data ̂,# as a scaling factor: 
+32 
+̂,# j ̂,# S ,#
+'( (. #(14)
+ 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+35 
+ 
+ 
+This spatial correction ensures that the gene expression data follows the inherent spatial pattern observed in the 
+33 
+transcriptomic atlas. 
+34 
+ 
+35 
+Benchmarking Comparison 
+36 
+Inspired by CARD24, for the PDAC and BRCA-A datasets, where cells lack true annotations, we use the actual region 
+37 
+label based on H&E staining to evaluate the metrics. The true region label is assigned according to the cell’s location. The 
+38 
+predicted labels may vary between datasets. For example, in PDAC-A,  Cancer clone A and Cancer clone B cells are 
+39 
+typically enriched in the Cancer region, so their predicted labels are updated to “Cancer”. Similarly, in BRCA-A, Cancer 
+40 
+Epithelial cells are predominantly found in the Invasive Carcinoma region, leading to their predicted labels being adjusted 
+41 
+to “Invasive Carcinoma”. Finally, we compute evaluation metrics such as ARI, ACC, NMI, and F1-Score using the true 
+42 
+and predicted labels. The methods compared, their software links and parameter settings are summarized in 
+43 
+Supplementary Table 5. 
+44 
+Visium-like pseudo-spots were generated by spatially aggregating single-cell Xenium profiles from human breast and 
+45 
+colorectal cancer tissues. Using the original Xenium annotations and expression profiles as ground truth, we evaluated 
+46 
+cell-type deconvolution with MSE and PCC, cell identification with accuracy, and gene prediction with PCC and SPCC. 
+47 
+The colorectal cancer benchmark was also performed using an unpaired scRNA-seq reference. 
+48 
+ 
+49 
+Transferring  
+50 
+The adaptability of GAT to dynamic graph structures enables inference of graphs with changing topologies. This 
+51 
+characteristic facilitates the application of Spatial Diffusion, allowing a model trained on a specific tissue section to be 
+52 
+seamlessly transferred and employed across different sections of the same tissue type. Specifically, for another tissue 
+53 
+section, a    adjacency matrix W is constructed, where  represents the number of cells in the section. By applying 
+54 
+W and the corresponding morphological feature matrix  to the trained model. Consequently, this approach achieves cell 
+55 
+type identification across diverse spatial regions of the tissue. 
+56 
+  
+57 
+Implementation Details 
+58 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+36 
+ 
+ 
+STEP was implemented in Python (v3.10.14). Cell segmentation and morphological feature extraction were performed 
+59 
+using QuPath (v0.5.1) with the StarDist extension (v0.5.0). The Python packages used by STEP and their versions are 
+60 
+listed in Supplementary Table 6. Detailed model configurations, training procedures and hyperparameter settings for the 
+61 
+conditional variational autoencoder, cell identification, spatial diffusion and omics enhancement are provided in 
+62 
+Supplementary Notes 28–31, respectively. Experiments were conducted on a server running Ubuntu, equipped with two 
+63 
+AMD EPYC 7763 64-core processors and 503 GiB of RAM, using a single NVIDIA GeForce RTX 4090 GPU (24 GB). 
+64 
+ 
+65 
+Statistics & Reproducibility 
+66 
+This study is a computational reanalysis of previously published, publicly available spatial omics and single-cell datasets 
+67 
+described in Supplementary Note 14 and the Data availability section; no new wet-lab experiments were performed. 
+68 
+Sample sizes were determined by the availability of data in the original studies and the requirements of each analysis, with 
+69 
+dataset sizes summarized in Supplementary Table 7. No biological samples were excluded; data preprocessing, feature 
+70 
+selection and computational subsampling are described in the Methods and Supplementary Information. Because the study 
+71 
+did not involve assigning samples to treatment or control groups, randomization and blinding to group allocation were not 
+72 
+applicable. Reproducibility and robustness were assessed through repeated computational runs, leave-one-gene-out 
+73 
+validation, transfer across tissue sections and patients, and sensitivity analyses varying reference composition, gene 
+74 
+availability, spatial resolution, sequencing coverage and histological image style. The benchmarking analyses reported in 
+75 
+Supplementary Tables 8–10 were repeated five times; these repetitions represent computational runs rather than 
+76 
+independent biological replicates. 
+77 
+Mann–Whitney U tests were used to compare morphological feature distributions (Fig. 2d), marker protein expression 
+78 
+across cell types (Supplementary Fig. 88) and benchmarking performance where indicated (Supplementary Tables 8–10). 
+79 
+One-sided Wilcoxon rank-sum tests were used for comparisons of gene imputation performance (Fig. 5h) and the 
+80 
+additional Xenium-based benchmarks (Supplementary Fig. 23). For the imaging-based gene imputation benchmarks, false 
+81 
+discovery rate (FDR)-adjusted  values were used to assess significance at FDR < 0.05; gene-level  values were 
+82 
+combined using Fisher’s method where indicated in Supplementary Table 3. Pearson or Spearman correlation coefficients 
+83 
+were used to quantify agreement between molecular profiles, and Moran’s  and Geary’s  were used to assess spatial 
+84 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+37 
+ 
+ 
+autocorrelation. Morphological differences were additionally quantified using Cohen’s   and the overlap coefficient. In 
+85 
+leave-one-gene-out validation, each target gene was withheld from the spatial input used for training and its imputed 
+86 
+expression was evaluated against the measured spatial profile. 
+87 
+ 
+88 
+Data availability 
+89 
+We analyzed the following publicly available datasets: (1) Human pancreatic ductal adenocarcinoma data reported in 
+90 
+Moncada 
+et 
+al. 
+(GSE111672); 
+(2) 
+Single-section 
+10x 
+Visium 
+human 
+breast 
+cancer 
+data 
+91 
+(https://www.10xgenomics.com/datasets/human-breast-cancer-ductal-carcinoma-in-situ-invasive-carcinoma-ffpe-1-
+92 
+standard-1-3-0); (3) Serial-section 10x Visium human breast cancer data (https://www.10xgenomics.com/datasets/human-
+93 
+breast-cancer-block-a-section-1-1-standard-1-1-0); (4) scRNA-seq of 26 primary tumors from three major clinical 
+94 
+subtypes of human breast cancer reported in Swarbrick et al. (GSE176078); (5) Serial-section 10x Visium Mouse brain 
+95 
+cortex data (https://www.10xgenomics.com/datasets/mouse-brain-serial-section-2-sagittal-anterior-1-standard-1-1-0); (6) 
+96 
+Mouse brain cortex scRNA-seq reference (https://celltypes.brain-map.org/rnaseq/mouse/v1-alm); (7) MERFISH MOp 
+97 
+dataset from the brain image library (https://doi.org/10.35077/g.8); (8) MERFISH dataset from Dryad repository 
+98 
+(https://doi.org/10.5061/dryad.8t8s248) and the Moffit 10x dataset reported in Zhuang et al. (GSE113576); (9) osmFISH 
+99 
+data reported in Linnarsson et al. (http://linnarssonlab.org/osmFISH/); (10) scRNA-seq of mouse cerebral cortex dataset 
+00 
+reported in Zeisel et al. (GSE60361); (11) AllenSSp datasets reported in Wickersham et al. (https://portal.brain-
+01 
+map.org/atlases-and-data/rnaseq); 
+(12) 
+10x 
+Xenium 
+human 
+breast 
+cancer 
+data 
+02 
+(https://www.10xgenomics.com/products/xenium-in-situ/preview-dataset-human-breast); (13) Human breast cancer 
+03 
+CITE-seq reported in Swarbrick et al. (GSE176078) and Broad Institute single-cell portal for protein ADT information 
+04 
+(https://singlecell.broadinstitute.org/single_cell/study/SCP1039); 
+(14) 
+Human 
+breast 
+cancer 
+IMC 
+data 
+05 
+(https://zenodo.org/records/6036188#.Y2Cu8exBxqs); (15) Molecular atlas of the adult mouse brain reported in Ortiz et 
+06 
+al. (GSE147747); (16) snRNA-seq of the adult mouse brain (E-MTAB-11115); (17) inCITE-seq reference of the mouse 
+07 
+hippocampus 
+reported 
+in 
+Chung 
+et 
+al. 
+(GSE163480); 
+(18) 
+MERSCOPE 
+human 
+breast 
+cancer 
+data  
+08 
+(https://info.vizgen.com/ffpe-showcase); (19) 10x Visium HD data and single-cell reference of colorectal cancer 
+09 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+38 
+ 
+ 
+(https://www.10xgenomics.com/platforms/visium/product-family/dataset-human-crc); (20) Stereo-seq  adult mouse brain 
+10 
+data (https://db.cngb.org/stomics/mosta). Source data are provided with this paper. 
+11 
+ 
+12 
+ 
+13 
+Code availability 
+14 
+The STEP software package and source code are available on GitHub (https://github.com/childishHU/STEP), together 
+15 
+with scripts and materials for reproducing the analyses presented in this study. STEP is available as an installation-free 
+16 
+web application at https://stepsinglecell.top/. The STEP source code is also archived on Zenodo at 
+17 
+https://doi.org/10.5281/zenodo.2318258386. 
+18 
+ 
+19 
+Methods-only references 
+20 
+81.Bankhead, P. et al. QuPath: Open source software for digital pathology image analysis. Sci. Rep. 7, 16878 (2017). 
+21 
+82.Weigert, M. & Schmidt, U. Nuclei instance segmentation and classification in histopathology images with stardist. in 
+22 
+2022 IEEE International Symposium on Biomedical Imaging Challenges (ISBIC) 1–4 (IEEE, 2022). 
+23 
+83.Kumar, N. et al. A multi-organ nucleus segmentation challenge. IEEE Trans. Med. Imaging 39, 1380–1391 (2020). 
+24 
+84.Cable, D. M. et al. Robust decomposition of cell type mixtures in spatial transcriptomics. Nat. Biotechnol. 40, 517–526 
+25 
+(2022). 
+26 
+85.Jiang, X. et al. Reconstructing Spatial Transcriptomics at the Single-cell Resolution with BayesDeep. bioRxiv 
+27 
+https://doi.org/10.1101/2023.12.07.570715 (2023) doi:10.1101/2023.12.07.570715. 
+28 
+86.Hu, Z. et al. STEP software and source code. Zenodo https://doi.org/10.5281/zenodo.23182583 (2026). 
+29 
+ 
+30 
+.
+CC-BY-NC 4.0 International license
+available under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprint
+this version posted November 20, 2026. 
+; 
+https://doi.org/10.1101/2024.11.22.624797
+doi: 
+bioRxiv preprint 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

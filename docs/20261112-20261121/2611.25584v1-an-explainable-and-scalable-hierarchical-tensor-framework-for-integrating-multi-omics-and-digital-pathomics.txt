@@ -1,0 +1,1500 @@
+An Explainable and Scalable Hierarchical Tensor
+Framework for Integrating Multi-Omics and
+Digital Pathomics
+Ahmad Hussein1, Ali Anaissi2,3, Mukesh Prasad1, Ali Braytee1*
+1*School of Computer Science, University of Technology Sydney, Sydney,
+NSW, Australia.
+2TD School, University of Technology Sydney, Sydney, NSW, Australia.
+3School of Computer Science, The University of Sydney, Sydney, NSW,
+Australia.
+*Corresponding author(s). E-mail(s): ali.braytee@uts.edu.au;
+Contributing authors: ahmad.hussein@uts.edu.au; ali.anaissi@uts.edu.au;
+mukesh.prasad@uts.edu.au;
+Abstract
+Background: Precision oncology increasingly relies on integrating heteroge-
+neous data spanning the biological axis from genomics and transcriptomics to
+proteomics and digital pathology. However, many current fusion methods pri-
+oritize predictive performance while offering limited support for structured,
+biologically grounded explainability, which can reduce robustness and scalabil-
+ity when applied to large clinical cohorts with heterogeneous and incomplete
+modality availability.
+Methods: We propose a Hierarchical Interpretable Tensor Fusion, HIT-Fuse,
+for integrating six modalities: somatic copy number variation, DNA methylation,
+RNA sequencing, microRNA expression, protein abundance (RPPA), and vision
+transformer-extracted pathomics features across four TCGA cohorts: glioma,
+lung adenocarcinoma, breast cancer, and kidney cancer. High-dimensional inputs
+are first compressed into latent representations using modality-specific autoen-
+coders, followed by a two-stage CP tensor decomposition that preserves bio-
+logically aligned structure. To handle missing modalities, we reconstruct latent
+representations for patients with available clinical data by leveraging structured
+clinical covariates together with observed omics profiles, and retrain downstream
+models on the expanded cohort. Global and local explainable artificial intelligence
+(xAI) attributions are computed through a mathematical traceback mechanism.
+1
+arXiv:2611.25584v1  [q-bio.GN]  19 Nov 2026
+
+
+Results: Across glioma, breast, and kidney cancer cohorts, HIT-Fuse yields well-
+separated latent subgroups with significant survival stratification in both com-
+plete and reconstructed settings. Cohort expansion produces cohort-dependent
+performance gains, including a 56.4% relative improvement in weighted
+F1-score for glioma. Cross-domain biological validation integrating DepMap
+CRISPR dependency screens, miRTarBase interactions, and RPPA annotations
+confirms functional support for decoded drivers across four cancer cohorts.
+Essential gene rates range from 6.2% (glioma) to 7.6% (lung adenocarcinoma),
+with representative confirmed drivers including ANAPC11 (glioma), SNRPD1
+(breast), PLK1 (lung), and RPL14 (kidney). Additionally, 71–92% of decoded
+miRNAs show regulatory support in miRTarBase, and 77–84% of selected genes
+are covered in DepMap.
+Conclusions: By combining latent-space fusion, biologically structured ten-
+sor decomposition, and attribution-based explainability, HIT-Fuse provides a
+scalable and interpretable framework for multi-omics and digital pathology
+integration, enabling robust cancer prognosis modeling at cohort scale.
+Keywords: Multi-Omics Integration; Tensor Decomposition; Digital Pathology;
+Explainable Artificial Intelligence; Cancer Prognosis; Big Data Analytics
+1 Introduction
+Precision oncology increasingly depends on the integration of heterogeneous biolog-
+ical data spanning multiple molecular layers and tissue-level phenotypes. Advances
+in high-throughput sequencing enable comprehensive profiling of genomic alterations,
+DNA methylation, transcriptomic activity, proteomic abundance, and microRNA
+regulation at population scale [14]. In parallel, computational pathology and self-
+supervised vision models have enabled scalable representation learning from whole-
+slide histopathology images, extracting high-dimensional morphological embeddings
+from gigapixel tissue sections [23]. Together, these modalities provide a systems-level
+characterization of tumor biology across the central dogma, from DNA to RNA to pro-
+tein and tissue phenotype. However, integrating these heterogeneous data streams into
+scalable, interpretable, and biologically grounded predictive models remains a central
+challenge. Many multi-omics integration frameworks prioritize predictive performance
+through feature concatenation, kernel-based fusion, or deep neural architectures that
+treat modalities as flat feature spaces [3, 26]. While such approaches can achieve
+strong classification or survival performance, they often underrepresent the hierarchi-
+cal organization of biological systems, limiting mechanistic interpretability and clinical
+transparency [15, 17, 22]. Tensor-based representations offer a principled alternative
+for modeling structured multi-way relationships in high-dimensional biomedical data.
+By preserving interactions between patients, modalities, and latent biological factors,
+tensor decompositions extend beyond conventional matrix-based fusion [18]. Prior
+work has applied CANDECOMP/PARAFAC (CP) and Tucker decompositions to
+multi-omics feature extraction, subtype discovery, and survival modeling [31]. More
+2
+
+
+recently, scalable tensor factorization strategies have been developed for large biomed-
+ical datasets, highlighting their suitability for big data contexts [27]. Nevertheless,
+most tensor-driven approaches operate at a single, flat fusion level, potentially diluting
+biologically meaningful structure across molecular layers. Concurrently, multimodal
+learning frameworks integrating digital pathology with molecular profiles have demon-
+strated improved prognostic modeling and molecular subtype prediction [8, 10]. Vision
+transformer and self-supervised learning approaches, including DINO-based architec-
+tures, enable robust whole-slide representation learning that can be fused with omics
+data [23]. However, image features are typically incorporated as auxiliary embeddings
+or fused at late stages, limiting the ability to uncover biologically aligned cross-modal
+interactions. A further practical challenge arises from incomplete modality availabil-
+ity in real-world cohorts. Large-scale resources such as The Cancer Genome Atlas
+(TCGA) provide rich but heterogeneous multi-omics datasets with pervasive miss-
+ingness across molecular layers [1]. Restricting analysis to the strict intersection of
+complete cases substantially reduces cohort size and statistical power. While proba-
+bilistic multi-view and representation learning approaches have explored cross-modal
+alignment and latent completion [3, 20], few frameworks integrate biologically struc-
+tured fusion, modality completion, and external biological validation within a unified
+and interpretable pipeline.
+To address these limitations, we propose an explainable and scalable hierarchical
+tensor framework, termed HIT-Fuse (Figure 1), for integrating multi-omics and digital
+pathology data. The framework learns structured patient representations that respect
+biological organization across molecular layers while supporting interpretable subtype
+prediction and survival modeling. To accommodate incomplete clinical cohorts, HIT-
+Fuse incorporates a modality completion mechanism that enables learning beyond
+strict intersection subsets. We evaluate the framework across four independent TCGA
+cancer cohorts: glioma, lung adenocarcinoma, breast cancer, and kidney cancer.
+Contributions.
+We summarize the main contributions of this work as follows:
+• We propose a biologically structured two-stage tensor fusion framework that
+integrates multi-omics and digital pathology while preserving central-dogma rela-
+tionships across molecular layers, enabling interpretable patient representations at
+cohort scale.
+• We introduce a latent completion framework that reconstructs missing modali-
+ties using observed omics and clinical covariates, enabling analysis beyond strict
+intersection cohorts.
+• We establish an end-to-end biological validation workflow that links hierarchical
+tensor explainability to external functional evidence, validating discovered drivers
+using DepMap CRISPR dependencies and pathway enrichment across multiple
+cancer cohorts.
+• We develop a hierarchical explainability framework that delivers both global cohort-
+level drivers and patient-specific molecular attributions by tracing tensor meta-
+factors back to raw biological features.
+3
+
+
+Fig. 1: Overview of our proposed Hierarchical Multimodal Tensor Fusion frame-
+work (HIT-Fuse). The framework consists of four phases: modality-specific encoding
+and missing-modality latent reconstruction; biologically structured hierarchical ten-
+sor factorization; predictive evaluation using Fglobal for subtype classification and
+clustering-based survival analysis; and structured explainability through global bio-
+logical validation and local patient-level interpretation.
+2 Related Work
+Deep learning has become a dominant paradigm for multi-omics integration due
+to its ability to capture nonlinear relationships in high-dimensional molecular data.
+Chaudhary et al. [7] demonstrated that stacked autoencoders can learn modality-
+specific latent representations from RNA-seq, miRNA, and DNA methylation data
+for survival prediction in hepatocellular carcinoma. Similarly, DeepProg combined
+autoencoder-based embedding with classical machine learning to achieve cross-cohort
+prognostic modeling across TCGA datasets [25]. While these frameworks achieve
+strong predictive performance, they typically rely on flat latent concatenation, treating
+modalities as independent feature blocks and overlooking hierarchical biological orga-
+nization across molecular layers. Probabilistic multi-view factor models have sought
+to improve interpretability by explicitly modeling shared and modality-specific varia-
+tion. MOFA+ introduced a scalable Bayesian group factor analysis framework capable
+of learning structured latent representations across heterogeneous omics layers [4].
+Although such models improve interpretability relative to purely deep architectures,
+they remain fundamentally matrix-based and do not explicitly model higher-order
+modality interactions or hierarchical biological flow.
+Tensor decomposition provides a principled alternative for modeling multi-way
+biomedical data. Foundational work by Kolda and Bader [19] established CANDE-
+COMP/PARAFAC (CP) and Tucker decompositions as scalable tools for structured
+high-dimensional analysis. Subsequent applications demonstrated the utility of ten-
+sor methods for cancer subtype discovery and survival modeling from multi-omics
+4
+
+
+cohorts [30]. A closely related approach by
+[5] combined modality-specific autoen-
+coders with single-stage CP tensor fusion for cancer risk stratification. While this
+framework showed the benefit of integrating deep representation learning with ten-
+sor analysis, it performs fusion at a single flat level and does not explicitly encode
+biological hierarchy, incorporate digital pathology, or provide structured end-to-end
+biological validation.
+In parallel, multimodal learning frameworks integrating digital pathology with
+molecular profiles have demonstrated improved diagnostic and prognostic perfor-
+mance. Attention-based co-learning models such as MCAT [9] and transformer-based
+multimodal survival frameworks such as PORPOISE [11] enable joint modeling of
+whole-slide images and genomic data. Self-supervised vision transformers have further
+strengthened histopathology representation learning [23]. However, most existing mul-
+timodal systems employ late fusion or flat concatenation strategies and treat image
+features as auxiliary modalities rather than embedding them within a biologically
+structured fusion hierarchy.
+A persistent challenge in large-scale cancer cohorts is incomplete modality avail-
+ability. Public resources such as TCGA provide rich but heterogeneous datasets with
+pervasive missingness across molecular layers. Although recent multi-view represen-
+tation learning approaches have explored cross-modal alignment and completion [21],
+most do not integrate structured biological fusion with external functional validation.
+Finally, explainable artificial intelligence methods have been increasingly adopted
+to enhance transparency in biomedical prediction models. Feature attribution tech-
+niques such as Integrated Gradients [28] and SHAP [24] provide post-hoc importance
+scores for molecular features. However, these techniques are typically applied to
+flat architectures and do not inherently support hierarchical tensor-based fusion or
+closed-loop biological validation.
+Overall, prior work has demonstrated the effectiveness of deep representation
+learning, tensor decomposition, multimodal pathology integration, and explainable AI
+in isolation. However, existing frameworks typically combine only a subset of these
+components. In particular, most tensor-driven and deep multi-omics approaches rely
+on single-stage fusion and provide limited linkage between model explanations and
+experimentally grounded biological evidence. These limitations motivate the develop-
+ment of a unified hierarchical tensor framework that integrates biologically aligned
+multi-modal fusion, modality completion, and end-to-end biological validation within
+a scalable and interpretable pipeline.
+3 Materials and Methods
+This section presents a scalable and biologically grounded framework for integrating
+heterogeneous multi-omics and histopathology data using hierarchical tensor fusion
+with end-to-end global and local explainability. Throughout, we distinguish between
+two evaluation cohorts: a real-only intersection cohort (E1), consisting of patients with
+complete observations across all modalities, and a completed all-patient cohort (E2),
+consisting of the full clinical population augmented via latent-space super-imputation.
+5
+
+
+3.1 Phase 1: Encoding and Latent Reconstruction
+3.1.1 Modality Encoding
+The first stage of the framework learns compact, modality-specific latent repre-
+sentations independently for each omics and imaging view. This design isolates
+within-modality structure from cross-modality dependencies and ensures that subse-
+quent completion and fusion operate in a unified, low-dimensional latent space rather
+than in the original high-dimensional feature domains.
+For a given cancer cohort c and modality m, let the raw feature matrix be
+X(c,m) ∈R|Pc,m|×pm,
+(1)
+where pm denotes the dimensionality of modality m (e.g., gene-level features for RNA-
+seq, probe-level features for methylation, or pathomics features for imaging).
+Preprocessing.
+Missing values within each modality are imputed using feature-wise medians computed
+over Pc,m. Features are then linearly scaled to the interval [−1, 1] to match the output
+range of the decoder.
+Latent dimensionality.
+The latent size dm is selected as a function of the input dimensionality pm:
+dm =
+
+
+
+
+
+512,
+pm > 2000,
+256,
+500 < pm ≤2000,
+64,
+pm ≤500.
+(2)
+Encoder–decoder mapping.
+Each modality is modeled using a feed-forward autoencoder with an encoder fθm :
+Rpm →Rdm and a decoder gψm : Rdm →Rpm. For patient i, the latent representation
+is
+z(c,m)
+i
+= fθm
+ x(c,m)
+i
+
+.
+(3)
+Training objective.
+Autoencoders are trained to minimize the mean squared reconstruction error over
+observed patients:
+min
+θm,ψm
+1
+|Pc,m|
+X
+i∈Pc,m
+x(c,m)
+i
+−gψm
+ fθm(x(c,m)
+i
+)
+
+2
+2 .
+(4)
+The trained encoders produce modality-specific latent matrices Z(c,m)
+∈
+R|Pc,m|×dm, which serve as the basis for cohort-wide completion and hierarchical
+fusion.
+6
+
+
+3.1.2 Cross-Modal Latent Super-Imputation.
+A central challenge in multi-omics integration is pervasive and structured missing-
+ness, which severely limits analysis to the small subset of patients with complete
+observations across all modalities. To overcome this constraint, we introduce a latent-
+space super-imputation framework that predicts missing modality representations
+from observed modalities and clinical context, enabling construction of a completed
+cohort-wide latent collection (E2).
+Latent and mask construction.
+For each modality m and cohort c, we define a cohort-wide latent matrix and an
+availability mask:
+L(c,m) ∈R|Pc|×dm,
+M (c,m) ∈{0, 1}|Pc|.
+(5)
+These are populated as
+M (c,m)
+i
+= I[i ∈Pc,m],
+L(c,m)
+i:
+=
+(
+z(c,m)
+i
+,
+M (c,m)
+i
+= 1,
+0,
+M (c,m)
+i
+= 0.
+(6)
+Clinical conditioning.
+Let C(c) ∈R|Pc|×q denote the standardized clinical feature matrix. For patient i, c(c)
+i
+represents the corresponding clinical vector.
+Generator input.
+For a target modality t, the generator input for patient i is constructed by
+concatenating clinical context, all modality latents, and availability indicators:
+x(c,t)
+i
+=
+h
+c(c)
+i , L(c,1)
+i:
+, M (c,1)
+i
+, . . . , L(c,K)
+i:
+, M (c,K)
+i
+i
+.
+(7)
+Leakage prevention.
+During training of the generator for modality t, the target latent and mask are forcibly
+hidden:
+L(c,t)
+i:
+←0,
+M (c,t)
+i
+←0,
+∀i ∈Pc.
+(8)
+Supervised training set.
+Only patients with observed target modality contribute supervision:
+Tc,t = {i ∈Pc | M (c,t)
+i
+= 1}.
+(9)
+Generator model and loss.
+A dedicated generator Gϕt is trained for each modality t:
+ˆy(c,t)
+i
+= Gϕt
+ x(c,t)
+i
+
+,
+(10)
+7
+
+
+by minimizing
+min
+ϕt
+1
+|Tc,t|
+X
+i∈Tc,t
+ˆy(c,t)
+i
+−z(c,t)
+i
+
+2
+2 .
+(11)
+Completion merge.
+The final completed latent for modality t is
+˜z(c,t)
+i
+=
+(
+z(c,t)
+i
+,
+M (c,t)
+i
+= 1,
+ˆy(c,t)
+i
+,
+M (c,t)
+i
+= 0.
+(12)
+This procedure yields a complete latent representation for every patient and
+modality, forming the E2 cohort used for hierarchical tensor fusion.
+3.1.3 Cohort Construction and Latent Harmonization
+We define two evaluation cohorts:
+PE1
+c
+=
+\
+m
+Pc,m,
+(13)
+PE2
+c
+= Pc.
+(14)
+E1 contains only fully observed patients and serves as a clean baseline, while E2
+contains all clinical patients and relies on Phase II completion to provide missing
+modality representations.
+To enable tensor construction, all modality latents are mapped to a shared
+dimensionality D (set to 512) using only deterministic zero-padding and truncation:
+¯Z(c,m) = PadTrunc
+
+Z(c,m), D
+
+∈RN×D,
+(15)
+where PadTrunc(·, D) appends zeros when dm < D and truncates trailing dimensions
+when dm > D. All aligned latents are standardized feature-wise prior to fusion.
+3.2 Phase 2: Hierarchical Tensor Factorization
+The primary methodological contribution is a hierarchical tensor fusion strategy that
+respects biological organization by separating within-layer integration from cross-layer
+interaction modeling. Modalities are grouped according to the central dogma:
+D = {SCNV, METH},
+R = {RNA, miRNA},
+P = {RPPA, IMG}.
+The DNA layer (SCNV, METH) captures genomic and epigenomic regulation, the
+RNA layer (RNA, miRNA) captures transcriptional activity, and the functional
+expression layer (RPPA, IMG) captures downstream biological state. RPPA quanti-
+fies protein abundance and pathway activation, while histopathology images reflect
+the emergent tissue phenotype shaped by these signaling programs. Both modalities
+8
+
+
+therefore represent realized functional outcomes rather than regulatory potential [32],
+justifying their integration within the same hierarchical layer.
+Group tensor construction.
+For each group g ∈{D, R, P}, we form a third-order tensor
+X (g) = stack
+  ˜Z(c,g1), ˜Z(c,g2)
+∈RN×2×D,
+(16)
+where N = |PE1
+c | or |PE2
+c | and D denotes the harmonized latent dimensionality.
+CP factorization.
+Each group tensor is factorized using a rank-Rg CP decomposition:
+X (g) ≈
+Rg
+X
+r=1
+λ(g)
+r
+a(g)
+r
+◦b(g)
+r
+◦c(g)
+r .
+(17)
+The group-level patient factors are defined as
+U (g) = A(g) diag(λ(g)) ∈RN×Rg.
+(18)
+Meta-tensor fusion.
+To enable cross-layer interaction modeling, the group-level representations are har-
+monized to a shared width Kmeta using only zero-padding and truncation:
+¯U (g) = PadTrunc
+
+U (g), Kmeta
+
+∈RN×Kmeta.
+(19)
+The meta-tensor is then formed as
+X (HIT −F use) = stack
+  ¯U (D), ¯U (R), ¯U (P )
+∈RN×3×Kmeta.
+(20)
+A second CP decomposition yields
+X (HIT −F use) ≈
+RHIT −F use
+X
+r=1
+λ(HIT −F use)
+r
+a(HIT −F use)
+r
+◦b(HIT −F use)
+r
+◦c(HIT −F use)
+r
+. (21)
+The final fused patient representation is
+F (HIT −F use) = A(HIT −F use) diag(λ(HIT −F use)) ∈RN×RHIT −F use.
+(22)
+In our implementation, the shared meta width is selected deterministically from
+the Stage-I ranks as
+Kmeta = min
+ 128, max(16, max(RD, RR, RP ))
+
+,
+(23)
+ensuring consistent cross-layer alignment without any learned or random projection.
+9
+
+
+3.2.1 Rank Selection via CORCONDIA and Multi-Objective
+Optimization
+For each tensor X (both Stage-I group tensors and the Stage-II meta-tensor), we
+evaluate a candidate set of ranks R and select the final rank using a two-stage criterion
+that balances structural validity and downstream task utility.
+CORCONDIA screening.
+For each r ∈R, a CP decomposition is computed and the core consistency diagnostic
+(CORCONDIA) is evaluated, which quantifies how closely the estimated core tensor
+approximates an ideal superdiagonal CP core. Ranks satisfying
+CORCONDIA(r) ≥τ
+(24)
+are retained, where τ ∈[55, 60] depending on the tensor stage. If no rank satisfies the
+threshold, the top three ranks ranked by CORCONDIA are retained.
+Multi-objective scoring.
+For each retained rank, three complementary objectives are computed:
+1. Predictive utility: stratified K-fold cross-validated weighted F1 score using a
+balanced logistic regression classifier on the patient factor matrix,
+2. Survival
+stratification:
+separation
+strength
+defined
+as
+Sep(r)
+=
+min
+ 50, −log10(pr)
+
+, where pr is the log-rank test p-value obtained after clustering
+patient factors into two groups and capping survival time at 3000 days,
+3. Structural validity: CORCONDIA itself.
+Each objective is normalized to [0, 1] and combined as
+S(r) = wF1 ˜
+F1(r) + wsep g
+Sep(r) + wcc g
+CC(r),
+(25)
+with weights (wF1, wsep, wcc) = (0.55, 0.35, 0.10).
+The selected rank is
+r∗= arg
+max
+r∈Rretained S(r).
+(26)
+3.3 Phase 3: Predictive Evaluation
+The final fused representation F (HIT −F use) and ablated baselines (M1 group-level
+fusion, M2 flat fusion, and modality concatenation) are evaluated on both classification
+and survival tasks.
+Classification.
+We train balanced classifiers, including logistic regression, random forests, and lin-
+ear support vector machines, using stratified K-fold cross-validation. Performance is
+reported using accuracy and weighted F1 score.
+10
+
+
+Survival analysis.
+A Cox proportional hazards model is fit to the fused representations, and concordance
+index (C-index) is reported. For unsupervised risk stratification, patient embeddings
+are clustered using agglomerative clustering, and group-wise survival differences are
+evaluated using the multivariate log-rank test with survival time capped at 3000 days.
+Visualization.
+Latent spaces are visualized using t-distributed stochastic neighbor embedding (t-
+SNE), and Kaplan–Meier survival curves are plotted for discovered risk groups to
+qualitatively assess clinical separation.
+3.4 Phase 4: Explainability and Biological Validation
+The hierarchical tensor fusion architecture enables a structured interpretability frame-
+work that traces predictive evidence across three abstraction levels: fused meta-factors,
+biological layers, and raw molecular or imaging features. We distinguish between a
+global explanation stage, which identifies cohort-wide important tensor factors and
+their dominant biological drivers, and a local explanation stage, which produces
+patient-specific molecular attributions by tracing a selected meta-factor back through
+the group-level tensor components and modality-specific decoders.
+3.4.1 Global Explainability: Meta Factor and Biological Layer
+Importance
+Let F (HIT −F use) ∈RN×RHIT −F use denote the fused patient representation obtained
+from the meta level CP decomposition of the meta tensor X (HIT −F use) ∈RN×3×Kmeta,
+where the three biological layers correspond to DNA, RNA, and protein–imaging (PI)
+groups. In our implementation, global importance is computed for subtype classifi-
+cation using F (HIT −F use) as input to a downstream classifier; the same procedure
+applies to other tasks when an appropriate downstream model and scoring function
+are used.
+Meta factor importance.
+We quantify the global importance of each meta factor r ∈{1, . . . , RHIT −F use}
+using permutation importance on a downstream model trained on F (HIT −F use).
+Let πr(F (HIT −F use)) denote the matrix obtained by permuting the r-th column of
+F (HIT −F use) across patients. We define
+Ir = S
+ F (HIT −F use)
+−S
+ πr(F (HIT −F use))
+
+,
+(27)
+where S(·) is the downstream model score. In our code, S is the classifier default
+scoring function (accuracy for the random forest classifier); meta factors are ranked
+by Ir, and the top components are selected for driver tracing.
+11
+
+
+Biological layer attribution.
+From the meta level CP decomposition of X (HIT −F use), the mode 2 factor matrix
+B(HIT −F use) ∈R3×RHIT −F use encodes the loading of each meta factor on the three
+biological layers (DNA, RNA, PI). The dominant layer for meta factor r is defined as
+g∗(r) = arg
+max
+g∈{DNA,RNA,PI}
+B(HIT −F use)
+g,r
+ .
+(28)
+Tracing to a dominant modality within a layer.
+After selecting the dominant layer g∗(r), we trace to a specific modality within that
+layer using the corresponding Stage I CP decomposition. Let B(g) ∈R2×Rg denote
+the Stage I mode 2 factor matrix for layer g ∈{DNA, RNA, PI} with rank Rg. Let
+C(HIT −F use) ∈RKmeta×RHIT −F use be the meta level mode 3 factor matrix. For meta
+factor r, we form a layer specific latent direction by truncating (or zero padding) the
+meta direction to the Stage I rank:
+dr = C(HIT −F use)
+:,r
+∈RKmeta,
+vr = pad/trunc(dr, Rg) ∈RRg.
+(29)
+We then score the two modalities in layer g by
+sr = B(g)vr ∈R2,
+(30)
+and choose the dominant modality as the one with maximal absolute score, i.e.,
+arg maxj∈{1,2} |(sr)j|.
+Driver decoding with integrated gradients and Jacobian projection.
+For each selected meta factor r, after selecting its dominant layer and modality, we
+obtain feature level drivers by probing the corresponding modality decoder gψm. We
+compute integrated gradients (IG) in the decoder input space from a zero baseline
+b = 0 to the factor induced latent vector vr (after pad/trunc to the decoder input
+width), using the squared output energy as the attribution target:
+IG(vr) = (vr −b) ⊙Eα∼[0,1]
+h
+∇v ∥gψm(b + α(vr −b))∥2
+2
+i
+.
+(31)
+To obtain attributions in the reconstructed feature space, we map the latent
+attribution direction through the decoder using a Jacobian vector product (JVP):
+a = Jgψm(vr) IG(vr),
+(32)
+where Jgψm(vr) denotes the decoder Jacobian evaluated at vr. Drivers (genes, proteins,
+or image features) are ranked by |aj|, capturing both positive and negative effects.
+When raw feature headers are available, we map ranked indices to the corresponding
+feature names; otherwise we fall back to indexed identifiers.
+12
+
+
+Explainability modes.
+Explainability is computed independently within each cancer cohort under two set-
+tings. In the standard setting, the hierarchical tensor factors are used as is. In the
+balanced setting, we apply per patient ℓ2 normalization to each layer level patient
+factor (DNA, RNA, PI) before forming X (HIT −F use) and performing the meta level
+CP decomposition, mitigating potential energy imbalance across biological layers for
+attribution purposes. For downstream biological validation (e.g., driver inspection and
+enrichment analysis), we export both standard and balanced driver tables and addi-
+tionally provide a merged table formed by concatenating the two exports; the merged
+table does not define a new attribution rule and does not perform any cross cohort
+merging.
+3.4.2 Local Explainability: Patient-Specific Molecular Attribution
+Local explanations are generated for a selected patient i by tracing salient meta-factors
+back through the hierarchical tensor structure to raw molecular or imaging features:
+meta-factor →biological layer →modality →latent direction →raw features.
+Patient-specific meta-factor selection.
+Let F (HIT −F use) = A3 ⊙w3 ∈RN×RHIT −F use denote the final patient representation
+from the meta-level CP decomposition. For patient i, the most influential meta-factors
+are selected by
+Ri = TopK
+F (HIT −F use)
+i,:
+
+
+.
+(33)
+Biological layer and modality selection.
+For each selected factor r ∈Ri, the dominant biological layer is obtained from the
+meta-level mode-2 loadings B(HIT −F use) ∈R3×RHIT −F use:
+g∗(r) = arg
+max
+g∈{D,R,P }
+B(HIT −F use)
+g,r
+ .
+(34)
+Let B(g) ∈R2×Rg and C(g) ∈RD×Rg be the group-level CP factors for layer g∗(r),
+where Rg is the Stage-I rank.
+Local meta-direction (locality fix).
+Let C(HIT −F use) ∈RKmeta×RHIT −F use be the meta-level mode-3 factor matrix. We
+form a patient-specific direction by scaling the meta direction by the patient’s factor
+value:
+ai,r = F (HIT −F use)
+i,r
+,
+α(r)
+i
+= ai,r · C(HIT −F use)
+1:Rg∗(r), r
+∈RRg∗(r).
+(35)
+This scaling is required to avoid a global (patient-agnostic) direction and yields a
+patient-specific explanation.
+13
+
+
+Modality attribution within the selected layer.
+The modality score within layer g∗(r) is computed by projecting the group mode-2
+matrix:
+s(r)
+i
+= B(g∗(r)) α(r)
+i
+∈R2,
+m∗(r) = arg
+max
+m∈Mods(g∗(r))
+s(r)
+i,m
+ .
+(36)
+Latent direction and decoder probing.
+A factor-induced latent direction in the shared 512-d space is constructed as
+z(r)
+common,i = C(g∗(r)) α(r)
+i
+∈R512.
+(37)
+To match the true autoencoder latent dimensionality dm∗(r) of modality m∗(r), we
+truncate
+z(r,m)
+i
+= z(r)
+common,i[1 : dm∗(r)] ∈Rdm∗(r).
+(38)
+Finally, we decode z(r,m)
+i
+using the trained modality decoder gψm and rank raw
+features by absolute magnitude:
+ˆx(r,m)
+i
+= gψm
+
+z(r,m)
+i
+
+∈Rpm,
+rank by
+ˆx(r,m)
+i,j
+ .
+(39)
+Feature indices are mapped to gene/protein identifiers or image feature channels using
+the original modality feature tables.
+3.4.3 In-Silico Biological Validation and Functional Enrichment
+To assess biological plausibility of model-derived molecular drivers, we perform inde-
+pendent validation using CRISPR–Cas9 gene dependency data from the Cancer
+Dependency Map (DepMap).
+CRISPR dependency validation.
+For each cancer type c, we identify the set of DepMap cell lines Lc whose Oncotree
+lineage or primary disease annotation matches the corresponding TCGA cohort. For
+a candidate gene g present in the DepMap gene-effect matrix, we extract gene effect
+scores
+S(g, c) = {sg,ℓ| ℓ∈Lc}.
+The lineage-mean dependency is computed as
+¯sg,c =
+1
+|Lc|
+X
+ℓ∈Lc
+sg,ℓ.
+DepMap gene-effect values are normalized such that scores near zero indicate non-
+essentiality and more negative values indicate stronger dependency. A gene is classified
+as essential in cancer c if ¯sg,c < −0.5.
+14
+
+
+Driver sets evaluated.
+Essentiality is evaluated for gene drivers obtained from the merged modality-specific
+driver exports used in the main analysis. For modalities that do not directly cor-
+respond to gene-level entities (e.g., miRNA and RPPA), validation is performed as
+follows.
+RPPA validation.
+Protein targets selected from RPPA modality outputs are mapped to approved gene
+symbols and evaluated using the same DepMap dependency criterion.
+miRNA support.
+Selected miRNAs are assessed using experimentally validated miRNA–target inter-
+actions from miRTarBase. A miRNA is considered supported if at least one of its
+validated targets intersects the DepMap-evaluated gene set.
+Functional enrichment.
+Driver gene sets are tested for over-representation in curated pathway databases
+(e.g., KEGG, Hallmark, and Gene Ontology) using a hypergeometric model with false
+discovery rate correction. Enriched pathways are retained under a relaxed adjusted
+significance threshold (α = 0.25) to capture weak but biologically meaningful signals
+in factor- and patient-specific gene sets.
+Integration with explainability.
+Importantly, external validation is not performed independently of the model repre-
+sentation but is directly anchored to the hierarchical attribution chain. Meta-factors
+are first localized to biological layers and modality branches, then decoded to ranked
+raw features, which are evaluated through pathway enrichment and functional screens.
+This end-to-end mapping links tensor-derived latent structure to experimentally
+validated biological signals, forming a closed-loop interpretability mechanism.
+4 Experiments and Results
+4.1 Datasets and Cohort Definition
+We evaluate the proposed framework on four cancer cohorts from The Cancer Genome
+Atlas (TCGA): glioma (GBM/LGG), lung adenocarcinoma (LUAD), breast invasive
+carcinoma (BRCA), and kidney cancer, comprising clear cell renal cell carcinoma
+(KIRC), papillary renal cell carcinoma (KIRP), and chromophobe renal cell carcinoma
+(KICH). For each cohort, six comics: somatic copy number variation (SCNV), DNA
+methylation from the HM450K platform, RNA sequencing (RNA-seq), microRNA
+expression (miRNA-seq), protein abundance measured by reverse-phase protein arrays
+(RPPA), and digital pathology features extracted from hematoxylin and eosin (H&E)
+stained whole-slide images (WSIs). The omics features are obtained from LinkedOmics
+[2], while the WSI-derived pathomics features are based on self-supervised vision trans-
+former representations following [16]. Clinical variables include overall survival time,
+15
+
+
+Table 1: Cohort sizes and
+expansion from E1 to E2.
+Cancer
+E1
+E2
+Expansion (×)
+Glioma
+397
+1110
+2.80
+Breast
+501
+1097
+2.18
+Lung
+283
+522
+1.84
+Kidney
+408
+941
+2.31
+Table
+2: Selected hierarchical tensor
+ranks across cohorts.
+Cancer
+Stage-D
+Stage-R
+Stage-P
+Meta
+BRCA
+4
+8
+8
+8
+Glioma
+8
+8
+8
+8
+Kidney
+8
+8
+8
+4
+LUAD
+8
+8
+2
+4
+event status, tumor histological subtype or risk group. Modality-specific availability
+defines the two evaluation configurations used in this study. The real-only intersec-
+tion cohort (E1) contains patients with complete availability across all six modalities
+and clinical annotations. In contrast, the completed all-patient cohort (E2) includes
+patients with clinical data and at least one observed modality, and missing modal-
+ity embeddings are estimated via missing-modality latent reconstruction. This design
+allows us to compare performance under a strict complete-case setting and a more
+realistic setting that reflects incomplete modality availability in large clinical cohorts.
+All modality-specific latent representations are fixed before tensor fusion. SCNV
+and DNA methylation are encoded into 512-dimensional latent vectors, RNA-seq,
+miRNA-seq, and image features are encoded into 256-dimensional latent vectors, and
+RPPA is encoded into a 64-dimensional latent vector. These latent representations
+form the input to the biologically structured hierarchical tensor factorization stage
+described in the following sections.
+Table 1 summarizes cohort sizes under both configurations. Across the studied cancers.
+E2 substantially increases the number of analyzable patients relative to E1.
+4.2 Structural Stability of the Hierarchical Tensor
+Decomposition
+We evaluate the structural behavior of the hierarchical tensor decomposition across
+four cancer cohorts. Rank selection follows the CORCONDIA-guided multi-objective
+strategy described in Section 3.6; here we report the final selected ranks. Table 2
+presents the chosen Stage-I ranks for the DNA, RNA, and Protein–Imaging groups,
+together with the Stage-II meta rank. Stage-I ranks vary across biological subsys-
+tems and cancer types, indicating heterogeneous modality complexity. In contrast,
+the meta-level rank remains moderate across cohorts (Rmeta ∈{4, 8}). Kidney and
+LUAD converge to a meta rank of 4, whereas BRCA and Glioma select 8. Importantly,
+no cohort requires high-rank expansion in either Stage-I or Stage-II decomposition.
+The selected configurations remain bounded and consistent across cancers, indicating
+stable hierarchical factorization under the proposed tuning procedure.
+16
+
+
+    A)   
+  
+B)
+   
+   C)
+Fig. 2: Predictive and prognostic validation of the HIT-Fuse hierarchical tensor frame-
+work. (A) Best subtype classification performance (Weighted F1) per cancer under
+E1 and E2, with the dominant classifier indicated in parentheses. (B) Survival dis-
+crimination measured by C-index from the Cox survival head. (C) Effect of cohort
+completion (E2−E1) on subtype and survival metrics, illustrating cancer-specific sta-
+bility patterns.
+4.3 Predictive and Prognostic Validation of our Proposed
+Hierarchical Tensor Framework
+The predictive and clinical utility of the proposed hierarchical tensor framework
+(HIT-Fuse) is evaluated across four TCGA cohorts in two settings: E1 (intersec-
+tion) and E2 (completed). Performance is assessed along two complementary axes:
+subtype classification and survival prognosis. Subtype prediction is evaluated using
+logistic regression (LR), random forest (RF), and linear SVM, with results reported
+as Accuracy and weighted F1 (F1(w)). Survival discrimination is quantified using
+the concordance index (C-index) from a Cox proportional hazards model. Clinical
+stratification is further examined by clustering the HIT-Fuse latent space and eval-
+uating Kaplan–Meier separation with log-rank testing, with survival truncated at
+3000 days for comparability. Figure 2 summarizes the principal trends, In Panel
+(A), the strongest subtype performance under E2 is achieved by RF for BRCA
+(F1(w)=0.710), RF for GLIOMA (0.674), RF for KIDNEY (0.940), and RF/SVM
+jointly for LUAD (0.495), indicating that tree-based models consistently dominate in
+the enriched cohort. Panel (B) shows that survival discrimination remains stable under
+E2, with C-index values of 0.605 (BRCA), 0.752 (GLIOMA), 0.722 (KIDNEY), and
+0.598 (LUAD). Panel (C) illustrates that cohort completion (E2–E1) produces cancer-
+specific shifts rather than uniform improvements, with performance gains observed
+in several subtype metrics and stable survival discrimination across cohorts. Table 3
+provides the complete classifier-level breakdown for Accuracy, F1(w), and C-index
+across cohorts and settings. Collectively, the results indicate that our framework
+maintains competitive subtype performance and stable survival discrimination while
+benefiting from increased sample size, supporting the robustness of the hierarchical
+tensor design. Figure 4 evaluates survival stratification in the HIT-Fuse latent space
+under the completed setting (E2) with K=3 clusters. For each cohort, the left panel
+shows a two-dimensional t-SNE projection of the learned latent representations, while
+17
+
+
+Fig. 3: Global explainability under the standard setting. Left: Fractional con-
+tribution of biological layers (DNA, RNA, protein–imaging) from absolute meta-level
+loadings B(HIT −F use) aggregated over meta-factors and normalized per cohort. Right:
+Frequency of top-ranked meta-factors across group–modality combinations, pooled
+across cohorts (top-10 per cohort ranked by permutation importance).
+Table 3: Detailed HIT-Fuse hierarchical tensor framework performance across sub-
+type classifiers and survival discrimination. The best F1(w) per cohort is highlighted
+in bold. C-index corresponds to the survival head.
+E1
+E2
+Cancer
+Accuracy
+F1(w)
+C
+Accuracy
+F1(w)
+C
+LR
+RF
+SVM
+LR
+RF
+SVM
+LR
+RF
+SVM
+LR
+RF
+SVM
+BRCA
+0.417 0.701 0.677
+0.474
+0.644
+0.596
+0.643 0.421 0.764 0.767 0.502 0.710
+0.708
+0.605
+GLIOMA 0.590 0.584 0.597 0.575
+0.567
+0.519
+0.840 0.508 0.716 0.699 0.561 0.674
+0.652
+0.752
+KIDNEY
+0.941 0.934 0.941 0.941
+0.934
+0.941 0.619 0.914 0.939 0.922 0.918 0.940
+0.924
+0.722
+LUAD
+0.319 0.646 0.635
+0.387
+0.574
+0.494
+0.600 0.183 0.595 0.636 0.236 0.495 0.495 0.598
+the right panel presents Kaplan–Meier survival curves derived from cluster assign-
+ments. Significant survival separation is observed for Breast (p = 2.4 × 10−2), Glioma
+(p = 2.6 × 10−111), and Kidney (p = 7.0 × 10−7), indicating that latent clusters cor-
+respond to distinct risk groups. In LUAD, separation is weaker (p ≈1.3 × 10−1),
+despite a cohort size exceeding 500 patients under E2. Overall, the t-SNE visualization
+and survival analysis show that the HIT-Fuse latent representation supports statisti-
+cally significant stratification in most cohorts without evidence of instability following
+cohort expansion.
+4.4 Global and Local Explainability
+Figure 3 summarizes cohort-level global explainability under the standard attribu-
+tion setting. Meta-factors are ranked according to permutation importance computed
+on the final meta representation F (HIT −F use), where importance reflects the mean
+performance drop of a random forest classifier under feature permutation. The left
+panel reports the relative contribution of each biological group by aggregating the
+absolute meta-level group loadings B(HIT −F use) across meta-factors. The right panel
+pools the top-10 ranked meta-factors from all cohorts and displays the frequency
+of their (group, modality) assignments, where group dominance is determined by
+18
+
+
+Cancer
+Latent Component
+Group
+Modality
+Top Drivers (Top 5)
+BRCA
+1
+RNA
+MIRNA
+hsa-mir-1322, hsa-mir-518a-2, hsa-mir-518b,
+hsa-mir-670, hsa-mir-519a-2
+GLIOMA
+4
+DNA
+METH
+ZNF544, XRCC5, STK16, GATA5,
+CPLX2
+KIDNEY
+2
+DNA
+METH
+RAD51AP2, ISYNA1, VANGL2,
+SLC7A6, ARHGDIG
+LUAD
+1
+DNA
+METH
+ENO3, STRA8, WRB,
+ZNF286A, ANXA5
+Table 4: Representative highest-importance meta-factor per cancer cohort under the standard
+setting. Only the top five decoded drivers are shown for brevity.
+arg maxg |B(HIT −F use)
+g,r
+| and modality selection follows projection onto the corre-
+sponding stage-1 modality loadings. Table 4 reports one representative meta-factor
+per cohort, defined as the highest-ranked meta-factor under the same permutation-
+importance criterion. For each cohort, we list its dominant biological group, selected
+modality, and the top decoded drivers (top five shown for brevity.
+Local explainability: representative patient case studies.
+The proposed local traceback mechanism can be applied to any individual patient
+within each cancer cohort. To illustrate its behavior, we present representative case
+studies from the kidney and glioma cohorts. For a given patient p, we select the
+top meta-factors by magnitude in F (HIT −F use)
+p,:
+, trace each factor to its dominant
+biological layer (DNA, RNA, or PI) via B(HIT −F use), scale the meta direction by
+the patient loading αp,f = F (HIT −F use)
+p,f
+to ensure locality, and decode the resulting
+modality-specific latent direction through the corresponding autoencoder decoder to
+obtain ranked driver features.
+Kidney (TCGA.GL.A9DE). The model predicted papillary renal cell carci-
+noma with low-risk status. The highest-magnitude meta-factor (f = 0, αp,f = 11.21)
+mapped to the DNA layer with dominant modality methylation, producing drivers
+including LSM4, TRIM60, VHL, and POM121L4P. The second-ranked factor (f = 1,
+αp,f = 7.85) traced to the DNA layer via SCNV, yielding drivers such as ATP2B4,
+KISS1, and SNORD112. A third factor (f = 2, αp,f = −1.40) again mapped to
+methylation with drivers including PACS1, DLX2, and GALNS. These results show
+that distinct meta-factors within the same patient correspond to different molecular
+modalities, reflecting multiple biological axes captured by the fused representation.
+Glioma (TCGA.02.0004). For a patient predicted as untreated primary (de
+novo) GBM, the top meta-factors were strongly associated with the DNA layer but
+separated into modality-specific contributions. Factor f = 3 (αp,f = 19.20) mapped
+to methylation with drivers including MEF2B, DSN1, SHANK3, and NP1X1. Fac-
+tor f = 5 (αp,f = −12.87) also mapped to methylation with drivers such as MLF1,
+SHISA3, and DOCK6. In contrast, factor f = 6 (αp,f = −8.36) mapped to SCNV,
+producing drivers including GFRA1, CGN, and PPP5K1A. Thus, even when the dom-
+inant biological layer remains the same, the local explanation differentiates between
+19
+
+
+copy-number and methylation axes in a patient-specific manner. For patients whose
+dominant modality was imaging (PI layer, IMG branch), the decoded top features cor-
+respond to latent dimensions derived from whole-slide image patch embeddings and
+features can be mapped back to their originating patches, enabling spatial interpre-
+tation of the explanation. These examples demonstrate that the proposed traceback
+mechanism yields patient-specific, modality-resolved driver patterns rather than a
+single global driver direction.
+4.5 Biological Interpretation and External Validation
+4.5.1 Cross-Cancer Pathway Enrichment Analysis
+To interpret the biological mechanisms captured by the HIT-Fuse framework, we
+performed functional enrichment analysis on the union of important genes derived
+from meta-factor drivers in each cohort. Enrichment was evaluated using Gene Ontol-
+ogy (GO), KEGG, Reactome, and experimentally supported miRNA target libraries.
+Figure 5A presents a cross-cancer enrichment fingerprint summarizing significantly
+enriched pathways across glioma, breast, lung, and kidney cohorts. Enrichment
+intensity is reported as −log10(adjusted p). In glioma, enrichment was strongly
+concentrated in immune-related processes, apoptotic regulation, and PI3K–AKT
+signaling, consistent with known glioblastoma immune and survival dependencies.
+Breast cancer exhibited enrichment in cell cycle regulation, apoptosis, and receptor
+tyrosine kinase pathways. Lung cancer showed moderate enrichment in immune sig-
+naling and apoptotic pathways. In contrast, kidney displayed comparatively fewer
+significantly enriched pathways in the pooled export, reflecting cohort-specific driver
+sparsity. Across cancers, recurrent enrichment in apoptosis, immune signaling, PI3K–
+AKT pathway, and cytokine signaling suggests that the HIT-Fuse-derived drivers
+consistently capture core oncogenic axes while preserving cancer-specific variation.
+4.5.2 External Functional Validation Using DepMap CRISPR
+Screens
+To further assess functional relevance, we evaluated selected drivers against DepMap
+CRISPR–Cas9 gene dependency screens. As summarized in Fig. 5, HIT-Fuse-derived
+drivers demonstrate broad coverage within DepMap gene-effect matrices, with 77.2–
+83.6% of selected genes matched across cohorts. Among DepMap-matched genes, 6–8%
+satisfied the essentiality criterion (¯sg,c < −0.5) in lineage-matched cell lines. Rep-
+resentative essential drivers included RPL14 and PRPF31 (kidney), SNRPD1 and
+RPL6 (breast), PLK1 and DHODH (lung), and ANAPC11 and PSMB4 (glioma).
+In addition, 71.7–92.1% of cohort-specific miRNAs were supported by experimen-
+tally validated miRTarBase targets, while RPPA-selected genes exhibited variable
+essentiality rates (0–25.7%) across cohorts. Together, these results indicate that HIT-
+Fuse-identified drivers are not only statistically salient within the tensor fusion space
+but also enriched for experimentally supported functional dependencies.
+20
+
+
+4.6 Fusion Architecture Ablation Study
+To isolate the effect of fusion design, we ablate the fusion architecture while keeping
+all other components fixed: (i) the same modality-specific latent representations, (ii)
+the same CORCONDIA-guided rank tuning procedure, and (iii) the same downstream
+subtype classifiers. Thus, any differences reflect the inductive bias introduced by the
+fusion mechanism rather than changes in feature extraction or tuning.
+Ablation settings.
+We compare four fusion strategies:
+• Concat_All (feature concatenation). All modality latents are concatenated
+into a single vector per patient and fed directly to the classifier. This baseline
+imposes no explicit cross-modal structure.
+• M1_GroupCP (group-wise CP). Modalities are first grouped according to
+a coarse biological flow: DNA (SCNV+METH), RNA (RNA-seq+miRNA), and
+protein–imaging (RPPA+IMG). A CP decomposition is applied separately to each
+group tensor to obtain group-specific patient factors, which are then concate-
+nated for prediction. This enforces within-group interaction modeling but does not
+explicitly model interactions between groups.
+• M2_FlatCP (single-stage CP). All modalities are stacked into a single ten-
+sor and decomposed with CP, producing one set of patient factors that captures
+interactions across all modalities in a single stage, without biological grouping.
+• HIT-Fuse (proposed hierarchical fusion). HIT-Fuse extends M1 by introduc-
+ing a second-stage meta-factor decomposition over the three group representations
+(DNA/RNA/protein–imaging), explicitly capturing cross-group interactions while
+preserving the biological grouping.
+Quantitative results.
+Table 5 summarizes the maximum weighted F1 achieved by each fusion strategy in each
+cancer–cohort setting (E1/E2), where the reported value for each fusion corresponds
+to its best-performing classifier among the evaluated subtype heads.
+Across the eight cancer–cohort combinations, Concat_All attains the highest
+weighted F1 in six settings, indicating that strong subtype-discriminative signal is
+already present in the aggregated latent features and can be exploited by standard
+classifiers without imposing additional structure. Nonetheless, tensor fusion is advan-
+tageous in specific cohorts: M2_FlatCP achieves the top result in Glioma (E1), and
+HIT-Fuse achieves the top result in LUAD (E1), suggesting that structured interac-
+tion modeling can be beneficial depending on cohort characteristics and tumor-specific
+cross-modal relationships. Importantly, no single fusion strategy dominates univer-
+sally, highlighting that fusion inductive biases interact with cohort composition (E1
+vs. E2) and cancer biology.
+21
+
+
+Table 5: Maximum weighted F1 scores achieved under each fusion
+strategy across cancers and cohorts. For each fusion method, the best-
+performing subtype classifier (among evaluated models) is reported.
+Bold indicates the highest F1 within each cancer–cohort setting.
+Cancer
+Cohort
+Concat_All
+M1_GroupCP
+M2_FlatCP
+HIT-Fuse
+Breast
+E1
+0.736
+0.666
+0.617
+0.644
+Breast
+E2
+0.775
+0.716
+0.657
+0.710
+Glioma
+E1
+0.551
+0.574
+0.583
+0.575
+Glioma
+E2
+0.726
+0.698
+0.688
+0.674
+Kidney
+E1
+0.973
+0.958
+0.921
+0.941
+Kidney
+E2
+0.960
+0.941
+0.924
+0.940
+LUAD
+E1
+0.561
+0.553
+0.517
+0.574
+LUAD
+E2
+0.536
+0.500
+0.495
+0.495
+Interpretability implication.
+While HIT-Fuse is not the top performer in weighted F1 in most settings, it remains
+competitive and is uniquely designed to support mechanistic interpretation by con-
+struction. In particular, HIT-Fuse enables a more direct and biologically aligned
+patient-level traceback of drivers through staged factorization (meta-factor →bio-
+logical layer →modality branch →decoded drivers), whereas flat concatenation
+and single-stage tensor fusion do not natively impose this hierarchy and therefore
+require heavier post-hoc assumptions to obtain comparable mechanistic narratives.
+In this sense, the ablation indicates that predictive optimization (often favoring
+concatenation) and biologically structured fusion (supporting coherent cross-modal
+interpretation) are complementary objectives, and HIT-Fuse targets the latter while
+maintaining competitive predictive performance.
+5 Discussion
+Cohort Coverage and Tensor Stability.
+Across four TCGA cohorts and two cohort constructions (E1 intersection vs. E2
+completed), the experiments highlight a consistent theme: predictive optimality and
+biological structuring are not identical objectives. E2 systematically increases cohort
+coverage (Table 1), enabling evaluation on substantially larger and more clinically
+representative patient sets. This expansion is aligned with the practical reality of
+multimodal clinical cohorts, where complete modality availability is uncommon and
+missingness is often structured rather than random [1, 2]. Importantly, the hierarchical
+decomposition remains well behaved under expansion: tuned ranks remain moder-
+ate and bounded across cancers (Table 2), suggesting that the CORCONDIA-guided,
+multi-objective procedure can avoid unstable over-parameterization while adapting to
+cohort-specific complexity [6, 19].
+22
+
+
+Predictive and prognostic behavior under cohort expansion.
+Under HIT-Fuse, subtype
+performance
+varies non-uniformly
+from
+E1
+to
+E2
+(Fig. 2A,C), while survival discrimination remains comparatively stable (Fig. 2B).
+This pattern is plausible in multimodal oncology settings: increasing sample size and
+heterogeneity can alter subtype separability (especially for imbalanced or clinically
+heterogeneous labels), whereas survival modeling often benefits from larger cohorts
+and may be less sensitive to marginal class-boundary shifts when trained with regular-
+ized Cox objectives [12, 13]. The strong KM separations observed in BRCA, Glioma,
+and Kidney under E2 (Fig. 4) further indicate that the learned fused representation
+contains clinically meaningful axes that translate into risk stratification, consistent
+with prior multimodal survival literature combining pathology and omics signals [29].
+Why concatenation often dominates the ablation table.
+The fusion ablation (Table 5) shows that Concat_All yields the highest weighted
+F1 in most cancer–cohort settings. This is not necessarily surprising in your pipeline
+because each modality is already represented by a learned latent embedding (fixed-
+dimensional, standardized, and information-dense). When strong predictive signal is
+already present in the latent space, a linear or tree-based classifier on concatenated
+features can be highly effective, and may outperform structured tensor objectives that
+impose additional constraints on interactions. In other words, concatenation can be
+viewed as an upper baseline for pure predictive optimization when interpretability
+constraints are not enforced.
+When tensor structure helps (and what it buys you even when it does not
+win F1).
+Despite concatenation’s dominance, tensor-based strategies provide two advantages
+that matter for the scientific aims of this work. First, they explicitly model multiway
+interactions rather than treating modalities as an unordered feature bag, which can
+be beneficial when prognostic signal is expressed through cross-modality coupling
+(e.g., coordinated DNA–RNA–protein patterns) [19]. This is consistent with settings
+where M2 or HIT-Fuse is competitive or best (e.g., Glioma E1 and LUAD E1 in
+Table 5). Second, and more importantly for the paper’s contributions, the hierarchical
+design induces a structured factorization aligned with biological flow (DNA →RNA →
+protein/imaging), which supports coherent interpretation. In HIT-Fuse, each patient’s
+meta-factor activations can be traced to a dominant biological layer via meta loadings
+and then down to a specific modality branch (and ultimately decoded to ranked
+drivers), yielding a reproducible chain of attribution. Flat concatenation does not
+provide this decomposition natively, and single-stage tensor fusion (M2) does not
+explicitly separate within-layer vs. cross-layer interactions, making such traceback less
+direct and less biologically anchored.
+Biological validity signals from enrichment and functional screens.
+The enrichment fingerprint (Fig. 5A) indicates that driver exports capture both shared
+oncogenic programs and cancer-specific signatures, and uses established functional
+libraries to contextualize the decoded drivers. External validation using DepMap
+23
+
+
+CRISPR dependency profiles (Fig. 5B) further supports functional relevance: map-
+ping drivers to CRISPR target genes and observing substantial essentiality rates
+in cancer-matched cell lines is consistent with the Dependency Map paradigm for
+identifying cancer vulnerabilities . The miRNA support via experimentally validated
+targets (miRTarBase) provides complementary regulatory plausibility for miRNA-
+linked drivers. While these validations do not prove causality, they strengthen the
+claim that HIT-Fuse’s decoded drivers are not arbitrary latent artifacts but correspond
+to experimentally interrogated functional units.
+Limitations and practical takeaway.
+The results suggest that no single fusion strategy universally dominates across cancers,
+cohorts, and endpoints. If the sole objective were maximizing subtype F1, Concat_All
+is often the strongest choice in this experimental design. However, the central goal of
+HIT-Fuse is to balance competitive performance with biologically structured, mecha-
+nistically interpretable fusion. Thus, the main takeaway is not that HIT-Fuse is always
+the top classifier, but that it provides a principled representation that (i) remains sta-
+ble under cohort completion, (ii) supports clinically meaningful stratification, and (iii)
+enables patient-level, layer-resolved driver tracing with downstream biological valida-
+tion (enrichment and DepMap), properties that are harder to obtain in a single step
+from purely predictive baselines.
+6 Conclusion
+We introduced HIT-Fuse, a hierarchical tensor-based multimodal fusion framework
+designed to integrate genomics, transcriptomics, proteomics, and imaging represen-
+tations while preserving biologically motivated structure. Unlike flat concatenation
+or single-stage tensor approaches, HIT-Fuse explicitly separates within-layer inter-
+actions (DNA, RNA, protein–imaging) from cross-layer meta interactions, enabling
+structured factorization aligned with biological flow.
+Across four TCGA cancer cohorts and two cohort constructions (intersection
+E1 and completed E2), HIT-Fuse demonstrated competitive subtype classification
+performance and stable survival discrimination under cohort expansion. Although
+direct feature concatenation frequently achieved the highest weighted F1, HIT-
+Fuse remained consistently competitive while uniquely supporting layer-resolved,
+patient-specific driver traceback. Cohort expansion through latent completion sub-
+stantially increased sample coverage without destabilizing hierarchical rank selection
+or degrading prognostic stratification.
+Biological interpretability analysis further showed that HIT-Fuse-derived drivers
+recapitulate known oncogenic processes across cancers and are enriched for experimen-
+tally validated functional dependencies, including DepMap CRISPR gene essentiality
+profiles and curated miRNA target interactions. These findings indicate that the hier-
+archical representation captures biologically meaningful cross-modal structure rather
+than arbitrary latent correlations.
+Overall, this study highlights an important distinction between predictive opti-
+mization and biologically structured integration. While concatenation may maximize
+24
+
+
+classification accuracy in certain settings, structured multimodal factorization pro-
+vides a principled foundation for mechanistic interpretation and cross-modal reason-
+ing. The proposed framework therefore offers a scalable and interpretable strategy for
+multimodal cancer modeling in heterogeneous clinical cohorts.
+25
+
+
+BREAST
+GLIOMA
+KIDNEY
+LUNG
+Fig. 4: Latent-space clustering and survival stratification under HIT-Fuse
+(E2, K=3). For each cohort, patients are clustered in the learned latent space (left
+within each panel) and evaluated via Kaplan–Meier survival separation (right). Sur-
+vival is truncated at 3000 days for comparability across cohorts.
+26
+
+
+Fig. 5: Biological interpretation and external validation of HIT-Fuse-
+derived drivers. Top A: Cross-cancer enrichment fingerprint across GO Biological
+Process, KEGG, Reactome, miRTarBase, and miEAA libraries. Heatmap intensity
+reflects −log10(adjusted p), and the upper bar indicates the number of cancers in
+which each term is significantly enriched. Bottom B: External functional validation
+using DepMap CRISPR essentiality screens and regulatory evidence. Bars indicate
+overall DepMap gene coverage, essential gene proportion, RPPA-supported genes, and
+miRTarBase-supported miRNAs.
+27
+
+
+Declarations
+Ethics approval and consent to participate
+Not applicable.
+Consent for publication
+Not applicable.
+Availability of data and materials
+The datasets used in this study are publicly available from The Cancer Genome Atlas
+(TCGA) and LinkedOmics portals.
+Competing interests
+The authors declare that they have no competing interests.
+Funding
+Not applicable.
+Authors’ contributions
+AH developed the research framework, designed the methodology, conducted the
+experiments, analysed the results, and drafted the manuscript. AA, MP, and AB
+provided supervision, methodological guidance, critical feedback, and contributed to
+the review and revision of the manuscript. All authors read and approved the final
+manuscript.
+Acknowledgements
+Not applicable.
+References
+[1] (2013) The cancer genome atlas pan-cancer analysis project. Nature Genetics
+[2] (2018) Linkedomics: analyzing multi-omics data within and across 32 cancer
+types. Nucleic Acids Research
+[3] Argelaguet R, Velten B, Arnol D, et al (2018) Multi-omics factor analysis—
+a framework for unsupervised integration of multi-omics data sets. Molecular
+Systems Biology 14(6):e8124. https://doi.org/10.15252/msb.20178124
+[4] Argelaguet R, Velten B, Arnol D, et al (2020) Mofa+: a statistical framework
+for comprehensive integration of multi-modal single-cell data. Genome Biology
+21:111. https://doi.org/10.1186/s13059-020-02015-1
+28
+
+
+[5] Braytee A, He S, Tang S, et al (2024) Identification of cancer risk groups through
+multi-omics integration using autoencoder and tensor analysis. Scientific Reports
+14:11263. https://doi.org/10.1038/s41598-024-61141-5
+[6] Bro R, Kiers HAL (2003) A new eﬀicient method for determining the number of
+components in parafac models. Journal of Chemometrics 17(5):274–286. https:
+//doi.org/10.1002/cem.801
+[7] Chaudhary K, Poirion OB, Lu L, et al (2018) Deep learning-based multi-omics
+integration robustly predicts survival in liver cancer. Clinical Cancer Research
+24(6):1248–1259. https://doi.org/10.1158/1078-0432.CCR-17-0853
+[8] Cheerla A, Gevaert O (2019) Deep learning with multimodal representation
+for pancancer prognosis prediction. Bioinformatics 35(14):i446–i454. https://doi.
+org/https://doi.org/10.1093/bioinformatics/btz342
+[9] Chen RJ, Lu MY, et al (2021) Multimodal co-attention transformer for survival
+prediction in gigapixel whole slide images. ICCV
+[10] Chen RJ, Lu MY, Williamson DFK, et al (2022) Pan-cancer integrative histology-
+genomic analysis via multimodal deep learning. Cancer Cell 40(8):865–878.e6.
+https://doi.org/10.1016/j.ccell.2022.07.004
+[11] Chen RJ, et al (2022) Porpoise: A pathology–omics fusion framework for survival
+prediction. Nature Communications
+[12] Cox DR (1972) Regression models and life-tables. Journal of the Royal Statisti-
+cal Society: Series B (Methodological) 34(2):187–220. https://doi.org/10.1111/j.
+2517-6161.1972.tb00899.x
+[13] Harrell FE, Califf RM, Pryor DB, et al (1982) Evaluating the yield of
+medical tests. JAMA 247(18):2543–2546. https://doi.org/10.1001/jama.1982.
+03320430047030
+[14] Hasin Y, Seldin M, Lusis A (2017) Multi-omics approaches to disease. Genome
+Biology 18(1):83. https://doi.org/10.1186/s13059-017-1215-1
+[15] Holzinger A, et al (2017) What do we need to build explainable ai systems for
+the medical domain? arXiv preprint arXiv:171209923
+[16] Hussein A, Anaissi A, Prasad M, et al (2026) Integrating vision transformers
+and autoencoders for interpretable cancer risk assessment. In: Nguyen Q, Li Y,
+Kwan P, et al (eds) Data Science and Machine Learning, Communications in
+Computer and Information Science, vol 2765. Springer, Singapore, p xx–xx, https:
+//doi.org/10.1007/978-981-95-6786-7_21
+29
+
+
+[17] Kitano H (2002) Systems biology: A brief overview. Science 295(5560):1662–1664.
+https://doi.org/10.1126/science.1069492, URL https://www.science.org/doi/10.
+1126/science.1069492
+[18] Kolda TG, Bader BW (2009) Tensor decompositions and applications. SIAM
+Review 51(3):455–500. https://doi.org/10.1137/07070111X
+[19] Kolda TG, Bader BW (2009) Tensor decompositions and applications. SIAM
+Review 51(3):455–500. https://doi.org/10.1137/07070111X
+[20] Li Y, et al (2022) Multi-view learning for incomplete multi-omics data integration.
+Briefings in Bioinformatics 23(1):bbab476. https://doi.org/10.1093/bib/bbab476
+[21] Li Y, et al (2022) Multi-view representation learning for incomplete multi-omics
+data integration. Bioinformatics
+[22] Lipton ZC (2018) The mythos of model interpretability. Communications of the
+ACM 61(10):36–43. https://doi.org/10.1145/3233231
+[23] Lu MY, et al (2021) Data-eﬀicient and weakly supervised computational pathol-
+ogy on whole-slide images. Nature Biomedical Engineering 5:555–570. https:
+//doi.org/10.1038/s41551-020-00682-w
+[24] Lundberg SM, Lee SI (2017) A unified approach to interpreting model predic-
+tions. NeurIPS
+[25] Poirion OB, Chaudhary K, Garmire LX (2021) Deepprog: an ensemble of deep-
+learning and machine-learning models for prognosis prediction using multi-omics
+data. Genome Medicine 13:112. https://doi.org/10.1186/s13073-021-00922-1
+[26] Ritchie MD, et al (2015) Methods of integrating data to uncover genotype–
+phenotype interactions. Nature Reviews Genetics 16(2):85–97. https://doi.org/
+10.1038/nrg3868
+[27] Smith A, et al (2017) Scalable tensor factorization for large-scale health data
+analytics. IEEE Transactions on Big Data 3(4):478–492
+[28] Sundararajan M, Taly A, Yan Q (2017) Axiomatic attribution for deep networks.
+ICML
+[29] Vale-Silva LA, Rohr K (2021) Multisurv: Long-term cancer survival prediction
+using multimodal deep learning. Scientific Reports 11(1):13505. https://doi.org/
+10.1038/s41598-021-92799-4
+[30] Yang X, Wang J, et al (2021) Tensor-based multi-omics integration for cancer
+subtype discovery and survival analysis. Bioinformatics 37(16):2313–2320
+30
+
+
+[31] Yang Z, et al (2021) Multi-omics data integration using tensor-based methods for
+cancer subtype discovery. IEEE/ACM Transactions on Computational Biology
+and Bioinformatics 18(4):1503–1515
+[32] Zhan X, Huang Z, Han Z, et al (2019) Correlation analysis of histopathology
+and proteogenomics reveals molecular processes associated with tissue morpho-
+logical features. Proteogenomics 2019:xxx–xxx. https://doi.org/https://doi.org/
+10.1074/mcp.RA118.001232, available online
+31
