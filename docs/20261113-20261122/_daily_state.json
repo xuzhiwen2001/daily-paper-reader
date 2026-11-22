@@ -1,0 +1,57 @@
+{
+  "date": "20261113-20261122",
+  "date_label": "2026-11-13 ~ 2026-11-22",
+  "generated_at": "2026-11-22 18:40:58 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-11-765857-v1",
+      "route": "20261113-20261122/biorxiv-10-64898-2026-11-11-765857-v1-alphagenome-2-predicts-regulatory-activity-and-variant-effects-across-cell-states",
+      "title": "AlphaGenome 2 predicts regulatory activity and variant effects across cell states",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "深度学习预测不同细胞状态下变异对基因表达的影响",
+      "first_seen_at": "2026-11-22 18:40:58 UTC",
+      "updated_at": "2026-11-22 18:40:58 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-19-767940-v1",
+      "route": "20261113-20261122/biorxiv-10-64898-2026-11-19-767940-v1-modelling-phenotypic-assay-noise-for-multivariable-biomarker-discovery-using-deep-neural-networks",
+      "title": "Modelling Phenotypic Assay Noise for Multivariable Biomarker Discovery using Deep Neural Networks",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "建模表型检测噪声的深度神经网络用于癌症药物反应预测",
+      "first_seen_at": "2026-11-22 18:40:58 UTC",
+      "updated_at": "2026-11-22 18:40:58 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-19-767940-v2",
+      "route": "20261113-20261122/biorxiv-10-64898-2026-11-19-767940-v2-modelling-phenotypic-assay-noise-for-multivariable-biomarker-discovery-using-deep-neural-networks",
+      "title": "Modelling Phenotypic Assay Noise for Multivariable Biomarker Discovery using Deep Neural Networks",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "建模表型噪声的深度神经网络药物响应预测",
+      "first_seen_at": "2026-11-22 18:40:58 UTC",
+      "updated_at": "2026-11-22 18:40:58 UTC"
+    }
+  ]
+}

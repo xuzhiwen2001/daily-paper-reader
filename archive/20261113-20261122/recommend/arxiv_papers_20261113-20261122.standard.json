@@ -1,0 +1,163 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-22T18:40:41.939515+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 0,
+    "deep_cap": 7,
+    "deep_selected": 0,
+    "quick_candidates": 3,
+    "quick_skim_target": 12,
+    "quick_selected": 3
+  },
+  "deep_dive": [],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-11-11-765857-v1",
+      "source": "biorxiv",
+      "title": "AlphaGenome 2 predicts regulatory activity and variant effects across cell states",
+      "abstract": "Most genetic variants associated with human traits and diseases lie in non-coding DNA, where they can alter gene regulation in specific cell types and states. Single-cell atlases chart these states across tissues and development, but rarely profile enough donors to associate variants with expression directly. Deep learning models could bridge this gap by predicting variant effects from DNA sequence, yet they poorly distinguish related cell states and require fine-tuning for new datasets. Here we present AlphaGenome 2 (AG2), which substantially advances cell-type-specific prediction of regulatory activity and variant effects for gene expression and chromatin accessibility. Trained on organism-wide human and mouse single-cell atlases and bulk functional genomics data, AG2 takes as input a 1-Mb DNA sequence and a condition specifying a target tissue, cell type, or cell state. Conditioning enables AG2 to impute unmeasured epigenomic tracks and predict multimodal variant effects across cell types. Inferring this condition directly from gene expression extends AG2 to unseen datasets and cell states without fine-tuning. AG2 outperforms fine-tuned AlphaGenome 1 and specialized models trained on target datasets, doubling recall of causal single-cell eQTLs at 90% precision. AG2 also achieves state-of-the-art enhancer-gene linking and can pinpoint causal variants at complex trait loci. Across hundreds of human cell types, we generated an atlas of enhancer-gene links and scores for 7 million common variants. As single-cell profiling expands across development, tissues, and disease cohorts, AG2 provides a blueprint for turning observational atlases into variant effect maps.",
+      "authors": [
+        "Gayoso, A.",
+        "Mottram, A.",
+        "Karollus, A.",
+        "Novati, G.",
+        "Drotar, P.",
+        "Reid, J.",
+        "Meng-Papaxanthos, L.",
+        "Kosiorek, A.",
+        "Arvaniti, E.",
+        "Dutordoir, V.",
+        "De, S.",
+        "Ward, T.",
+        "Hong Wong, L.",
+        "Perino, M.",
+        "Taylor, K.",
+        "Cheng, J.",
+        "Latysheva, N.",
+        "Pan, J.",
+        "Hariharan, D.",
+        "Bycroft, C.",
+        "Nicolaisen, L.",
+        "Hassabis, D.",
+        "Kohli, P.",
+        "Avsec, Z."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-17T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.11.765857v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "deep learning predicts variant effects on gene expression across cell states",
+      "llm_evidence_cn": "深度学习预测不同细胞状态下变异对基因表达的影响",
+      "llm_evidence": "深度学习预测不同细胞状态下变异对基因表达的影响",
+      "canonical_evidence": "深度学习预测不同细胞状态下变异对基因表达的影响",
+      "llm_tldr_en": "Noncoding variants act in specific cell states, yet atlases lack donors and models blur related states. AlphaGenome 2, trained on organism-wide single-cell atlases, predicts regulatory activity and variant effects from DNA with better cell-state specificity.",
+      "llm_tldr_cn": "非编码区变异如何在特定细胞状态下影响基因调控仍难解析，单细胞图谱供体数量有限，已有模型也难以区分相近细胞状态。作者提出AlphaGenome 2，在人与小鼠全组织单细胞图谱上训练，直接从DNA序列预测调控活性、染色质可及性与变异效应。结果显示其在细胞类型特异的调控与变异效应预测上明显提升，并减少新数据集微调需求。该工作为跨细胞状态的变异功能解读提供了通用序列到功能预测框架。",
+      "llm_tldr": "非编码区变异如何在特定细胞状态下影响基因调控仍难解析，单细胞图谱供体数量有限，已有模型也难以区分相近细胞状态。作者提出AlphaGenome 2，在人与小鼠全组织单细胞图谱上训练，直接从DNA序列预测调控活性、染色质可及性与变异效应。结果显示其在细胞类型特异的调控与变异效应预测上明显提升，并减少新数据集微调需求。该工作为跨细胞状态的变异功能解读提供了通用序列到功能预测框架。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Predicting cellular response to genetic perturbations",
+      "matched_requirement_id": "req-5",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-19-767940-v1",
+      "source": "biorxiv",
+      "title": "Modelling Phenotypic Assay Noise for Multivariable Biomarker Discovery using Deep Neural Networks",
+      "abstract": "Accurately predicting cancer drug response remains a major challenge in precision oncology. Although some therapies are guided by clinically-approved biomarkers, these markers often yield limited predictive value and are unavailable for many drugs. Artificial Intelligence and Machine Learning approaches trained on large-scale cancer cell line pharmacogenomic screens offer a promising route to more comprehensive response prediction, yet they generally assume that phenotypic readouts are measured without error. This assumption is problematic because viability-based drug response assays are inherently noisy, potentially causing models to learn experimental artefacts rather than biologically meaningful determinants of sensitivity. Here, we show that phenotypic measurement noise is present in four widely used cancer cell line screening datasets and introduce Deep Concordance Index Networks (DeepCINET), a deep learning framework that explicitly accounts for this noise. Across datasets, incorporating this noise-aware ranking strategy improves generalization across experimental conditions and to previously unseen samples. DeepCINET outperforms baseline models in multiple settings, with particularly notable gains in prioritizing the most drug-sensitive cell lines. Together, these results establish phenotypic assay noise as a critical and previously overlooked source of error in drug response modelling and provide a principled framework for noise-aware multivariable biomarker discovery.",
+      "authors": [
+        "Bannon, J. J.",
+        "Scott, K. L. S. L.",
+        "Delgado Sanchez, M.",
+        "Khodakarami, F.",
+        "Gruener, R. F.",
+        "Huang, R. S.",
+        "Haibe-Kains, B."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-20T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.19.767940v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "deep neural network modeling of assay noise for cancer drug response prediction",
+      "llm_evidence_cn": "建模表型检测噪声的深度神经网络用于癌症药物反应预测",
+      "llm_evidence": "建模表型检测噪声的深度神经网络用于癌症药物反应预测",
+      "canonical_evidence": "建模表型检测噪声的深度神经网络用于癌症药物反应预测",
+      "llm_tldr_en": "The authors show viability-based drug response assays are inherently noisy and that deep networks trained on pharmacogenomic screens should explicitly model assay noise to find biologically meaningful biomarkers.",
+      "llm_tldr_cn": "基于细胞系药物基因组筛选的深度学习模型通常假设表型读数无误差，而活性检测本身噪声较大，易使模型学到实验假象而非真正的敏感性决定因素。作者提出在深度神经网络中显式建模表型检测噪声，用于多变量生物标志物发现与药物反应预测。结果显示考虑噪声可提升预测的生物学合理性。该工作为虚拟细胞式药物扰动响应建模中的噪声问题提供了改进思路。",
+      "llm_tldr": "基于细胞系药物基因组筛选的深度学习模型通常假设表型读数无误差，而活性检测本身噪声较大，易使模型学到实验假象而非真正的敏感性决定因素。作者提出在深度神经网络中显式建模表型检测噪声，用于多变量生物标志物发现与药物反应预测。结果显示考虑噪声可提升预测的生物学合理性。该工作为虚拟细胞式药物扰动响应建模中的噪声问题提供了改进思路。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Virtual cell models for drug or genetic perturbation",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-19-767940-v2",
+      "source": "biorxiv",
+      "title": "Modelling Phenotypic Assay Noise for Multivariable Biomarker Discovery using Deep Neural Networks",
+      "abstract": "Accurately predicting cancer drug response remains a major challenge in precision oncology. Although some therapies are guided by clinically-approved biomarkers, these markers often yield limited predictive value and are unavailable for many drugs. Artificial Intelligence and Machine Learning approaches trained on large-scale cancer cell line pharmacogenomic screens offer a promising route to more comprehensive response prediction, yet they generally assume that phenotypic readouts are measured without error. This assumption is problematic because viability-based drug response assays are inherently noisy, potentially causing models to learn experimental artefacts rather than biologically meaningful determinants of sensitivity. Here, we show that phenotypic measurement noise is present in four widely used cancer cell line screening datasets and introduce Deep Concordance Index Networks (DeepCINET), a deep learning framework that explicitly accounts for this noise. Across datasets, incorporating this noise-aware ranking strategy improves generalization across experimental conditions and to previously unseen samples. DeepCINET outperforms baseline models in multiple settings, with particularly notable gains in prioritizing the most drug-sensitive cell lines. Together, these results establish phenotypic assay noise as a critical and previously overlooked source of error in drug response modelling and provide a principled framework for noise-aware multivariable biomarker discovery.",
+      "authors": [
+        "Bannon, J. J.",
+        "Scott, K. L.",
+        "Delgado Sanchez, M.",
+        "Khodakarami, F.",
+        "Gruener, R. F.",
+        "Huang, R. S.",
+        "Haibe-Kains, B."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-20T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.19.767940v2.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "deep neural network drug response prediction modeling assay noise",
+      "llm_evidence_cn": "建模表型噪声的深度神经网络药物响应预测",
+      "llm_evidence": "建模表型噪声的深度神经网络药物响应预测",
+      "canonical_evidence": "建模表型噪声的深度神经网络药物响应预测",
+      "llm_tldr_en": "Cancer drug response prediction from cell line pharmacogenomic screens usually assumes noiseless readouts; this work models viability assay noise in deep neural networks to avoid learning artifacts and improve biomarker discovery.",
+      "llm_tldr_cn": "基于大规模细胞系药物基因组学数据的深度学习模型在预测抗癌药物响应时，通常假设表型读数无误差，而活性检测本身噪声很大，模型可能学到实验假象而非真实的敏感性决定因素。作者显式建模表型检测噪声，并将其纳入深度神经网络的多变量生物标志物发现框架。结果表明，考虑噪声后模型能更可靠地区分生物学信号与检测伪影，提升药物响应预测与标志物识别质量。该工作强调了扰动与药物响应建模中噪声建模的必要性。",
+      "llm_tldr": "基于大规模细胞系药物基因组学数据的深度学习模型在预测抗癌药物响应时，通常假设表型读数无误差，而活性检测本身噪声很大，模型可能学到实验假象而非真实的敏感性决定因素。作者显式建模表型检测噪声，并将其纳入深度神经网络的多变量生物标志物发现框架。结果表明，考虑噪声后模型能更可靠地区分生物学信号与检测伪影，提升药物响应预测与标志物识别质量。该工作强调了扰动与药物响应建模中噪声建模的必要性。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Virtual cell models for drug or genetic perturbation",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}
