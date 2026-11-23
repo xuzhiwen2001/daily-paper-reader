@@ -1,0 +1,136 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-23T18:42:12.654212+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 2,
+    "deep_cap": 7,
+    "deep_selected": 2,
+    "quick_candidates": 1,
+    "quick_skim_target": 12,
+    "quick_selected": 1
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-11-16-767041-v2",
+      "source": "biorxiv",
+      "title": "Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects",
+      "abstract": "Background: Second-generation sequence models can be conditioned on a cell state supplied as a single-cell snapshot rather than selected from a fixed catalogue, but whether that conditioning carries an experimentally applied perturbation has not been tested. Results: We conditioned such a model on interferon-{beta}-stimulated and unstimulated monocytes from a published experiment, using cells disjoint from those providing the measurement, and asked whether the predicted expression response tracks the measured one and whether the same conditioning identifies expression QTL specific to the stimulated state. Predicted and measured responses agree at Spearman {rho} = 0.616 across 119 genes (95% CI 0.486 to 0.716), and at 0.607 after all 119 target genes are deleted from the conditioning input; across fifteen conditions the model's response scales with how much each condition's biology genuinely overlaps the target response (slope 0.73, Pearson 0.92), and a near-neighbour monocyte subset receives 0.295 against a measured overlap of 0.336. For stimulation-specific genetic effects we find no reliable evidence: the pre-specified primary arm moves from p = 0.0019 to 0.443 once both conditions must carry a measurable predicted effect, and the separation localises to the resting-condition baseline. Neither model generation's catalogue contains a perturbed sample, 0 of 4,430 tracks and 0 of 2,799 conditions, although both carry activation-state labels, so the gap is experimental perturbation rather than cell state. Two incidental findings apply beyond this model: credible-set membership mislabels over half of putatively condition-specific loci, and gating a ratio statistic on its larger term manufactures signal. Conclusions: Conditioning therefore conveys the state but not the mechanism: transfer between states is supported at the level of expression and unsupported at the level of variant effect, and an evaluation that separates the two is needed before either is claimed.",
+      "authors": [
+        "He, H.",
+        "Sun, J.",
+        "Xu, J.",
+        "Abudureyimu, M.",
+        "Yang, Y.",
+        "Huang, Y.",
+        "Wang, Z.",
+        "Xia, Q.",
+        "Wang, S."
+      ],
+      "primary_category": "genomics",
+      "categories": [
+        "genomics"
+      ],
+      "published": "2026-11-22T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.16.767041v2.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts expression response to an unseen stimulus using cell-state conditioned sequence model",
+      "llm_evidence_cn": "用细胞状态条件化序列模型预测对未见刺激的表达响应",
+      "llm_evidence": "用细胞状态条件化序列模型预测对未见刺激的表达响应",
+      "canonical_evidence": "用细胞状态条件化序列模型预测对未见刺激的表达响应",
+      "llm_tldr_en": "Cell-state conditioned sequence models can predict expression responses to an unseen stimulus but fail to capture stimulus-dependent genetic effects, with predicted and measured responses correlating at Spearman rho 0.616 across 119 genes.",
+      "llm_tldr_cn": "第二代序列模型可按单细胞快照条件化，但条件化是否携带实验扰动尚未被检验。作者用干扰素β刺激与未刺激的单核细胞条件化模型，并用不参与测量的细胞评估预测响应。预测与实测表达响应在119个基因上达到Spearman相关0.616，但未能识别刺激状态特异的表达数量性状位点。该结果说明细胞状态条件化可用于扰动响应预测，但对遗传效应的推断仍有限。",
+      "llm_tldr": "第二代序列模型可按单细胞快照条件化，但条件化是否携带实验扰动尚未被检验。作者用干扰素β刺激与未刺激的单核细胞条件化模型，并用不参与测量的细胞评估预测响应。预测与实测表达响应在119个基因上达到Spearman相关0.616，但未能识别刺激状态特异的表达数量性状位点。该结果说明细胞状态条件化可用于扰动响应预测，但对遗传效应的推断仍有限。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-20-768136-v1",
+      "source": "biorxiv",
+      "title": "Population-level learning of non-additive effects enables accurate and efficient prediction of combinatorial perturbation responses",
+      "abstract": "Combinatorial perturbations are widely used to study genetic interactions and to develop drug combinations, but the number of possible combinations grows quadratically with the number of perturbations, and only a small fraction can be measured in a screen experiment. Despite their growing sophistication, deep-learning and foundation models often fail to outperform a simple additive baseline based on measured single-perturbation responses. This suggests a simpler approach that builds on these measurements and directly learns deviations from additivity at the population level. We therefore developed GAIN, a lightweight model that implements these principles by predicting the pseudobulk response to a combination as the sum of its two single-perturbation responses and a learned interaction term. Across three single-cell datasets of genetic and drug combinations, GAIN corrected deviations from additivity and outperformed the additive model and cell-level methods across generalization settings and metrics, while training 3- to 64-fold faster. Applied to a combinatorial CRISPR screen of leukemia differentiation regulators, GAIN revealed synergy between key regulators of the differentiation block and genes that restrain differentiation but have little effect alone. It also revealed dampening by the histone chaperone FACT, which supports the induction of differentiation genes. These results establish population-level modeling of the deviation from additivity as a simple, accurate and scalable approach to predicting combination responses.",
+      "authors": [
+        "An, s.",
+        "Gong, Q.",
+        "Cao, K."
+      ],
+      "primary_category": "genomics",
+      "categories": [
+        "genomics"
+      ],
+      "published": "2026-11-23T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.20.768136v1.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts combinatorial perturbation responses with a lightweight model",
+      "llm_evidence_cn": "轻量模型预测组合扰动响应",
+      "llm_evidence": "轻量模型预测组合扰动响应",
+      "canonical_evidence": "轻量模型预测组合扰动响应",
+      "llm_tldr_en": "Deep models often fail to beat additive baselines for combinatorial perturbations. GAIN learns population-level deviations from additivity, predicting pseudobulk responses accurately and efficiently.",
+      "llm_tldr_cn": "组合扰动的可能组合数量随扰动数平方增长，实验只能测量很小一部分，而现有深度学习与基础模型往往难以超越简单加性基线。作者提出GAIN这一轻量模型，在群体水平直接学习偏离加性的效应，以伪批量响应作为预测目标。结果表明该模型能更准确且高效地预测组合扰动响应，为遗传互作与药物组合筛选提供了实用替代方案。",
+      "llm_tldr": "组合扰动的可能组合数量随扰动数平方增长，实验只能测量很小一部分，而现有深度学习与基础模型往往难以超越简单加性基线。作者提出GAIN这一轻量模型，在群体水平直接学习偏离加性的效应，以伪批量响应作为预测目标。结果表明该模型能更准确且高效地预测组合扰动响应，为遗传互作与药物组合筛选提供了实用替代方案。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-06-17-732914-v2",
+      "source": "biorxiv",
+      "title": "Drug-Prot: A query system for statistical inference of drug effects and interactions in dynamic proteomic networks",
+      "abstract": "Understanding drug effects and drug-drug interactions is essential for developing combination therapies. We present Drug-Prot, a computational framework that leverages large-scale perturbation proteomics to quantify causal drug effects, drug-drug interactions, and dynamic protein relationships. Using data from 63 single drugs and 59 drug combinations applied to 16 triple-negative and 2 non-triple-negative breast cancer cell lines at 6, 24, and 48 hours, Drug-Prot estimates drug effects on protein expression and reconstructs directed temporal protein dependency networks. The publicly available software enables targeted analyses of user-defined protein sets, substantially reducing the multiple-testing burden. Through an interactive web application, users obtain corrected p-values for single-drug and combination effects, directed temporal dependency networks, and downloadable results without requiring access to the underlying proteomic dataset. As a use case, we apply invariance-regularized Random Forests to these cancer cell lines to identify proteins associated with drug response. Querying these proteins in Drug-Prot reveals drug-specific and interaction effects at the protein-network level, illustrating how the framework links candidate causal protein features to actionable drug combinations.",
+      "authors": [
+        "Ulmer, M.",
+        "Sun, R.",
+        "Qian, L.",
+        "Aebersold, R.",
+        "Guo, T.",
+        "Buehlmann, P."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-20T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.06.17.732914v2.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "large-scale perturbation proteomics framework for quantifying drug effects and interactions",
+      "llm_evidence_cn": "大规模扰动蛋白质组框架，用于量化药物效应和相互作用",
+      "llm_evidence": "大规模扰动蛋白质组框架，用于量化药物效应和相互作用",
+      "canonical_evidence": "大规模扰动蛋白质组框架，用于量化药物效应和相互作用",
+      "llm_tldr_en": "Drug-Prot leverages large-scale perturbation proteomics across drugs, combinations, cell lines and time points to estimate causal drug effects, interactions and dynamic protein dependency networks.",
+      "llm_tldr_cn": "理解药物效应和药物相互作用对联合治疗开发很重要，但动态蛋白质组数据缺乏系统的因果推断工具。作者提出Drug-Prot框架，利用63种单药和59种组合在多株乳腺癌细胞系及多个时间点的扰动蛋白质组数据，估计药物对蛋白表达的影响并重建时序蛋白依赖网络。该软件支持用户自定义蛋白集分析并降低多重检验负担。该工作为药物扰动效应的统计建模与交互分析提供了可复用工具。",
+      "llm_tldr": "理解药物效应和药物相互作用对联合治疗开发很重要，但动态蛋白质组数据缺乏系统的因果推断工具。作者提出Drug-Prot框架，利用63种单药和59种组合在多株乳腺癌细胞系及多个时间点的扰动蛋白质组数据，估计药物对蛋白表达的影响并重建时序蛋白依赖网络。该软件支持用户自定义蛋白集分析并降低多重检验负担。该工作为药物扰动效应的统计建模与交互分析提供了可复用工具。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Virtual cell models for drug or genetic perturbation",
+      "matched_requirement_id": "req-6",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}
