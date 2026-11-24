@@ -1,0 +1,25 @@
+{
+  "date": "20261115-20261124",
+  "date_label": "2026-11-15 ~ 2026-11-24",
+  "generated_at": "2026-11-24 18:43:40 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-17-767214-v1",
+      "route": "20261115-20261124/biorxiv-10-64898-2026-11-17-767214-v1-model-evaluation-metrics-of-virtual-cell-challenge-2026",
+      "title": "Model evaluation metrics of Virtual Cell Challenge 2026",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "面向虚拟细胞模型扰动响应预测的评估指标",
+      "first_seen_at": "2026-11-24 18:43:40 UTC",
+      "updated_at": "2026-11-24 18:43:40 UTC"
+    }
+  ]
+}

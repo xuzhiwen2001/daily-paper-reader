@@ -1,0 +1,24 @@
+{
+  "label": "2026-11-15 ~ 2026-11-24",
+  "date": "2026-11-15 ~ 2026-11-24",
+  "generated_at": "2026-11-24T18:43:42",
+  "count": 1,
+  "papers": [
+    {
+      "paper_id": "20261115-20261124/biorxiv-10-64898-2026-11-17-767214-v1-model-evaluation-metrics-of-virtual-cell-challenge-2026",
+      "section": "deep",
+      "title_en": "Model evaluation metrics of Virtual Cell Challenge 2026",
+      "authors": "Dobin, A., Adduri, A., Sullivan, J., Lyda, J., Mehta, R., Leto, D. E., Datlinger, P., VanHorn, S., Chizari, S., Ranadive, N., Nagesh, S., Tung, P.-Y., Li, N., Caputo, J., Plosky, B. S., Ricci-Tam, C., Senturia, R., Feng, K., Chu, T., Tsui, M., Eraslan, B., Bevilacqua, B., Carpenter, C., Verma, R., Yan, Z., Min, J., Torun, F. M., Averbukh, I., Sandmann, T., Chen, T. J., Dicks, S., Mosafi, O., Rvachov, T., Shin, H., Sundaram, L., Voss, D., Zhang, Y., Zynda, G., van Overbeek, M., Muzaffar, U., Woodrow, A., Burke, D. P., Hsu, P. D., Konermann, S., Arc Virtual Cell Team, Goodarzi, H.",
+      "date": "2026-11-23",
+      "pdf": "https://www.biorxiv.org/content/10.64898/2026.11.17.767214v1.full.pdf",
+      "score": "9.0",
+      "evidence": "面向虚拟细胞模型扰动响应预测的评估指标",
+      "tldr": "虚拟细胞模型旨在用计算方法预测基因、环境与化学扰动的影响，减少昂贵实验依赖。2026年虚拟细胞挑战赛要求模型零样本预测六种人类细胞系中CRISPRi敲低后的转录响应。作者围绕三项原则设计六项评估指标：反映实验提取的生物学信息、在实验重复上校准、抵御不预测响应却提高分数的捷径。结果表明，六项指标均将实验重复评分置于均值基线之上，且2025年指标遗留的捷径方案不再能提升分数。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "Virtual cell models aim to predict the effects of genetic, environmental, chemical and other perturbations in silico, reducing the dependency on complex and costly experiments. The Virtual Cell Challenge 2026 motivates the field toward this goal, tasking models with zero-shot prediction of the transcriptional responses to CRISPRi knockdowns in six human cell lines. The faithfulness of a model to the experiment is assessed by metrics that compare its predictions with the real data, and designing such metrics is not trivial. We developed the metrics of the 2026 Challenge around three principles: a metric should (i) reflect the biological information extracted from experiments, (ii) be calibrated on a repeat of the experiment, and (iii) resist shortcut solutions that raise the score without predicting the response. Here we present the six resulting metrics, the reasoning behind each of them, and their evaluations on the Challenge data. Two of the metrics compare the pseudobulk expression profiles of predicted and measured cells, while four assess the genes that respond to each perturbation, the central readout of a Perturb-seq experiment. The metrics are implemented in cell-eval2, an open-source Python package. On the Challenge data, all six metrics score a repeat of the experiment above the mean baseline, and the shortcut solutions that the metrics of the 2025 Challenge left open can no longer raise the score. The new metrics are therefore more robust than the previous ones.",
+      "source": "biorxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}
