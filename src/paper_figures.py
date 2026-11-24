@@ -9,18 +9,28 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urljoin
 
 import fitz
 import requests
 from PIL import Image
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:  # pragma: no cover - bs4 缺失时官方源通道静默关闭，走 PDF 兜底
+    BeautifulSoup = None
 
 
 MIN_FIGURE_WIDTH = 240
 MIN_FIGURE_HEIGHT = 180
 MIN_FIGURE_AREA = 120_000
 WEBP_QUALITY = 82
-FIGURE_META_VERSION = 2
+FIGURE_META_VERSION = 3
+OFFICIAL_HTML_TIMEOUT = 60
+OFFICIAL_UA = "Mozilla/5.0 (compatible; daily-paper-reader/1.0)"
+MIN_DISPLAY_FRACTION_DEFAULT = 0.04
+MIN_DISPLAY_FRACTION_ENV = "DPR_FIGURE_MIN_DISPLAY_FRACTION"
 PAPERCROPPER_SCRIPT_ENV = "PAPERCROPPER_SCRIPT"
 PAPERCROPPER_DIR_ENV = "PAPERCROPPER_DIR"
 PAPERCROPPER_MODEL_ENV = "PAPERCROPPER_MODEL"
@@ -149,6 +159,309 @@ def _download_pdf_bytes(pdf_url: str, timeout: int = 90) -> bytes:
 
 def _truthy_env(name: str) -> bool:
     return str(os.getenv(name) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = str(os.getenv(name) or "").strip()
+    try:
+        value = float(raw)
+        return value if value >= 0 else default
+    except ValueError:
+        return default
+
+
+def _fetch_page_text(url: str) -> Optional[str]:
+    try:
+        resp = requests.get(url, headers={"User-Agent": OFFICIAL_UA}, timeout=OFFICIAL_HTML_TIMEOUT)
+    except Exception:
+        return None
+    if resp.status_code != 200 or not resp.text:
+        return None
+    return resp.text
+
+
+def _clean_caption(text: Any) -> str:
+    compact = re.sub(r"\s+", " ", str(text or "")).strip()
+    return compact[:600]
+
+
+# ---------------------------------------------------------------------------
+# 官方源提取（优先通道）：arXiv HTML / bioRxiv 全文页直接提供真图 + caption
+# ---------------------------------------------------------------------------
+
+_ARXIV_PDF_URL_RE = re.compile(r"arxiv\.org/(?:pdf|abs|html)/([A-Za-z0-9.\-_/]+?)(?:\.pdf)?(?:[?#].*)?$")
+
+
+def _arxiv_html_candidates(pdf_url: str) -> List[str]:
+    """https://arxiv.org/pdf/2611.20575v1 → https://arxiv.org/html/2611.20575v1（外加不带版本号的候选）。"""
+    match = _ARXIV_PDF_URL_RE.search(str(pdf_url or "").strip())
+    if not match:
+        return []
+    arxiv_id = match.group(1).strip("/")
+    if not arxiv_id or "." not in arxiv_id:
+        return []
+    candidates = ["https://arxiv.org/html/" + arxiv_id]
+    versionless = re.sub(r"v\d+$", "", arxiv_id)
+    if versionless and versionless != arxiv_id:
+        candidates.append("https://arxiv.org/html/" + versionless)
+    return candidates
+
+
+def _biorxiv_full_candidates(pdf_url: str) -> List[str]:
+    """https://www.biorxiv.org/content/<DOI>v2.full.pdf → https://www.biorxiv.org/content/<DOI>v2.full。"""
+    text = str(pdf_url or "").strip().split("#", 1)[0].split("?", 1)[0]
+    if "biorxiv.org" not in text:
+        return []
+    url = text
+    for suffix in (".full.pdf", ".full", ".pdf"):
+        if url.endswith(suffix):
+            url = url[: -len(suffix)]
+            break
+    if "/content/" not in url:
+        return []
+    return [url + ".full"]
+
+
+def _figures_from_arxiv_html(html_text: str, base_url: str) -> List[Dict[str, Any]]:
+    """解析 LaTeXML 渲染的 arXiv HTML。
+
+    图片有两种形态：<img src>（光栅）与 <object type="image/svg+xml" data>（矢量，
+    2024 起的常见形态）。相对路径存在两代写法（"2611.20575v1/x1.png" 与 "x1.png"），
+    各自对应不同的 base 解析，这里同时生成候选 URL，由下载环节按序尝试。
+    """
+    if not html_text or BeautifulSoup is None:
+        return []
+    try:
+        soup = BeautifulSoup(html_text, "html.parser")
+    except Exception:
+        return []
+    base_slash = base_url if base_url.endswith("/") else base_url + "/"
+    items: List[Dict[str, Any]] = []
+    seen_urls: set = set()
+
+    def _candidate_urls(src: str) -> List[str]:
+        # 老版 LaTeXML 用裸文件名（"x1.png"，相对 base 目录）；新版带 id 段
+        # （"2611.20575v1/x1.png"，相对页面 URL）。按写法把正确候选排前面。
+        if "/" in src:
+            candidate_bases = (base_url, base_slash)
+        else:
+            candidate_bases = (base_slash, base_url)
+        urls: List[str] = []
+        for candidate_base in candidate_bases:
+            url = urljoin(candidate_base, src)
+            if url.startswith("http") and url not in urls:
+                urls.append(url)
+        return urls
+
+    def _add(urls: List[str], kind: str, caption: str) -> None:
+        key = urls[0]
+        if key in seen_urls:
+            return
+        seen_urls.add(key)
+        items.append({"urls": urls, "kind": kind, "caption": caption, "page": 0, "label": "Figure"})
+
+    for fig in soup.find_all("figure"):
+        imgs = fig.find_all("img")
+        objects = fig.find_all("object", attrs={"type": re.compile(r"image/svg", re.I)})
+        if not imgs and not objects:
+            continue
+        captions = fig.find_all("figcaption")
+        caption = _clean_caption(captions[-1].get_text(" ", strip=True)) if captions else ""
+        for img in imgs:
+            src = str(img.get("src") or "").strip()
+            if not src or src.startswith("data:"):
+                continue
+            urls = _candidate_urls(src)
+            if urls:
+                _add(urls, "raster", caption)
+        for obj in objects:
+            data = str(obj.get("data") or "").strip()
+            if not data or data.startswith("data:"):
+                continue
+            urls = _candidate_urls(data)
+            if urls:
+                _add(urls, "svg", caption)
+    return items
+
+
+_BIORXIV_FIG_SRC_RE = re.compile(r"/F(\d+)\.(?:large\.jpg|large\.png|medium\.gif)$")
+
+
+def _figures_from_biorxiv_html(html_text: str, base_url: str) -> List[Dict[str, Any]]:
+    """解析 bioRxiv 全文页。
+
+    实际标记（Highwire）：图片懒加载（data-src，noscript 回退），官方图为
+    F<N>.medium.gif / F<N>.large.jpg；caption 是图片容器的兄弟 div.fig-caption
+    （不是 <figcaption>），且 fig-label 的文字会被站点防爬变异（如 "Figurxe"），
+    因此按 F<N> 编号做图注配对，label 剥除后统一拼回干净的 "Figure N." 前缀。
+    """
+    if not html_text or BeautifulSoup is None:
+        return []
+    try:
+        soup = BeautifulSoup(html_text, "html.parser")
+    except Exception:
+        return []
+
+    figs: Dict[int, List[str]] = {}
+    for img in soup.find_all("img"):
+        src = str(img.get("data-src") or img.get("src") or "").strip()
+        if not src or src.startswith("data:"):
+            continue
+        url = urljoin(base_url, src)
+        match = _BIORXIV_FIG_SRC_RE.search(url)
+        if not match:
+            continue
+        no = int(match.group(1))
+        if no in figs:
+            continue
+        urls = [url]
+        if url.endswith(".medium.gif"):  # 优先高清 large.jpg，失败回落 medium.gif
+            urls.insert(0, url[: -len(".medium.gif")] + ".large.jpg")
+        figs[no] = urls
+
+    captions: Dict[int, str] = {}
+    for cap in soup.find_all(class_="fig-caption"):
+        full_text = _clean_caption(cap.get_text(" ", strip=True))
+        label_node = cap.find(class_="fig-label")
+        label_text = _clean_caption(label_node.get_text(" ", strip=True)) if label_node else ""
+        body = full_text
+        if label_text and body.startswith(label_text):
+            body = body[len(label_text):].strip()
+        num_match = re.search(r"(\d+)", label_text or full_text)
+        if num_match:
+            captions[int(num_match.group(1))] = body or full_text
+
+    items: List[Dict[str, Any]] = []
+    for no in sorted(figs):
+        items.append(
+            {
+                "urls": figs[no],
+                "kind": "raster",
+                "caption": f"Figure {no}. {captions[no]}" if captions.get(no) else "",
+                "page": 0,
+                "label": "Figure",
+            }
+        )
+    return items
+
+
+def _official_source_plan(source_key: str, pdf_url: str) -> Tuple[List[str], Any, str]:
+    key = str(source_key or "").strip().lower()
+    if key == "arxiv":
+        return _arxiv_html_candidates(pdf_url), _figures_from_arxiv_html, "arxiv-html"
+    if key == "biorxiv":
+        return _biorxiv_full_candidates(pdf_url), _figures_from_biorxiv_html, "biorxiv-full"
+    return [], None, ""
+
+
+def _save_webp_from_bytes(image_bytes: bytes, dst_path: str) -> Tuple[int, int]:
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        img.load()
+        width, height = img.size
+        if img.mode == "RGBA":
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[-1])
+            export_img = bg
+        elif img.mode != "RGB":
+            export_img = img.convert("RGB")
+        else:
+            export_img = img.copy()
+    export_img.save(dst_path, format="WEBP", quality=WEBP_QUALITY, method=6)
+    return width, height
+
+
+def _download_first_image(urls: List[str], dst_path: str) -> Tuple[int, int]:
+    last_err: Optional[Exception] = None
+    for url in urls:
+        try:
+            resp = requests.get(url, headers={"User-Agent": OFFICIAL_UA}, timeout=OFFICIAL_HTML_TIMEOUT)
+            if resp.status_code != 200 or not resp.content:
+                last_err = RuntimeError(f"HTTP {resp.status_code} for {url}")
+                continue
+            return _save_webp_from_bytes(resp.content, dst_path)
+        except Exception as exc:  # noqa: BLE001 - 逐候选降级
+            last_err = exc
+            continue
+    raise last_err or RuntimeError("no image urls")
+
+
+SVG_RENDER_TARGET_WIDTH = 1400.0
+
+
+def _render_svg_from_urls(urls: List[str], dst_path: str) -> Tuple[int, int]:
+    """下载 SVG（arXiv LaTeXML 的矢量图形态），用 PyMuPDF 渲染成位图后转 webp。"""
+    last_err: Optional[Exception] = None
+    for url in urls:
+        try:
+            resp = requests.get(url, headers={"User-Agent": OFFICIAL_UA}, timeout=OFFICIAL_HTML_TIMEOUT)
+            if resp.status_code != 200 or not resp.content:
+                last_err = RuntimeError(f"HTTP {resp.status_code} for {url}")
+                continue
+            with fitz.open("svg", stream=resp.content) as sdoc:
+                page = sdoc[0]
+                page_width = float(page.rect.width) or 1.0
+                scale = max(1.0, min(6.0, SVG_RENDER_TARGET_WIDTH / page_width))
+                pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
+                png_bytes = pix.tobytes("png")
+            return _save_webp_from_bytes(png_bytes, dst_path)
+        except Exception as exc:  # noqa: BLE001 - 逐候选降级
+            last_err = exc
+            continue
+    raise last_err or RuntimeError("no svg urls")
+
+
+def _extract_figures_official(
+    *,
+    pdf_url: str,
+    source_key: str,
+    output_dir: str,
+    relative_prefix: str,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """官方源提取。返回 (figures, definitive)：
+    - definitive=True 表示官方页面成功获取且结果可信（有图或确认无图）；
+    - definitive=False 表示页面拿不到或候选图全部下载失败，调用方应继续走 PDF 兜底。
+    """
+    candidates, parser, extractor_name = _official_source_plan(source_key, pdf_url)
+    if not candidates or parser is None:
+        return [], False
+    os.makedirs(output_dir, exist_ok=True)
+    saved: List[Dict[str, Any]] = []
+    for page_url in candidates[:3]:
+        html_text = _fetch_page_text(page_url)
+        if html_text is None:
+            continue
+        found = parser(html_text, page_url)
+        if not found:
+            return [], True  # 页面存在但确实没有 figure
+        for item in found:
+            if len(saved) >= 12:  # 单篇上限保护
+                break
+            index = len(saved) + 1
+            file_name = f"fig-{index:03d}.webp"
+            abs_path = os.path.join(output_dir, file_name)
+            item_urls = list(item.get("urls") or [])
+            try:
+                if str(item.get("kind") or "raster") == "svg":
+                    width, height = _render_svg_from_urls(item_urls, abs_path)
+                else:
+                    width, height = _download_first_image(item_urls, abs_path)
+            except Exception:
+                continue
+            saved.append(
+                {
+                    "url": "/".join([relative_prefix.strip("/"), file_name]),
+                    "caption": str(item.get("caption") or ""),
+                    "page": int(item.get("page") or 0),
+                    "index": index,
+                    "width": width,
+                    "height": height,
+                    "label": str(item.get("label") or "Figure"),
+                }
+            )
+        if saved:
+            return saved, True
+        return [], False  # 有候选图但全部下载/渲染失败 → 交给 PDF 兜底
+    return [], False
 
 
 def _first_existing(candidates: List[str]) -> str:
@@ -374,7 +687,18 @@ def extract_figures_from_pdf(
     min_width: int = MIN_FIGURE_WIDTH,
     min_height: int = MIN_FIGURE_HEIGHT,
     min_area: int = MIN_FIGURE_AREA,
+    min_display_fraction: Optional[float] = None,
 ) -> List[Dict[str, Any]]:
+    """兜底提取：抽取 PDF 内嵌光栅图。
+
+    过滤两条线：一是图片自身像素数（min_width/min_height/min_area）；
+    二是图片在页面上的显示面积占比（min_display_fraction，默认 0.04，
+    可用 DPR_FIGURE_MIN_DISPLAY_FRACTION 覆盖）——机构 logo/徽标常是
+    超高分辨率光栅但在页面上只占小角落，靠像素阈值挡不住，必须看
+    实际排版尺寸。找不到摆放矩形的图（嵌在 Form XObject 里）保守保留。
+    """
+    if min_display_fraction is None:
+        min_display_fraction = _env_float(MIN_DISPLAY_FRACTION_ENV, MIN_DISPLAY_FRACTION_DEFAULT)
     os.makedirs(output_dir, exist_ok=True)
     figures: List[Dict[str, Any]] = []
     seen_xref: set[int] = set()
@@ -384,11 +708,26 @@ def extract_figures_from_pdf(
     with fitz.open(pdf_path) as doc:
         for page_idx in range(len(doc)):
             page = doc[page_idx]
+            try:
+                page_area = float(page.rect.get_area())
+            except Exception:
+                page_area = 0.0
             for image_info in page.get_images(full=True):
                 xref = int(image_info[0] or 0)
                 if xref <= 0 or xref in seen_xref:
                     continue
                 seen_xref.add(xref)
+
+                if page_area > 0 and min_display_fraction > 0:
+                    try:
+                        rects = [r for r in page.get_image_rects(xref) if r is not None and not r.is_empty]
+                    except Exception:
+                        rects = []
+                    if rects:
+                        best_area = max(float(r.get_area()) for r in rects)
+                        if best_area / page_area < min_display_fraction:
+                            continue
+
                 try:
                     raw = doc.extract_image(xref)
                 except Exception:
@@ -481,6 +820,24 @@ def ensure_paper_media(
         if (cached_figures or os.path.exists(figure_meta_path)) and os.path.exists(table_meta_path):
             return cached_figures, cached_tables
 
+    # 优先官方源：arXiv HTML / bioRxiv 全文页直接给真图 + caption，矢量图也能覆盖
+    official_figures, official_definitive = _extract_figures_official(
+        pdf_url=pdf_url,
+        source_key=source_key,
+        output_dir=figure_dir,
+        relative_prefix=figure_relative_prefix,
+    )
+    if official_figures:
+        extractor_name = _official_source_plan(source_key, pdf_url)[2] or "official-html"
+        _save_figures_meta(figure_meta_path, official_figures, extractor=extractor_name)
+        _save_tables_meta(table_meta_path, [], extractor="none")
+        return official_figures, []
+    if official_definitive:
+        # 官方页面成功获取但确实没有 figure：缓存空结果，避免每次运行重复抓取
+        _save_figures_meta(figure_meta_path, [], extractor="official-empty")
+        _save_tables_meta(table_meta_path, [], extractor="none")
+        return [], []
+
     pdf_bytes = _download_pdf_bytes(pdf_url)
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as tmp_pdf:
         tmp_pdf.write(pdf_bytes)
@@ -494,6 +851,13 @@ def ensure_paper_media(
             table_relative_prefix,
         )
         if figures or tables:
+            # 补齐另一侧空 meta，保证 meta.json 缓存命中判断成立
+            if figures and not os.path.exists(table_meta_path):
+                _save_tables_meta(table_meta_path, [], extractor="none")
+            if tables and not os.path.exists(figure_meta_path):
+                _save_figures_meta(figure_meta_path, [], extractor="none")
             return figures, tables
 
-        return extract_figures_from_pdf(tmp_pdf.name, figure_dir, figure_relative_prefix), []
+        fallback_figures = extract_figures_from_pdf(tmp_pdf.name, figure_dir, figure_relative_prefix)
+        _save_tables_meta(table_meta_path, [], extractor="none")
+        return fallback_figures, []

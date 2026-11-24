@@ -124,7 +124,7 @@
 
 - **每篇一个 markdown**：YAML front matter（前端契约）+ 速览五段 + 精读长总结 + PDF 图表
 - **并发生成**：`ThreadPoolExecutor`，每篇独立 `DeepSeekClient` 避免多线程竞争
-- **图表提取**：PaperCropper + DocLayout-YOLO → PyMuPDF 兜底，全链 `continue-on-error`
+- **图表提取**：官方源优先（arXiv HTML `<img>`/SVG-object + bioRxiv `.full` 页 `F<N>.large.jpg`，带真 caption；SVG 用 PyMuPDF 栅格化）→ PaperCropper + DocLayout-YOLO → PyMuPDF 光栅兜底（按页面显示面积占比过滤 logo，默认 4%，`DPR_FIGURE_MIN_DISPLAY_FRACTION` 可调），全链 `continue-on-error`
 - **幂等可重入**：`upsert_auto_block` / `upsert_front_matter_field` 只改目标段不重写全文
 - **产物路径**：`docs/<date>/<paper_id>.md`、`docs/<date>/figures/`、`docs/README.md`、`docs/_sidebar.md`
 

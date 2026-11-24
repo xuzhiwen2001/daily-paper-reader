@@ -64,7 +64,7 @@ class PaperFiguresTest(unittest.TestCase):
             self.assertTrue(meta_path.exists())
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
             self.assertEqual(len(meta["figures"]), 1)
-            self.assertEqual(meta["version"], 2)
+            self.assertEqual(meta["version"], 3)
 
     def test_papercropper_failure_is_reported_before_fallback(self):
         with tempfile.TemporaryDirectory() as d:
