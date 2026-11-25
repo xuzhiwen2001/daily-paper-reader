@@ -1,0 +1,312 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-25T18:43:09.204202+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 4,
+    "deep_cap": 7,
+    "deep_selected": 4,
+    "quick_candidates": 3,
+    "quick_skim_target": 12,
+    "quick_selected": 3
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-11-23-768521-v1",
+      "source": "biorxiv",
+      "title": "Confidence-guided spatial gene expression inference for reliability-aware prognostic analysis from histology",
+      "abstract": "Inferring spatial gene expression from histology images offers a promising strategy for extending spatial molecular profiling to large-scale clinical tissue archives. However, existing approaches face two major challenges: limited generalizability of single-cell expression inference across datasets and platforms, and the lack of reliable estimates of prediction uncertainty, which compromise downstream biological and clinical analyses. Here, we present REGAIN, a framework for spatial gene expression inference at both single-cell and spot resolutions with prediction confidence. Across tissue sections, independent datasets and platforms, REGAIN improved spatial gene expression prediction and downstream analysis. Confidence-guided selection further enriched for cells with more accurately recovered expression profiles and improved cell-type annotation, while confidence-weighted clustering enhanced spatial-domain identification. Beyond assessing prediction quality, confidence mapping reveals greater heterogeneity in gene expression predictability across spatial domains than across broad cell types, with differences persisting within the same cell type and associated with tumor progression-related cell states and local microenvironmental context. Importantly, in 766 patients from the TCGA-BRCA cohort, confidence weighting enhanced the prognostic value of histology-inferred spatial molecular features, yielding stronger prognostic associations and identifying additional prognostic information beyond age and PAM50 molecular subtype. These confidence-weighted features also showed improved prognostic discrimination compared with clinical variables alone or combined with unweighted spatial molecular features. Together, REGAIN marks a shift in histology-based spatial gene expression inference from a focus on predictive accuracy toward a reliability-aware paradigm, demonstrating that prediction confidence provides biological insights into morphology-expression coupling and enhances the clinical informativeness of inferred spatial molecular features.",
+      "authors": [
+        "Bai, X.",
+        "Liu, R.",
+        "Sun, Y.",
+        "Wang, G.",
+        "Wang, Y.",
+        "Zhao, T."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-24T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.23.768521v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 10.0,
+      "llm_evidence_en": "infers spatial gene expression from histology images with prediction confidence",
+      "llm_evidence_cn": "从组织学图像推断空间基因表达并给出预测置信度",
+      "llm_evidence": "从组织学图像推断空间基因表达并给出预测置信度",
+      "canonical_evidence": "从组织学图像推断空间基因表达并给出预测置信度",
+      "llm_tldr_en": "REGAIN predicts spatial gene expression from histology images at single-cell and spot resolution with calibrated confidence, improving cross-dataset generalization and downstream prognostic analysis.",
+      "llm_tldr_cn": "从组织学图像推断空间基因表达可将分子谱扩展到大规模临床档案，但现有方法跨数据集泛化差且缺乏不确定性估计。作者提出REGAIN框架，在单细胞与spot两种分辨率上预测空间表达并给出预测置信度。跨组织切片、独立数据集和平台的实验显示其表达预测与下游预后分析均得到改善。该工作使图像推断空间转录组具备可靠性感知能力。",
+      "llm_tldr": "从组织学图像推断空间基因表达可将分子谱扩展到大规模临床档案，但现有方法跨数据集泛化差且缺乏不确定性估计。作者提出REGAIN框架，在单细胞与spot两种分辨率上预测空间表达并给出预测置信度。跨组织切片、独立数据集和平台的实验显示其表达预测与下游预后分析均得到改善。该工作使图像推断空间转录组具备可靠性感知能力。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Methods for inferring spatial gene expression from histology images.",
+      "matched_requirement_id": "req-13",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.31227v1",
+      "source": "arxiv",
+      "title": "How Far Can Linear Go? BiPert, a Unified Framework for Single-Cell Perturbation Modelling",
+      "abstract": "Understanding how genetic perturbations affect cellular behaviour is essential for studying gene function and regulatory mechanisms. Large-scale CRISPR screens measure these effects across thousands of genes, but cover relatively few cellular contexts. Predicting perturbation responses in unseen cell types and identifying perturbed genes from their transcriptional effects therefore remain challenging. Here, we show that both tasks can be addressed through a common linear decomposition of transcriptional responses into shared and perturbation-specific components. Building on this principle, we introduce BiPert, a simple linear framework for both forward perturbation prediction and inverse identification. For forward prediction, BiPert outperforms existing methods that use no external biological knowledge when predicting gene expression changes in unseen cell lines. Its few-shot extension, BiPert-FS, adapts to new cell lines using as few as ten measured perturbations. For inverse identification, BiPert-ID identifies perturbed genes from single-cell expression profiles, outperforming deep-learning methods in unseen cell lines and donors. We further show that perturbations whose effects transfer more consistently across cellular contexts are also easier to identify, even after controlling for perturbation effect size. Together, these results establish a connection between perturbation transfer and identification, and demonstrate that simple linear models provide strong, interpretable baselines for both tasks.",
+      "authors": [
+        "Abhishek Sharma",
+        "Aleksej Zelezniak"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG",
+        "q-bio.CB",
+        "q-bio.GN",
+        "q-bio.QM"
+      ],
+      "published": "2026-11-23T18:58:32+00:00",
+      "link": "https://arxiv.org/pdf/2611.31227v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "unified linear framework for single-cell perturbation response prediction and inverse identification",
+      "llm_evidence_cn": "统一线性框架用于单细胞扰动响应预测与反向识别",
+      "llm_evidence": "统一线性框架用于单细胞扰动响应预测与反向识别",
+      "canonical_evidence": "统一线性框架用于单细胞扰动响应预测与反向识别",
+      "llm_tldr_en": "BiPert shows that forward perturbation response prediction and inverse perturbed-gene identification can both be solved via a shared linear decomposition of transcriptional responses into shared and perturbation-specific parts.",
+      "llm_tldr_cn": "大规模CRISPR筛选覆盖的细胞背景有限，在未见细胞类型中预测扰动响应、并从转录效应反推扰动基因仍是难题。本文发现这两个任务都可归结为把转录响应线性分解为共享成分与扰动特异成分，据此提出简洁的线性框架BiPert，同时支持正向预测与反向识别。该工作表明简单的线性建模即可在扰动响应预测上取得有竞争力的表现，为虚拟细胞式的扰动建模提供了轻量而有效的基线。",
+      "llm_tldr": "大规模CRISPR筛选覆盖的细胞背景有限，在未见细胞类型中预测扰动响应、并从转录效应反推扰动基因仍是难题。本文发现这两个任务都可归结为把转录响应线性分解为共享成分与扰动特异成分，据此提出简洁的线性框架BiPert，同时支持正向预测与反向识别。该工作表明简单的线性建模即可在扰动响应预测上取得有竞争力的表现，为虚拟细胞式的扰动建模提供了轻量而有效的基线。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation modeling",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2611.29055v1",
+      "source": "arxiv",
+      "title": "Hypothesis Generation and Semantic Attribution in Inverse Perturbation Modeling",
+      "abstract": "Understanding gene regulatory relationships at scale can help identify intervention points and anticipate unintended effects, but connecting a black-box model's learned computation to biological knowledge remains difficult. We investigate whether a sparse, typed gene network can generate inspectable hypotheses for steering malignant transcriptional programs toward expression patterns associated with favorable prognosis. Using LINCS L1000 CRISPR/Cas9 profiles paired with matched plate controls, we train a graph neural network to recover the perturbed gene from baseline and endpoint expression. Nodes combine ProTrek-derived protein representations with expression features; edges encode signed regulatory relationships and other gene interactions. We use this inverse formulation to nominate interventions for a desired multigene expression change in a specified cancer-cell context, and use integrated gradients and conductance along a path from the cell baseline toward the requested endpoint to attribute each nomination to gene states, typed messages, and residual connections. In A549, the model nominates TTK although its expression is unchanged in the request; the account assigns supporting credit through the checkpoint-associated MAD1L1 relationship and opposing credit through the E2F4 transcriptional-regulatory channel. Across 333 screened nominations in nine held-out cell lines, request-path attribution shows positive line-averaged correspondence with finite message-deletion effects at every transition. Existing TTK knockout measurements show requested-direction agreement across other markers at the 98.2nd percentile (10 wells), and ten of seventeen measured cases in the illustrative screen meet the predefined support criterion. These analyses make competing biological accounts of a nomination examinable and open to experimental test.",
+      "authors": [
+        "Pascal Passigan",
+        "Manolis Kellis"
+      ],
+      "primary_category": "cs.LG",
+      "categories": [
+        "cs.LG"
+      ],
+      "published": "2026-11-21T21:34:13+00:00",
+      "link": "https://arxiv.org/pdf/2611.29055v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "graph neural network inverse perturbation modeling on LINCS CRISPR profiles",
+      "llm_evidence_cn": "基于LINCS CRISPR图谱的图神经网络逆向扰动建模",
+      "llm_evidence": "基于LINCS CRISPR图谱的图神经网络逆向扰动建模",
+      "canonical_evidence": "基于LINCS CRISPR图谱的图神经网络逆向扰动建模",
+      "llm_tldr_en": "Using LINCS L1000 CRISPR profiles, the authors train a graph neural network over a sparse typed gene network to recover the perturbed gene from baseline and endpoint expression, yielding inspectable hypotheses.",
+      "llm_tldr_cn": "黑箱扰动模型学到的计算难以与生物学知识对应，限制了假设生成。作者构建稀疏的类型化基因网络，节点融合蛋白表示与表达特征，边编码带符号的调控关系，并在LINCS L1000 CRISPR图谱上训练图神经网络。模型从基线与终点表达反推被扰动的基因，从而生成可检视的机制假设并实现语义归因。该工作为扰动响应建模提供了可解释的分析框架。",
+      "llm_tldr": "黑箱扰动模型学到的计算难以与生物学知识对应，限制了假设生成。作者构建稀疏的类型化基因网络，节点融合蛋白表示与表达特征，边编码带符号的调控关系，并在LINCS L1000 CRISPR图谱上训练图神经网络。模型从基线与终点表达反推被扰动的基因，从而生成可检视的机制假设并实现语义归因。该工作为扰动响应建模提供了可解释的分析框架。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation modeling",
+      "matched_requirement_id": "req-4",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-22-768440-v1",
+      "source": "biorxiv",
+      "title": "Multi-omics causal deep learning reveals regulatory structure while interventions refine perturbation predictions",
+      "abstract": "Inferring gene regulation from single-cell data is difficult because observational measurements cannot distinguish correlation from causation and access to perturbational data, especially with multiple modalities, remains limited. Here we present the Cross-Modal Causal Variational Autoencoder (CMC-VAE), which learns a network linking genes and proteins (gene-gene, protein-protein and gene-protein) in the latent space and maps each connection back onto measured features. Trained on 809,130 observational CITE-seq profiles, CMC-VAE recovers co-expression, transcription factor regulons and immune signalling programs, and learns a sparse cross-modal map enriched for transcript-protein cognate pairs. On three CRISPR screens used during development, it ranks knockout-responsive genes better than correlation and latent-VAE baselines. Fitted to a screen's unperturbed control cells, without perturbation labels, the model translates measured knockout RNA responses into protein responses better than a correlation map and cognate transcripts. The direction of gene-to-gene regulation, however, is not recovered from observational data. On the CITE-seq screens, fine-tuning only the latent network improves held-out response correlation, mainly by learning a response shared across knockouts. On larger Perturb-seq screens, with about 1,000 training perturbations, fine-tuning the latent network learns gene-specific effects that transfer to held-out genes, more so than a gene-level causal model fine-tuned on the same cells, and in simulation, such interventions also restore edge orientations that observational training leaves unresolved.",
+      "authors": [
+        "Goudarzi, S.",
+        "Nandi, V.",
+        "Liu, N.",
+        "Goodarzi, H."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-24T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.22.768440v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "causal deep learning with CRISPR interventions refines perturbation predictions",
+      "llm_evidence_cn": "结合CRISPR干预的因果深度学习改进扰动预测",
+      "llm_evidence": "结合CRISPR干预的因果深度学习改进扰动预测",
+      "canonical_evidence": "结合CRISPR干预的因果深度学习改进扰动预测",
+      "llm_tldr_en": "CMC-VAE learns a cross-modal causal gene-protein network in latent space from 809k CITE-seq profiles and uses CRISPR interventions to refine perturbation predictions and recover regulons.",
+      "llm_tldr_cn": "单细胞观测数据难以区分相关与因果，且多模态扰动数据稀缺，限制了基因调控关系的推断。作者提出跨模态因果变分自编码器CMC-VAE，在潜空间学习基因-基因、蛋白-蛋白与基因-蛋白互作并映射回可测特征。模型在80余万条CITE-seq图谱上恢复共表达、转录因子调控子与免疫信号程序，并在三项CRISPR扰动数据上改进扰动预测。该工作表明因果结构学习与干预数据结合可提升扰动响应预测。",
+      "llm_tldr": "单细胞观测数据难以区分相关与因果，且多模态扰动数据稀缺，限制了基因调控关系的推断。作者提出跨模态因果变分自编码器CMC-VAE，在潜空间学习基因-基因、蛋白-蛋白与基因-蛋白互作并映射回可测特征。模型在80余万条CITE-seq图谱上恢复共表达、转录因子调控子与免疫信号程序，并在三项CRISPR扰动数据上改进扰动预测。该工作表明因果结构学习与干预数据结合可提升扰动响应预测。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Deep learning methods for perturbation response prediction",
+      "matched_requirement_id": "req-7",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-04-01-714123-v3",
+      "source": "biorxiv",
+      "title": "CellBench: task-dependent performance and generalization limits of single-cell foundation models",
+      "abstract": "Single-cell foundation models (scFMs) are increasingly used for transcriptomic analysis, yet it remains unclear what biological information their embeddings preserve and when they outperform dataset-fitted methods. Here, we present CellBench, a unified benchmark of frozen scFM representations across tissues, species, and genetic perturbation screens. We find that different models capture distinct aspects of cellular biology, while classical baselines remain competitive across tasks. Human-pretrained representations transfer to supervised mouse analyses, but under a shared decoder they fail to improve genome-wide absolute error over predicting no change for unseen perturbation targets. Neither model size nor reported pretraining data volume reliably predicts performance. Excluding cohorts with sample or donor identifier matches to pretraining records substantially reduces annotation advantages without changing model rankings appreciably. Together, these findings show that the value of scFM representations depends on the biological task and the strength of the evidence supporting their performance.",
+      "authors": [
+        "Xu, Y.",
+        "Li, Y.",
+        "Yuan, Y.",
+        "Xia, Q.",
+        "Tao, H.",
+        "Hu, F.",
+        "Zang, Z."
+      ],
+      "primary_category": "cell biology",
+      "categories": [
+        "cell biology"
+      ],
+      "published": "2026-11-23T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.04.01.714123v3.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "benchmark of single-cell foundation models on genetic perturbation screens and response prediction",
+      "llm_evidence_cn": "在遗传扰动筛选与响应预测上评测单细胞基础模型",
+      "llm_evidence": "在遗传扰动筛选与响应预测上评测单细胞基础模型",
+      "canonical_evidence": "在遗传扰动筛选与响应预测上评测单细胞基础模型",
+      "llm_tldr_en": "CellBench benchmarks frozen single-cell foundation model embeddings across tissues, species and perturbation screens, revealing when they beat dataset-fitted baselines and where they fail on unseen perturbations.",
+      "llm_tldr_cn": "单细胞基础模型的嵌入究竟保留哪些生物学信息、何时优于数据集拟合方法仍不清楚。本文提出CellBench统一基准，在跨组织、跨物种和遗传扰动筛选任务上评测冻结的单细胞基础模型表征。结果显示不同模型捕捉不同生物学侧面，经典基线仍具竞争力；在共享解码器下，面向未见扰动目标时模型难以超越预测无变化的绝对误差。该工作为扰动响应预测模型的可靠评估与选择提供了重要参照。",
+      "llm_tldr": "单细胞基础模型的嵌入究竟保留哪些生物学信息、何时优于数据集拟合方法仍不清楚。本文提出CellBench统一基准，在跨组织、跨物种和遗传扰动筛选任务上评测冻结的单细胞基础模型表征。结果显示不同模型捕捉不同生物学侧面，经典基线仍具竞争力；在共享解码器下，面向未见扰动目标时模型难以超越预测无变化的绝对误差。该工作为扰动响应预测模型的可靠评估与选择提供了重要参照。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2611.30601v2",
+      "source": "arxiv",
+      "title": "Learning Multimodal Representations from Partially Paired, Small-Scale Data",
+      "abstract": "Modeling multimodal data from partially paired samples is critical for advancing domains like biomedicine, where vast unimodal datasets and foundation models exist but paired data remains scarce. Existing fusion methods rely on large-scale paired datasets, limiting their use in scenarios with incomplete pairing. We introduce CAMEO, an adversarial learning-based modality fusion framework that integrates modalities from small, partially paired datasets. Combining any pre-trained unimodal encoder with a cross-modal latent alignment mechanism, CAMEO learns shared representations requiring only minimal paired samples. Evaluated on computational pathology tasks such as niche classification and cell type composition prediction, CAMEO achieves superior data efficiency, outperforming contrastive approaches like CLIP in low paired-data regimes, and highlighting the benefits of adversarial alignment when paired annotations are scarce. To facilitate further research, we additionally release a fully annotated HuggingFace dataset comprising three organs and paired image and gene expression modalities. By extending fusion methods to address limited pairing and small-scale datasets, we provide a framework that advances multimodal learning and broadens its applicability to real-world biomedical problems.",
+      "authors": [
+        "Merel Kuijs",
+        "Till Richter",
+        "Rushin H. Gindra",
+        "Korbinian Traeuble",
+        "Christian Matek",
+        "Rebeka Luknárová",
+        "Tingying Peng",
+        "Fabian J. Theis"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "q-bio.GN"
+      ],
+      "published": "2026-11-23T12:37:18+00:00",
+      "link": "https://arxiv.org/pdf/2611.30601v2",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "multimodal fusion of partially paired data for pathology tasks linking morphology and molecular profiles",
+      "llm_evidence_cn": "针对部分配对数据的多模态融合，连接形态与分子谱",
+      "llm_evidence": "针对部分配对数据的多模态融合，连接形态与分子谱",
+      "canonical_evidence": "针对部分配对数据的多模态融合，连接形态与分子谱",
+      "llm_tldr_en": "CAMEO is an adversarial modality-fusion framework that learns shared representations from small, partially paired multimodal datasets, achieving strong results on computational pathology tasks like niche and cell-type composition prediction.",
+      "llm_tldr_cn": "生物医学中单模态数据丰富但配对数据稀缺，现有融合方法依赖大规模配对样本而难以应用。本文提出CAMEO对抗式模态融合框架，可将任意预训练单模态编码器与跨模态潜空间对齐机制结合，仅需少量配对样本即可学习共享表征。在生态位分类与细胞类型组成预测等计算病理任务上取得优越表现。该工作为组织学图像与分子谱等多模态数据的低成本融合提供了可行路径。",
+      "llm_tldr": "生物医学中单模态数据丰富但配对数据稀缺，现有融合方法依赖大规模配对样本而难以应用。本文提出CAMEO对抗式模态融合框架，可将任意预训练单模态编码器与跨模态潜空间对齐机制结合，仅需少量配对样本即可学习共享表征。在生态位分类与细胞类型组成预测等计算病理任务上取得优越表现。该工作为组织学图像与分子谱等多模态数据的低成本融合提供了可行路径。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2611.31451v1",
+      "source": "arxiv",
+      "title": "A multimodal foundation model for tissue proteomics and morphology in cancer",
+      "abstract": "Cancer diagnosis, prognosis, and treatment decisions increasingly rely on integrating tissue morphology with specific molecular readouts of the tumor and its microenvironment. H&E histopathology provides scalable morphology, whereas multiplex spatial proteomics quantifies dozens of proteins in situ with spatial context, but remains selectively deployed, often with different marker panels across cohorts. This creates a translational bottleneck: most patients lack high-depth molecular profiling, and existing models rarely integrate morphology and spatial molecular data in a single framework. We present VirTues-M2, a multimodal foundation model that jointly learns from H&E and spatial proteomics using a novel vision transformer-based architecture. By encoding marker identity during pretraining, VirTues-M2 is robust to missing modalities, imperfect modality pairing or registration, and variable marker panels, enabling unified inference for tissue phenotyping, panoptic cell segmentation, virtual staining, annotation-free biomarker discovery, and reinforcement learning-based adaptive marker panel selection to reduce assay burden. As a concrete demonstration of translational utility, in a newly collected cohort of 1,053 treatment-naive non-small-cell lung cancer (NSCLC) patients with paired spatial proteomics and H&E, VirTues-M2 discovers high-risk and low-risk tissue signatures that stratify overall survival in both the discovery cohort and an independent validation cohort, outperforming current state-of-the-art stratification schemes; all enabled by VirTues-M2's ability to jointly analyze both modalities within a single model.",
+      "authors": [
+        "Benedikt von Querfurth",
+        "Lukas Klein",
+        "Cédric Vincent-Cuaz",
+        "Eeshaan Jain",
+        "Yexiang Cheng",
+        "Johann Wenckstern",
+        "Phil F. Cheng",
+        "Petros Liakopoulos",
+        "Olivier Michielin",
+        "Martina Haberecker",
+        "Andreas Wicki",
+        "Pascal Frossard",
+        "Charlotte Bunne"
+      ],
+      "primary_category": "q-bio.QM",
+      "categories": [
+        "q-bio.QM",
+        "cs.CV"
+      ],
+      "published": "2026-11-23T19:25:07+00:00",
+      "link": "https://arxiv.org/pdf/2611.31451v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "multimodal foundation model jointly learning H&E morphology and spatial molecular data",
+      "llm_evidence_cn": "联合学习H&E形态与空间分子数据的多模态基础模型",
+      "llm_evidence": "联合学习H&E形态与空间分子数据的多模态基础模型",
+      "canonical_evidence": "联合学习H&E形态与空间分子数据的多模态基础模型",
+      "llm_tldr_en": "A vision-transformer multimodal foundation model that jointly learns H&E histology and multiplex spatial proteomics, enabling molecular-aware pathology despite sparse paired profiling across cohorts.",
+      "llm_tldr_cn": "针对多数患者缺乏深度分子谱、现有模型难以统一整合形态与空间分子数据的问题，本文提出VirTues-M2多模态基础模型，基于视觉Transformer架构联合学习H&E组织学与多重空间蛋白质组。模型可在不同标志物面板与队列间共享表征，缓解配对数据稀缺的瓶颈。该工作把形态与空间分子读片统一到一个框架，为分子感知的肿瘤诊断与预后提供可扩展路径。",
+      "llm_tldr": "针对多数患者缺乏深度分子谱、现有模型难以统一整合形态与空间分子数据的问题，本文提出VirTues-M2多模态基础模型，基于视觉Transformer架构联合学习H&E组织学与多重空间蛋白质组。模型可在不同标志物面板与队列间共享表征，缓解配对数据稀缺的瓶颈。该工作把形态与空间分子读片统一到一个框架，为分子感知的肿瘤诊断与预后提供可扩展路径。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    }
+  ]
+}

@@ -1,0 +1,2715 @@
+Title: CellBench: task-dependent performance and generalization limits of single-cell foundation models
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.04.01.714123v3.full.pdf
+
+Number of Pages: 30
+
+Markdown Content:
+CellBench: task-dependent performance and generalization limits of single-cell 1
+
+foundation models 2
+
+Yongjie Xu 1,2,7 , Yiyun Li 3,4,7 , Yue Yuan 5,7 , Qingtao Xia 4, Hangyao Tu 6, Fengjun Hu 6,* , and Zelin 3
+
+Zang 2,8,** 4
+
+> 1
+
+School of Information Science & Electronic Engineering, Zhejiang University, No. 866 5
+
+Yuhangtang Road, Hangzhou 310058, Zhejiang, China 6
+
+> 2
+
+School of Engineering, Westlake University, No. 600 Dunyu Road, Hangzhou 310030, 7
+
+Zhejiang, China 8
+
+> 3
+
+Yazhouwan National Laboratory, No. 8 Huanjin Road, Sanya 572025, Hainan, China 9
+
+> 4
+
+Faculty of Computing, Harbin Institute of Technology, No. 92 Xidazhi Street, Harbin 150040, 10 
+
+Heilongjiang, China 11 
+
+> 5
+
+Department of Public Health & Primary Care, School of Medicine, KU Leuven, No. 49 12 
+
+Herestraat Street, 3000 Leuven, Belgium 13 
+
+> 6
+
+School of Information Science & Technology, Zhejiang Shuren University, No. 8 Shuren Street, 14 
+
+Hangzhou 310015, Zhejiang, China 15 
+
+> 7
+
+These authors contributed equally 16 
+
+> 8
+
+Lead contact 17 
+
+> *
+
+Correspondence: hufengjun@zjsru.edu.cn 18 
+
+> **
+
+Correspondence: zangzelin@westlake.edu.cn 19 
+
+# SUMMARY 20 
+
+Single-cell foundation models (scFMs) are increasingly used for transcriptomic analysis, yet it 21 
+
+remains unclear what biological information their embeddings preserve and when they outper- 22 
+
+form dataset-fitted methods. Here, we present CellBench, a unified benchmark of frozen scFM 23 
+
+representations across tissues, species, and genetic perturbation screens. We find that different 24 
+
+models capture distinct aspects of cellular biology, while classical baselines remain competitive 25 
+
+across tasks. Human-pretrained representations transfer to supervised mouse analyses, but un- 26 
+
+der a shared decoder they fail to improve genome-wide absolute error over predicting no change 27 
+
+for unseen perturbation targets. Neither model size nor reported pretraining data volume reliably 28 
+
+predicts performance. Excluding cohorts with sample or donor identifier matches to pretraining 29 
+
+records substantially reduces annotation advantages without changing model rankings appre- 30 
+
+ciably. Together, these findings show that the value of scFM representations depends on the 31 
+
+biological task and the strength of the evidence supporting their performance. 32 
+
+# KEYWORDS 33 
+
+single-cell RNA sequencing, foundation models, representation learning, biological conservation 34 
+
+# HIGHLIGHTS 35 
+
+• Single-cell foundation models preserve distinct biological information across tasks 36 
+
+• Human-to-mouse transfer does not ensure unseen perturbation prediction 37 
+
+• Model size and pretraining corpus size do not reliably predict performance 38 
+
+1
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+• Excluding identifier-matched cohorts preserves rankings but reduces annotation gains 39 
+
+# THE BIGGER PICTURE 40 
+
+Foundation models are becoming common tools for analyzing single-cell data, but choosing the 41 
+
+right model remains challenging. Researchers often rely on benchmark rankings or model size 42 
+
+to guide their decisions, even though these measures may not reflect the biological information 43 
+
+a model preserves. CellBench shows that different models capture different aspects of cellu- 44 
+
+lar biology and that simpler methods can perform just as well on some tasks. It also reveals 45 
+
+an important distinction between representing observed cellular states and predicting how cells 46 
+
+respond to genetic interventions. Human-pretrained representations can transfer to mouse tis- 47 
+
+sues, but their success in observational tasks does not ensure accurate prediction of unseen 48 
+
+perturbations. Moreover, stable model rankings can hide small or dataset-dependent advan- 49 
+
+tages, especially when pretraining data are not fully documented. These findings highlight the 50 
+
+need to evaluate foundation models according to specific biological questions rather than overall 51 
+
+rankings. Strong classical baselines, appropriate controls, and transparent pretraining records 52 
+
+are essential for determining when these models provide reliable benefits. Ultimately, better 53 
+
+evaluation can guide the development of models that are not only more powerful but also more 54 
+
+useful for biological research. 55 
+
+# IN BRIEF 56 
+
+CellBench compares 13 frozen single-cell foundation models with classical baselines fitted on 57 
+
+training data across 12 human and mouse cohorts and four genetic perturbation screens. Dif- 58 
+
+ferent models capture different biological information. Human-pretrained models transfer well to 59 
+
+mouse tissues, yet with a shared decoder none beats predicting no change on unseen pertur- 60 
+
+bations. Model size and training data volume poorly predict performance, and removing human 61 
+
+studies overlapping pretraining data erases the human annotation gain over baselines. 62 
+
+# INTRODUCTION 63 
+
+Large-scale single-cell RNA-sequencing atlases have provided extensive data from human or- 64 
+
+gans, diseases, and model organisms 1–3 . These resources have supported the development 65 
+
+of more than a dozen single-cell foundation models (scFMs) 4–18 . Some models have been pre- 66 
+
+trained on tens to hundreds of millions of cell profiles to learn representations that can be used 67 
+
+across tissues, datasets, and biological tasks. In practice, researchers often use released check- 68 
+
+points as frozen feature extractors to avoid the computational cost of fine-tuning 19–22 . The result- 69 
+
+ing cell embeddings can be used directly for clustering and batch assessment or combined with 70 
+
+prediction heads for cell-type annotation and gene-expression reconstruction. However, these 71 
+
+models differ in architecture, input representation, parameter count, pretraining objectives, exter- 72 
+
+nal biological priors 23,24 , and pretraining species coverage. It is therefore difficult to know which 73 
+
+model is best suited to a particular task. It also remains unclear when pretrained representations 74 
+
+offer an advantage over methods fitted directly to the target dataset, such as principal component 75 
+
+analysis (PCA) 25 , uniform manifold approximation and projection (UMAP) 26 , and scVI 27 . 76 
+
+Previous benchmarks have compared scFMs across several downstream tasks, but their 77 
+
+conclusions differ across models and evaluation settings 19–22 . Some studies report benefits 78 
+
+from pretraining, while others find that PCA and scVI remain competitive. These comparisons 79 
+
+2
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+provide useful evidence, but they do not fully explain what biological information makes one rep- 80 
+
+resentation more useful than another. In particular, overall rankings may hide differences in the 81 
+
+preservation of rare cell types, gene-expression patterns, and continuous cellular states. The 82 
+
+limits of generalization also remain unclear. Recent perturbation benchmarks show that sim- 83 
+
+ple baselines can compete with deep learning methods on unseen genetic perturbations 28,29 . 84 
+
+Specialized methods such as GEARS, scGen, and CPA have been developed for perturbation 85 
+
+prediction 30–32 , but the ability of general-purpose frozen scFM embeddings to support this task 86 
+
+has not been systematically compared with their performance on tissue datasets. Other stud- 87 
+
+ies have examined how tokenization and pretraining data diversity affect individual model fam- 88 
+
+ilies 33,34 . However, it remains unclear whether model size and pretraining data volume predict 89 
+
+performance across different released checkpoints. Another concern is the possible reuse of 90 
+
+public datasets in both pretraining and evaluation. Without detailed pretraining records, it is 91 
+
+difficult to establish whether benchmark datasets are independent of the training data. 92 
+
+These gaps raise four connected questions about the value and reliability of frozen scFM 93 
+
+representations. First, what biological information do different models preserve, and how does 94 
+
+this information affect their performance across tasks? Distinguishing broad cell-type identity 95 
+
+from rare populations, gene-expression patterns, and continuous transcriptional programs may 96 
+
+help explain why models perform differently across biological applications. Second, how well do 97 
+
+pretrained representations generalize beyond their original training settings? Applying human- 98 
+
+pretrained models to mouse tissues tests whether learned cellular information can be reused 99 
+
+across species, while predicting unseen genetic perturbations tests whether these representa- 100 
+
+tions can also support the prediction of responses to interventions. Third, do larger models and 101 
+
+larger pretraining datasets consistently produce better representations? Comparing released 102 
+
+checkpoints with different architectures can help establish whether parameter count and pretrain- 103 
+
+ing data volume are useful indicators of performance and how performance differences relate to 104 
+
+model design. Finally, how reliable are model rankings when pretraining data are not fully docu- 105 
+
+mented? Understanding the effects of incomplete training records and potential dataset overlap 106 
+
+is necessary to judge whether reported advantages over classical baselines are robust. 107 
+
+To address these questions, we developed CellBench, a unified benchmark for evaluating 108 
+
+frozen scFM representations across biological tasks and datasets. We compared 13 released 109 
+
+scFM checkpoints with PCA, UMAP, and scVI fitted strictly on training data, covering 12 human 110 
+
+and mouse tissue cohorts and four CRISPR Perturb-seq screens. Using consistent data splits 111 
+
+and downstream evaluation methods, we assessed unsupervised clustering, native batch struc- 112 
+
+ture, supervised cell-type annotation, and gene-expression reconstruction. We also used linear 113 
+
+probes to examine how well different embeddings preserve rare cell populations and continuous 114 
+
+cellular programs. To investigate generalization, we evaluated human-pretrained checkpoints 115 
+
+on mouse tissues and tested frozen representations for genetic perturbation prediction using 116 
+
+a shared residual decoder. Perturbation predictions were additionally compared with a zero- 117 
+
+change baseline to determine whether they improved on predicting no transcriptional response. 118 
+
+We further examined model parameter composition, reported pretraining corpus size, and the 119 
+
+relationship between checkpoint characteristics and downstream performance. Finally, we au- 120 
+
+dited pretraining data provenance and tested the sensitivity of model rankings and performance 121 
+
+advantages to the exclusion of cohorts with identified sample or donor matches in pretraining 122 
+
+records. Our results show that different models preserve different biological information and that 123 
+
+no single representation consistently leads across tasks. Classical baselines remain competi- 124 
+
+tive, while representations that transfer to supervised mouse tasks do not necessarily support 125 
+
+accurate prediction of unseen genetic interventions under the shared decoder. We also find 126 
+
+that model scale does not reliably predict performance across heterogeneous checkpoints and 127 
+
+that stable rankings can conceal substantial changes in performance advantages over classical 128 
+
+methods. Together, CellBench provides a systematic assessment of what scFM representations 129 
+
+3
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+capture, when they offer practical benefits, and how reliably those benefits can be demonstrated. 130 
+
+# RESULTS 131 
+
+CellBench enables systematic benchmarking of scFMs and dataset-fitted 132 
+
+representations 133 
+
+A major challenge in benchmarking single-cell foundation models (scFMs) is separating the util- 134 
+
+ity of pretrained representations from the effects of model-specific fine-tuning strategies. To 135 
+
+mitigate this challenge, we developed CellBench, a unified evaluation framework that compares 136 
+
+pretrained cellular representations using standardized donor-level data splits (Supplemental Ta- 137 
+
+ble S1), consistent downstream probe architectures (Supplemental Table S2), and rank-based 138 
+
+performance aggregation across datasets and tasks ( Figure 1 ; Supplemental Table S3). We 139 
+
+evaluated 13 publicly released scFM checkpoints, including CellFM 13 , CellPLM 14 , GeneCom- 140 
+
+pass 12 , Geneformer 5, LangCell 17 , Nicheformer 10 , Tabula 18 , TranscriptFormer 9, UCE 8, scFoun- 141 
+
+dation 7, scGPT 6, scLong 11 , and scPRINT2 15,16 , alongside three dataset-fitted baselines, includ- 142 
+
+ing PCA 25 , UMAP 26 , and scVI 27 . 143 
+
+CellBench assesses four complementary aspects of representation quality through unsu- 144 
+
+pervised clustering 35 , batch-effect assessment in the native embedding space 37 , supervised 145 
+
+closed-set cell-type annotation, and supervised reconstruction of highly variable gene (HVG) ex- 146 
+
+pression. We evaluated these tasks across 12 cohorts organized into three biological panels, en- 147 
+
+compassing healthy human organs, human diseases, and anatomically matched mouse organs. 148 
+
+The healthy human panel included bone marrow mononuclear cells (BM) 38 , the Human Lung 149 
+
+Cell Atlas (HL) 1, adult heart (AH) 39 , and adult kidney (AK) 40 . The disease panel comprised mul- 150 
+
+tiple sclerosis brain (MS) 41 , ulcerative colitis epithelium (UC) 42 , lethal COVID-19 lung (C19) 43 , 151 
+
+and triple-negative breast cancer (BC) 44 . The mouse panel included bone marrow (MM), lung 152 
+
+(ML), heart (MH), and kidney (MK) from Tabula Muris Senis 2 (Supplemental Table S4). To en- 153 
+
+sure a fair comparison and avoid information leakage during baseline fitting, the dataset-fitted 154 
+
+baselines selected up to 3,000 HVGs and learned 256-dimensional representations exclusively 155 
+
+from the 70% donor-partitioned training set for each random seed, without using cell-type labels 156 
+
+or batch covariates. The fitted baselines were then applied to held-out validation (10%) and test 157 
+
+(20%) donors through out-of-sample transformation or inference (Supplemental Table S1). 158 
+
+To examine whether representation quality observed in cellular atlases extends to experimen- 159 
+
+tal perturbations, we evaluated the same 16 methods on an independent panel of four CRISPR 160 
+
+Perturb-seq datasets, comprising Norman 45 , Adamson 46 , Replogle K562, and Replogle RPE1 47 . 161 
+
+Perturbation results were analyzed separately and excluded from both static representation rank- 162 
+
+ings and cross-checkpoint attribute correlation analyses, so that observational and perturbation 163 
+
+performance could be assessed independently. 164 
+
+Pretrained models preserve distinct aspects of biological information 165 
+
+This section examines whether pretrained embeddings from different models capture a common 166 
+
+dimension of biological representation quality or distinct biological properties across four static 167 
+
+tasks. We evaluated unsupervised clustering and native batch effects directly in the embed- 168 
+
+ding space without training task-specific heads, while using standardized task-specific prediction 169 
+
+heads for closed-set annotation and HVG reconstruction. We further applied Ridge classifica- 170 
+
+tion and regression probes for rare-class and gene-program information, without using an MLP. 171 
+
+4
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+a Benchmark cohorts 
+
+Human organs 
+
+BM Marrow HL Lung AH Heart AK Kidney 
+
+Human diseases 
+
+MS Brain UC Colitis C19 Lung BC Breast 
+
+Mouse organs 
+
+MM Marrow ML Lung MH Heart MK Kidney 
+
+Genetic perturbations 
+
+> gRNA
+
+2-gene: Norman Unseen KO: Adamson 
+
+Replogle K562 / RPE1 
+
+b Representation extraction & model taxonomy 
+
+scRNA-seq Gene ID Expression Priors 
+
+Frozen backbones 
+
+Q K V
+
+Attention Norm 
+
+> FFN
+
+Norm 
+
+Cell embeddings 
+
+Fitted baselines: PCA · UMAP · scVI 
+
+Tokenization 13 scFM checkpoints Human-only Multispecies 
+
+Rank / Binned Geneformer LangCell scGPT Nicheformer GeneCompass 
+
+Value / Full-panel scFoundation scLong TranscriptFormer CellPLM Tabula 
+
+Aligned / Sampled CellFM UCE scPRINT2 
+
+c Standardized downstream probes 
+
+1 Cell clustering 2 Batch assessment 
+
+Donor mixing Type conservation 
+
+3 Cell-type annotation 
+
+Type A Type B Rare <1% 
+
+4 Expression reconstruction 5 Perturbation prediction 
+
++ Target g 
+
+d Primary metrics & cross-task audits Observed Predicted 
+
+1 Clustering 
+
+ARI · NMI ↑ Accuracy ↑ Scaled ASW ↑ 
+
+2 Batch assessment 
+
+Scaled iLISI ↑ kBET ↑ Scaled cLISI ↑ Graph conn. ↑ 
+
+3 Annotation 
+
+Accuracy ↑ Balanced acc. ↑ Macro-F1 ↑ Macro-prec. ↑ 
+
+4 Reconstruction 
+
+Pearson r ↑ Spearman ρ ↑ MAE ↓ Top-50 overlap ↑ 
+
+5 Perturbation 
+
+Pearson Δ ↑ Spearman Δ ↑ MAE Δ ↓ DES ↑ 
+
+6 Cross-task audits 
+
+Linear probes Scale audit Species transfer Provenance Figure 1: CellBench frozen-backbone evaluation. (a) Four evaluation panels: human or-gans, human diseases, matched mouse organs, and CRISPR Perturb-seq screens. (b) Thirteen pretrained checkpoints and three training-split baselines. (c) Shared probes for clustering, na-tive batch assessment, annotation, reconstruction, and perturbation decoding. (d) Equal-weight ranking across four primary metrics per task (1–5), alongside cross-task audits of linear probes, scale attributes, cross-species transfer, and provenance (6). 5
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint Composite ranks showed that no scFM or dataset-fitted baseline consistently led across all com- 172 
+
+parisons, suggesting that different encoders capture distinct aspects of biological information 173 
+
+(Supplemental Tables S5–S20). 174 
+
+Unsupervised clustering. This task tests whether embeddings recover major tissue lin- 175 
+
+eages and cell-state neighborhoods without labels. Composite rankings differed across biologi- 176 
+
+cal panels, with protein-language UCE 23 leading healthy human organs at mean rank 2.604 and 177 
+
+human diseases at 3.771 , whereas a 256-component PCA fitted only on training-split HVGs led 178 
+
+mouse organs at mean rank 2.500 versus 3.188 for UCE and outperformed UCE on the multi- 179 
+
+donor HL dataset at 2.667 versus 4.750 . That overall ordering cannot distinguish agreement with 180 
+
+annotated cell-type partitions from continuous separation between cell types ( Figure 2 ; Supple- 181 
+
+mental Figures S1–S4). We therefore considered two biological interpretations, scoring Louvain 182 
+
+partition agreement with annotated types by three metrics, including the unsupervised adjusted 183 
+
+Rand index (uARI), normalized mutual information (NMI), and Hungarian matching accuracy, 184 
+
+while scoring continuous cell-type separation by cell-type average silhouette width (ASW). How- 185 
+
+ever, the two interpretations identified different leading models. PCA reached the highest 12- 186 
+
+cohort NMI of 0.706 , ahead of UCE at 0.701 , and uARI and matching accuracy followed the same 187 
+
+order. These results suggest that PCA on HVGs can recover major cell-type partitions without 188 
+
+requiring pretrained representations. By contrast, continuous separation told a different story. 189 
+
+Dataset-fitted UMAP had the largest 12-cohort ASW of 0.578 , with UCE next at 0.572 . These 190 
+
+results suggest that UCE preserves competitive continuous cell-type separation without consis- 191 
+
+tently improving discrete clustering over dataset-fitted baselines. 192 
+
+Native batch assessment. This task tests whether embeddings can mix cells from different 193 
+
+donors without collapsing cell-type structure. Composite ranks placed PCA first on human or- 194 
+
+gans at 6.042 , CellPLM first on human diseases at 7.594 , and TranscriptFormer and UCE jointly 195 
+
+first on mouse organs at 6.917 . That overall ordering cannot tell whether a model mixes donors 196 
+
+or conserves cell types ( Figure 3 ; Supplemental Figures S5–S8). We therefore considered 197 
+
+two biological interpretations, scoring donor mixing by scaled iLISI 48 and kBET 49 , while scoring 198 
+
+cell-type structure conservation by scaled cLISI 37,48 and graph connectivity 37 . However, the two 199 
+
+interpretations revealed different model strengths. On human organs, CellPLM showed greater 200 
+
+donor mixing than UCE, with iLISI 0.310 versus 0.215 , and kBET followed the same order at 0.325 201 
+
+versus 0.180 . By contrast, cell-type conservation told a different story. UCE conserved cell types 202 
+
+better than CellPLM, with scaled cLISI 0.989 versus 0.974 , and graph connectivity followed the 203 
+
+same order at 0.906 versus 0.782 . Furthermore, high donor mixing coincided with poor clustering 204 
+
+performance in several models. Tabula, CellFM, and mean-gene-pooled scLong showed high 205 
+
+iLISI scores of 0.359 , 0.303 , and 0.297 , respectively, yet showed some of the lowest clustering 206 
+
+uARI scores across 12 cohorts, at 0.016 , 0.052 , and 0.051 (Figure 2 ). This pattern suggests that 207 
+
+elevated donor mixing in these unconditioned embeddings may reflect broad loss of biological 208 
+
+structure rather than selective removal of technical batch effects. 209 
+
+Supervised cell-type annotation. This task tests whether embeddings preserve fine-grained 210 
+
+cell-type identity, including rare populations whose performance may be obscured by abundant 211 
+
+lineages in overall accuracy. Full-panel scFoundation led all three panels on composite rank, 212 
+
+with mean ranks of 2.854 on human organs, 2.156 on human diseases, and 1.979 on mouse or- 213 
+
+gans. That overall ordering cannot distinguish gains in overall accuracy from improvements in 214 
+
+rare-sensitive classification performance ( Figure 4 ; Supplemental Figures S9–S12). We there- 215 
+
+fore considered two biological interpretations, scoring overall classification performance by over- 216 
+
+all accuracy, while assessing class-balanced performance using macro-F1, balanced accuracy, 217 
+
+macro-precision, and macro-AUPRC. However, the two interpretations revealed different magni- 218 
+
+tudes of improvement. Relative to training-split PCA, scFoundation achieved only a 0.0074 ad- 219 
+
+vantage in 12-cohort overall accuracy, at 0.8816 versus 0.8742 . By contrast, its macro-F1 advan- 220 
+
+tage was more than three times larger, at 0.0234 , with scores of 0.8334 versus 0.8099 . Balanced 221 
+
+6
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+UCE PCA scGPT scFoundation scVI TranscriptFormer LangCell CellPLM Nicheformer UMAP scPRINT2 Geneformer GeneCompass CellFM scLong Tabula 
+
+12345678910 11 12 13 14 15 16 15342796810 11 13 12 14 15 16 
+
+> 1.2
+> 6.2 4.5 2.0 3.6 5.2 7.9 8.5 6.2 12.1 9.8 11.4 12.5 15.0 14.5 15.5 4.8
+> 2.7
+> 4.8 7.6
+> 2.7
+> 9.5 11.6 3.2 6.7 4.3 9.2 12.6 11.5 14.8 14.8 15.5 3.2 5.5 3.1 2.4
+> 1.6
+> 8.7 7.5 6.9 7.2 11.3 10.3 12.4 10.8 14.5 15.0 15.5
+> 1.2
+> 6.0 3.3 7.2 6.8 2.8 5.8 5.8 8.9 7.5 12.0 11.5 12.0 14.8 15.2 15.0
+
+12349658711 10 13 12 14 16 15 
+
+> 6.2 4.3 8.8 6.2 7.2 10.8
+> 3.5
+> 9.3 7.2 10.8 4.8 7.3 4.6 14.8 15.7 14.6 2.2
+> 1.5
+> 5.8 7.8 7.9 4.2 8.8 7.3 7.5 6.7 7.0 11.8 12.4 14.7 15.2 15.1
+> 1.0
+> 6.6 4.8 2.5 3.7 4.4 8.9 7.4 7.6 8.2 12.2 12.6 11.2 14.2 15.7 15.1 5.7 9.1 3.1 6.5 10.8 6.5 3.8
+> 3.0
+> 4.1 10.2 6.4 10.7 11.1 14.2 15.5 15.2
+
+2154376910 811 12 13 15 14 16 
+
+> 2.9 2.9
+> 5.2 3.4 5.1 7.6 4.8 10.2 6.8 6.6 11.1 11.4 13.2 15.1 14.5 15.2 2.6
+> 2.3
+> 4.2 5.3 2.4 5.7 8.0 11.3 9.4 7.2 8.8 10.8 13.2 14.8 14.8 15.2
+> 1.8
+> 3.0 6.2 3.5 5.2 8.4 7.7 4.3 7.7 8.8 9.9 12.2 14.3 14.3 14.0 14.6 5.5
+> 1.8
+> 6.2 6.9 5.1 4.0 3.8 6.9 10.0 7.1 9.4 11.3 13.2 14.4 15.1 15.2
+> PCA UCE scGPT scVI scFoundation LangCell TranscriptFormer CellPLM Nicheformer scPRINT2 UMAP Geneformer GeneCompass CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> PCA UCE scVI scGPT TranscriptFormer scFoundation LangCell Nicheformer CellPLM scPRINT2 UMAP Geneformer GeneCompass scLong CellFM Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> PCA UCE scGPT scVI scFoundation LangCell TranscriptFormer CellPLM Nicheformer scPRINT2 UMAP Geneformer GeneCompass CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> UMAP UCE CellPLM scFoundation scVI Nicheformer scGPT PCA LangCell TranscriptFormer scPRINT2 Geneformer GeneCompass Tabula CellFM scLong
+
+0.00 0.25 0.50 0.75 1.00 
+
+a Composite ranking across biological panels 
+
+Method Overall 
+
+Rank 
+
+Human organs 
+
+Rank BM HL AH AK 
+
+Human diseases 
+
+Rank MS UC C19 BC 
+
+Mouse organs 
+
+Rank MM ML MH MK 
+
+b uARI c NMI 
+
+d Accuracy e Scaled ASW Figure 2: Unsupervised clustering. (a) Composite 1–16 ranking table across 12 cohorts. (b–e) Dataset-mean score distributions for uARI, NMI, matching accuracy, and scaled ASW. accuracy and macro-precision followed the same order, while macro-AUPRC was 0.0267 higher, 222 
+
+at 0.8719 versus 0.8452 . scFoundation also exceeded scVI by 0.0126 in macro-F1 (Supplemental 223 
+
+Tables S20 and S21). These results suggest that scFoundation’s advantage over PCA is more 224 
+
+pronounced in class-balanced metrics than in overall accuracy, consistent with better preserva- 225 
+
+tion of rare cell-type information. However, the BM dataset provided an informative exception. 226 
+
+In this dataset, 45 hematopoietic states were defined using CITE-seq surface-protein gating to- 227 
+
+gether with mRNA measurements. Training-split PCA outperformed scVI and every scFM on 228 
+
+macro-F1, 0.5818 versus 0.5365 for scVI and 0.5309 for scFoundation. This exception suggests 229 
+
+that locally fitted HVG representations can remain competitive for cell-state annotations informed 230 
+
+by surface-protein measurements. 231 
+
+Supervised expression reconstruction. This task tests how well cell embeddings pre- 232 
+
+served quantitative gene-expression information by reconstructing log-normalized highly variable 233 
+
+gene (HVG) expression with a shared MLP decoder. Training-split PCA consistently led the com- 234 
+
+posite rankings across human organs, human diseases, and mouse organs, with mean ranks 235 
+
+of 1.000 , 1.000 , and 1.312 , respectively, and an overall 12-cohort mean rank of 1.10 (Figure 5 ; 236 
+
+Supplemental Figures S13–S16). Dataset-fitted scVI ranked second overall at 3.32 , followed by 237 
+
+7
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint UCE PCA CellPLM CellFM Nicheformer TranscriptFormer scGPT UMAP Geneformer Tabula scVI GeneCompass scLong scFoundation LangCell scPRINT2 
+
+12345.5 5.5 78910 11 12 13 14 15 16 412612 11 59.5 8739.5 13 15 16 14 
+
+> 4.8
+> 6.2 6.2 8.5 8.6 7.6 10.8 10.0 9.7 8.5 5.8 9.6 9.8 8.9 10.0 11.1 7.8
+> 5.2
+> 6.8 8.2 9.6 9.3 7.8 6.3 10.5 8.5 6.4 9.0 8.8 9.1 13.2 9.4 10.3
+> 6.0
+> 7.0 8.2 9.4 10.5 7.8 8.6 7.2 8.5 7.3 8.8 8.8 9.8 9.2 8.4 8.2 6.7 8.3 8.2 8.9 8.8
+> 6.3
+> 10.4 7.8 8.0 9.5 8.0 9.2 10.2 9.2 8.0
+
+212 18410 765913 311 15 14 16 
+
+> 5.3
+> 9.3 6.5 8.5 7.6 9.4 8.5 9.4 9.1 8.5 10.0 7.3 8.5 9.0 8.8 10.2 6.4 8.8 7.5 8.0 7.4
+> 5.8
+> 8.1 8.2 8.8 8.2 9.8 8.6 9.2 9.1 11.4 10.8 10.8 8.8 9.2 8.2 8.3 10.4 7.8 7.6
+> 6.2
+> 8.5 8.5 7.2 8.8 9.2 7.2 9.1 8.0 8.5 7.1 8.2 7.7 9.3 7.9
+> 7.0
+> 7.4 8.2 8.4 7.7 8.8 11.4 10.3 10.1
+
+1.5 611 531.5 847910 15 12 14 13 16 
+
+> 4.9
+> 8.5 8.8 7.8 8.7 7.6 9.2 5.2 8.8 8.5 9.1 8.5 9.5 9.3 10.2 11.5 7.6 7.0 9.5 8.8 7.6
+> 6.3
+> 8.0 9.4 8.0 8.5 9.1 8.2 8.5 9.3 10.3 9.8
+> 5.3
+> 6.6 7.3 7.7 7.9 8.2 9.9 7.1 9.1 8.5 6.9 12.5 8.9 9.7 7.9 12.4 9.8 10.2 10.1 8.0 7.0
+> 5.5
+> 6.8 10.2 7.0 8.5 10.5 8.2 9.2 8.6 8.2 8.2
+> Tabula CellFM scLong GeneCompass CellPLM Geneformer PCA UMAP Nicheformer UCE scGPT scPRINT2 LangCell TranscriptFormer scFoundation scVI
+
+0.00 0.25 0.50 0.75 1.00 
+
+> Tabula CellFM scLong CellPLM GeneCompass Geneformer UMAP UCE scGPT Nicheformer scPRINT2 TranscriptFormer PCA LangCell scFoundation scVI
+
+0.00 0.25 0.50 0.75 1.00 
+
+> TranscriptFormer UCE scVI scFoundation PCA scGPT UMAP CellPLM Nicheformer LangCell scPRINT2 Geneformer GeneCompass CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> scVI PCA TranscriptFormer scGPT scFoundation LangCell scPRINT2 Nicheformer UCE Geneformer GeneCompass UMAP CellPLM CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+a Composite ranking on unintegrated embeddings 
+
+Method Overall 
+
+Rank 
+
+Human organs 
+
+Rank BM HL AH AK 
+
+Human diseases 
+
+Rank MS UC C19 BC 
+
+Mouse organs 
+
+Rank MM ML MH MK 
+
+b Scaled iLISI c kBET 
+
+d Scaled cLISI e Graph connectivity Figure 3: Native batch assessment. (a) Composite 1–16 ranking table on unintegrated embed-dings. (b–e) Dataset-mean score distributions for scaled iLISI, kBET, scaled cLISI, and graph connectivity. scFoundation at 3.49 and TranscriptFormer at 4.48 . To distinguish reconstruction of individual cell 238 
+
+profiles from recovery of gene-specific expression variation across cells, we compared within-cell 239 
+
+metrics (per-cell Pearson r, Spearman ρ, MAE, and non-zero top-50 overlap) with gene-wise 240 
+
+Pearson correlation rgene (Supplemental Tables S11, S15, S19, and S20). The within-cell metrics 241 
+
+produced highly concordant model rankings, with a mean Spearman rank agreement of 0.968 242 
+
+between per-cell Pearson r and MAE when oriented consistently. PCA showed a substantial ad- 243 
+
+vantage on these measures, achieving a 12-cohort mean Pearson r of 0.8151 , non-zero top-50 244 
+
+overlap of 0.6593 , and MAE of 0.0593 . By comparison, scFoundation and scVI achieved similar 245 
+
+but lower within-cell fidelity, with Pearson r values of 0.7159 and 0.7174 , respectively. However, 246 
+
+this performance gap largely disappeared when evaluating gene-specific expression variation 247 
+
+across cells. PCA achieved a mean rgene of 0.4141 , compared with 0.4093 for scVI and 0.4077 248 
+
+for scFoundation. Both scVI and scFoundation exceeded PCA on this metric in 6 of the 12 249 
+
+cohorts, indicating that their weaker reconstruction of complete cell profiles did not necessarily 250 
+
+imply poorer recovery of expression variation for individual genes. 251 
+
+Linear rare-class probe. We applied five-fold cell-stratified Ridge classifiers to cached em- 252 
+
+8
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint scFoundation TranscriptFormer scVI PCA Nicheformer scGPT UCE LangCell scPRINT2 Geneformer CellPLM GeneCompass UMAP CellFM scLong Tabula 
+
+12345678910 11 12 13 14 15 16 12347568910 12 11 13 14 15 16 
+
+> 3.2 4.3 4.2
+> 1.0
+> 5.4 6.7 6.1 6.7 8.2 9.3 12.0 10.9 14.0 13.0 15.0 16.0
+> 2.1
+> 5.2 2.3 6.5 4.6 3.1 7.1 7.2 9.2 9.7 10.8 10.2 12.9 14.0 15.0 16.0 2.8
+> 1.0
+> 4.2 5.7 6.6 3.8 3.9 8.1 10.2 9.8 11.6 10.2 13.4 13.6 15.0 16.0 3.3
+> 2.1
+> 2.6 3.4 7.8 4.7 5.6 6.5 9.0 10.8 12.8 11.0 11.5 14.0 15.0 16.0
+
+1247653812 10 11 913 14 15 16 
+
+> 1.2
+> 5.7 7.7 11.2 5.5 5.2 6.0 5.3 11.0 7.0 5.5 6.8 13.8 13.4 14.8 16.0 2.6 4.2
+> 1.6
+> 2.2 6.3 6.8 6.6 6.5 8.5 9.8 11.4 11.8 12.8 13.8 15.0 16.0 2.2
+> 1.7
+> 3.5 5.3 6.1 6.1 3.1 8.0 11.2 10.8 10.9 9.2 12.8 14.0 15.0 16.0
+> 2.5
+> 2.6 7.4 6.4 4.9 3.0 4.3 6.8 11.8 9.8 10.1 8.5 13.2 13.8 15.0 16.0
+
+14253986710 12 14 11 13 15 16 
+
+> 2.2 4.8
+> 1.1
+> 4.0 4.8 8.3 8.8 5.0 7.9 8.4 10.7 14.0 11.9 13.0 15.0 16.0
+> 2.2
+> 4.4
+> 2.2
+> 3.4 4.8 7.0 6.3 7.6 7.1 11.5 11.2 14.1 10.2 13.1 14.8 16.0
+> 2.2
+> 6.1 6.0 6.8 4.4 5.2 5.5 5.0 4.6 9.6 10.6 15.0 12.6 12.4 14.0 16.0
+> 1.2
+> 3.8 4.4 6.5 4.7 8.6 8.3 3.8 5.8 9.1 12.4 13.8 9.7 12.8 15.0 16.0
+> scFoundation scVI TranscriptFormer PCA Nicheformer UCE scGPT LangCell scPRINT2 Geneformer CellPLM UMAP GeneCompass CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> scFoundation scVI TranscriptFormer Nicheformer PCA scGPT UCE LangCell scPRINT2 Geneformer CellPLM GeneCompass UMAP CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> scFoundation scVI TranscriptFormer Nicheformer scGPT PCA UCE LangCell scPRINT2 Geneformer CellPLM GeneCompass UMAP CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> scFoundation scVI TranscriptFormer Nicheformer UCE PCA LangCell scGPT scPRINT2 Geneformer CellPLM UMAP GeneCompass CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+a Composite ranking across biological panels 
+
+Method Overall 
+
+Rank 
+
+Human organs 
+
+Rank BM HL AH AK 
+
+Human diseases 
+
+Rank MS UC C19 BC 
+
+Mouse organs 
+
+Rank MM ML MH MK 
+
+b Accuracy c Macro-F1 
+
+d Balanced accuracy e Macro-precision Figure 4: Cell-type annotation. (a) Composite 1–16 ranking table across human organs, human diseases, and mouse organs. (b–e) Dataset-mean score distributions for accuracy, macro-F1, balanced accuracy, and macro-precision. beddings from 1,000 cells sampled from each of the HL, MS, C19, and MH datasets to assess 253 
+
+the linear accessibility of abundant and rare cell-type information without using an MLP (Supple- 254 
+
+mental Table S22). Across 26 abundant cell types representing at least 5% of their respective 255 
+
+cohorts, training-split PCA achieved an F1 score of 0.844 and scVI reached 0.854 , comparable 256 
+
+to the strongest scFMs at 0.843 to 0.883 . By contrast, larger differences emerged across 11 257 
+
+rare cell types representing less than 1% of their respective cohorts, including differentiating 258 
+
+lymphatic endothelia and activated smooth muscle in the HL dataset, brush and mesothelial 259 
+
+cells in the C19 dataset, and cardiac neurons and mast cells in the MH dataset. scFoundation 260 
+
+achieved an F1 score of 0.735 , followed by TranscriptFormer at 0.734 and UCE at 0.726 . These 261 
+
+three checkpoints outperformed PCA at 0.536 and scVI at 0.471 by approximately 19 to 26 per- 262 
+
+centage points. To check whether this gap reflected embedding dimensionality, single subsam- 263 
+
+ples, or cell-level splitting, we repeated the probe across six sensitivity regimes spanning native 264 
+
+versus PCA-192-matched embeddings, RidgeCV regularization, 10 repeated subsamples, and 265 
+
+donor-grouped cross-validation on 3,000 cells per cohort (Supplemental Table S22). Under the 266 
+
+strictest regime combining 3,000 cells, donor-grouped splits, and matched 192-dimensional em- 267 
+
+9
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint PCA scVI scFoundation TranscriptFormer LangCell scPRINT2 UCE Nicheformer scGPT Geneformer GeneCompass UMAP CellPLM CellFM scLong Tabula 
+
+12345678910 11 12 13 14 15 16 14236578910 11 13 12 14 15 16 
+
+> 1.0
+> 3.2 3.2 2.9 5.7 6.4 7.2 7.8 8.8 8.8 11.0 13.8 12.0 13.2 15.0 16.0
+> 1.0
+> 3.1 2.5 3.9 6.4 6.2 6.2 8.6 7.9 9.2 11.2 12.3 12.4 14.0 15.0 16.0
+> 1.0
+> 4.5 3.1 2.6 6.8 4.8 6.7 8.1 9.2 8.2 11.0 13.3 12.0 13.7 15.0 16.0
+> 1.0
+> 3.8 2.8 2.7 5.7 5.9 6.8 8.3 8.2 9.9 11.0 12.2 12.8 14.0 15.0 16.0
+
+12346758910 11 12 13 14 15 16 
+
+> 1.0
+> 2.9 6.7 6.2 7.8 7.1 5.4 5.2 5.6 8.2 10.3 12.2 12.5 14.0 15.2 15.8
+> 1.0
+> 3.2 2.8 3.8 6.2 6.2 7.1 6.8 8.8 9.2 11.6 12.3 12.1 14.0 15.0 16.0
+> 1.0
+> 3.1 4.0 3.0 6.6 5.2 6.8 8.0 9.1 8.2 11.1 12.5 12.4 14.0 15.0 16.0
+> 1.0
+> 2.4 2.6 4.4 6.3 9.7 6.0 8.2 6.9 9.1 10.2 11.8 12.2 14.0 15.0 16.0
+
+12364587910 14 11 12 13 15 16 
+
+> 1.0
+> 3.2 2.3 4.9 4.9 5.6 7.7 6.8 9.5 9.2 13.7 11.9 11.1 13.2 15.0 16.0
+> 1.3
+> 2.5 3.0 6.3 4.2 5.0 7.8 8.5 8.9 7.6 14.0 11.1 11.9 12.8 15.0 16.0
+> 1.0
+> 4.3 3.2 7.6 4.7 7.8 4.9 5.3 7.3 9.3 15.0 11.7 11.2 12.8 14.1 15.8
+> 1.9
+> 3.6 5.8 5.5 5.2 4.8 8.2 7.1 7.3 8.7 13.2 9.1 12.2 12.7 14.9 16.0
+> PCA scFoundation scVI TranscriptFormer UCE LangCell scGPT Nicheformer Geneformer scPRINT2 CellPLM GeneCompass UMAP CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> PCA scFoundation scVI scPRINT2 TranscriptFormer LangCell Nicheformer UCE scGPT Geneformer UMAP GeneCompass CellPLM CellFM scLong Tabula
+
+14812 16 
+
+> PCA scVI scFoundation TranscriptFormer scPRINT2 LangCell UCE Nicheformer scGPT Geneformer CellPLM UMAP GeneCompass CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> PCA scVI scFoundation TranscriptFormer LangCell UCE scPRINT2 Nicheformer scGPT Geneformer GeneCompass CellPLM UMAP CellFM scLong Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+a Composite ranking on log-normalized HVG targets 
+
+Method Overall 
+
+Rank 
+
+Human organs 
+
+Rank BM HL AH AK 
+
+Human diseases 
+
+Rank MS UC C19 BC 
+
+Mouse organs 
+
+Rank MM ML MH MK 
+
+b Non-zero top-50 overlap c MAE rank 
+
+d Pearson r e Spearman ρ Figure 5: HVG expression reconstruction. (a) Composite 1–16 ranking table across human organs, human diseases, and mouse organs. (b–e) Dataset-mean score distributions on log-normalized HVG expression for non-zero top-50 overlap, MAE rank, per-cell Pearson r, and Spearman ρ.beddings, scFoundation, UCE, scGPT, and TranscriptFormer retained rare-class F1 scores of 268 
+
+0.582 , 0.569 , 0.522 , and 0.512 , remaining well ahead of scVI at 0.287 , training-split PCA at 0.196 , 269 
+
+and direct 192-dimensional PCA on log-normalized HVGs at 0.102 . These results suggest that 270 
+
+dataset-fitted PCA and scVI remain competitive for abundant cell types, whereas several pre- 271 
+
+trained foundation models retain more linearly accessible information for distinguishing rare cell 272 
+
+populations. 273 
+
+Linear program probe. Cell-type identity is not the only biological information encoded in 274 
+
+these embeddings. We therefore applied the same five-fold Ridge regression setup to assess the 275 
+
+linear accessibility of continuous transcriptomic attributes and biological programs from frozen 276 
+
+embeddings, including library depth, ribosomal and mitochondrial transcript fractions, cell-cycle 277 
+
+proliferation, and interferon signaling (Supplemental Table S22). Because scFoundation receives 278 
+
+total read depth as an input token, it achieved an expectedly high R2 of 0.990 for log library depth. 279 
+
+It also achieved R2 values of 0.838 for ribosomal transcript fractions across the four probed co- 280 
+
+horts (HL, MS, C19, and MH) and 0.847 for mitochondrial fractions across HL and C19. By 281 
+
+10 
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint contrast, scFoundation showed lower performance for cell-cycle proliferation and interferon sig- 282 
+
+naling, with R2 values of 0.361 and 0.296 . Among pretrained checkpoints, GeneCompass, which 283 
+
+incorporates regulatory priors, led cell-cycle proliferation with an R2 of 0.510 , ahead of scGPT at 284 
+
+0.412 and LangCell at 0.389 , while text-aligned LangCell led interferon signaling at 0.352 . Mean- 285 
+
+while, TranscriptFormer and UCE nearly matched scFoundation in rare-lineage classification, 286 
+
+with F1 scores of 0.734 and 0.726 versus 0.735 for scFoundation. However, they showed sub- 287 
+
+stantially weaker recovery of mitochondrial transcript fractions, with R2 values of −0.408 and 288 
+
+0.318 , and interferon signaling, with values of −0.334 and 0.039 . These results suggest that lin- 289 
+
+ear accessibility of rare cell-type identity does not necessarily imply accurate recovery of other 290 
+
+transcriptomic attributes or biological programs. 291 
+
+Cross-task concordance. We examined cross-model Spearman correlations across the 292 
+
+10 scFMs that did not collapse during unsupervised clustering, excluding Tabula, CellFM, and 293 
+
+scLong (Supplemental Table S23). First, cell-type annotation showed strong concordance with 294 
+
+gene-expression pattern reconstruction. Macro-F1 correlated strongly with gene-wise recon- 295 
+
+struction performance rgene at +0 .939 and non-zero top-50 expressed-gene overlap at +0 .879 , 296 
+
+whereas its association with quantitative expression accuracy ( −MAE) was weaker at +0 .707 . 297 
+
+This pattern suggests that annotation performance is more closely aligned with recovering gene- 298 
+
+expression patterns than with accurately predicting expression magnitudes. Second, clustering 299 
+
+performance showed concordance with cell-type neighborhood structure, gene-expression pat- 300 
+
+tern recovery, and annotation. Louvain uARI correlated with ASW at +0 .745 and scaled cLISI 301 
+
+at +0 .806 . Beyond these clustering-related metrics, non-zero top-50 expressed-gene overlap 302 
+
+correlated strongly with scaled cLISI at +0 .782 and uARI at +0 .758 , while macro-F1 was also 303 
+
+positively associated with scaled cLISI at +0 .745 and uARI at +0 .612 . These associations in- 304 
+
+dicate that models preserving cell-type neighborhood structure also tend to perform well in 305 
+
+expression-pattern reconstruction and cell-type annotation. Third, donor mixing showed neg- 306 
+
+ative concordance with annotation and reconstruction performance. iLISI correlated negatively 307 
+
+with macro-F1 at −0.796 and rgene at −0.778 . These inverse associations suggest that stronger 308 
+
+donor mixing can coincide with weaker preservation of cell-type identity and gene-expression 309 
+
+information, highlighting a potential tension between batch mixing and biological information 310 
+
+preservation. Finally, quantitative expression accuracy showed limited concordance with cluster- 311 
+
+ing performance. Although −MAE was moderately associated with macro-F1 ( +0 .707 ), it showed 312 
+
+little association with unsupervised cluster geometry, correlating with uARI at +0 .280 and ASW 313 
+
+at +0 .079 . This contrast suggests that accurately predicting expression magnitudes captures 314 
+
+aspects of representation quality that are not strongly reflected in clustering performance. To- 315 
+
+gether, these results suggest that cell-type identity, gene-expression reconstruction, clustering 316 
+
+geometry, and donor mixing capture related but distinct properties of pretrained cellular repre- 317 
+
+sentations, and that strong performance in one task does not necessarily translate into strong 318 
+
+performance in another. 319 
+
+Cross-species transfer to mouse exceeds generalization to unseen genetic 320 
+
+perturbations 321 
+
+The four static tasks above evaluated pretrained representations on held-out donors within each 322 
+
+study. These results do not establish whether the same embeddings remain informative when 323 
+
+transferred across species or evaluated on unseen genetic perturbations. We therefore exam- 324 
+
+ined two distinct distribution shifts: cross-species transfer from human to mouse organs ( Table 1 ; 325 
+
+Supplemental Table S24) and prediction of transcriptional responses to held-out genetic pertur- 326 
+
+bations ( Figure 6 ; Supplemental Table S25). 327 
+
+Paired mouse transfer. This comparison tests whether checkpoints pretrained mainly on hu- 328 
+
+11 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+Table 1: Paired human-organ and mouse-organ ranks. 
+
+Overall Clustering Batch Annotation Reconstruction Method Human Mouse Human Mouse Human Mouse Human Mouse Human Mouse scFoundation 5.02 4.90 4.81 4.79 9.52 9.23 2.85 1.98 2.90 3.58 TranscriptFormer 5.44 6.05 6.54 6.42 9.04 6.92 3.17 4.78 3.02 6.08 UCE 5.70 6.11 2.60 3.19 7.79 6.92 5.67 7.23 6.75 7.12 LangCell 7.97 6.33 8.21 6.04 10.44 9.15 7.12 5.36 6.12 4.75 
+
+Nicheformer 7.66 6.97 7.23 8.46 9.12 7.79 6.10 4.68 8.19 6.94 
+
+scGPT 6.29 7.38 3.92 5.48 8.17 8.48 4.56 7.28 8.52 8.27 
+
+scPRINT2 8.64 8.11 10.33 9.81 9.23 10.48 9.15 6.36 5.83 5.77 
+
+Geneformer 9.94 9.49 11.98 11.44 8.81 8.21 9.90 9.65 9.06 8.69 
+
+CellPLM 9.32 9.98 6.10 8.21 7.08 8.92 11.79 11.21 12.29 11.58 
+
+CellFM 12.61 12.09 14.77 14.65 8.31 8.04 13.65 12.81 13.73 12.88 
+
+GeneCompass 10.55 12.77 11.71 13.52 8.83 9.38 10.60 14.23 11.04 13.96 scLong 13.50 13.27 14.85 14.58 9.15 9.04 15.00 14.71 15.00 14.75 
+
+Tabula 13.94 13.88 15.38 15.06 8.38 8.50 16.00 16.00 16.00 15.96 
+
+PCA 4.07 4.27 5.08 2.50 6.04 8.08 4.15 5.19 1.00 1.31 scVI 4.47 5.05 3.67 4.46 7.25 8.90 3.33 3.43 3.62 3.42 
+
+UMAP 10.88 9.35 8.81 7.40 8.83 7.98 12.96 11.10 12.92 10.94 
+
+> Rows within each block follow Mouse Overall rank (unweighted mean of the four task ranks across four anatomically matched organs). Boldface marks the stronger (lower) rank between human and mouse within each task for a given method (ties unbolded). Dataset-fitted baselines are listed below the rule.
+
+man cells remain competitive on mouse organs without mouse pretraining ( Table 1 ). We there- 329 
+
+fore compared supervised annotation and reconstruction against unsupervised clustering across 330 
+
+four anatomically matched human and mouse tissues, including bone marrow, lung, heart, and 331 
+
+kidney ( Table 1 ; mouse-minus-human annotation rank shifts in Supplemental Table S24). For su- 332 
+
+pervised tasks, model rankings on mouse datasets aligned more closely with the corresponding 333 
+
+checkpoints performance in human-organ annotation and reconstruction than with their mouse 334 
+
+pretraining coverage. Predominantly human-pretrained scFoundation led mouse annotation at 335 
+
+1.979 and led pretrained scFMs in mouse reconstruction at 3.583 (behind training-split PCA 336 
+
+at 1.312 and scVI at 3.417 ), ranking ahead of human-and-mouse Nicheformer at 4.677 , mul- 337 
+
+tispecies scPRINT2 at 6.365 , eight-species UCE at 7.229 , and human-and-mouse GeneCom- 338 
+
+pass at 14 .229 in annotation. Similarly, TranscriptFormer’s human-only TF-Sapiens checkpoint 339 
+
+achieved a mouse annotation rank of 4.781 , closely matching Nicheformer’s rank of 4.677 . Specif- 340 
+
+ically, the same pattern held in the mixed-chemistry MH cohort combining 10x Genomics and 341 
+
+Smart-seq2 data. In this dataset, scFoundation reached the highest full-cohort macro-F1 of 342 
+
+0.921 , ahead of Nicheformer at 0.909 , PCA at 0.887 , and GeneCompass at 0.436 (Supplemental 343 
+
+Table S17), while TranscriptFormer led linear probing of rare cardiac neurons and mast cells 344 
+
+at 0.857 (Supplemental Table S22). By contrast, unsupervised mouse clustering told a different 345 
+
+story ( Figure 2 ). Training-split PCA fitted on mouse HVGs led mouse clustering at 2.500 , ahead 346 
+
+of UCE at 3.188 and scFoundation at 4.792 , while scGPT dropped from 3.917 on human organs 347 
+
+to 5.479 on mouse organs and CellPLM dropped from 6.104 to 8.208 . These results suggest 348 
+
+that human-pretrained embeddings preserve enough shared gene-expression structure for su- 349 
+
+pervised mouse annotation and reconstruction, whereas dataset-fitted PCA remains stronger for 350 
+
+unsupervised mouse clustering. 351 
+
+Perturbation prediction. This task tests whether frozen control-cell embeddings can predict 352 
+
+transcriptional shifts ( ∆) after held-out genetic perturbations when paired with a shared residual 353 
+
+lookup decoder ( Figure 6 ; Supplemental Figure S17; Supplemental Table S25). Across four 354 
+
+12 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+Perturb-seq screens scored by Pearson ∆, Spearman ∆, genome-wide MAE ∆, and differential- 355 
+
+expression overlap score (DES), scLong achieved the best composite rank at 5.729 , closely 356 
+
+followed by scFoundation at 5.771 and training-split PCA at 6.792 . However, this perturbation 357 
+
+ranking did not match the static tissue rankings, and in several cases reversed them. scLong led 358 
+
+perturbation rankings despite placing 15th in human-organ annotation and showing collapsed 359 
+
+multi-lineage clustering across the 12 tissue cohorts at a uARI of 0.051 , whereas top tissue 360 
+
+clustering models such as UCE and scGPT ranked 13th and 16th at 9.708 and 9.875 . This 361 
+
+contrast may reflect differences in the biological variation captured by the two tasks. While tissue 362 
+
+benchmarks evaluate the separation of multiple cell lineages, each Perturb-seq screen measures 363 
+
+transcriptional responses within a single clonal cell line, either K562 or RPE1. Moreover, the 364 
+
+shared residual decoder combines frozen cell embeddings with a 128-dimensional perturbation 365 
+
+vector, allowing perturbation prediction to draw on information beyond the cell embeddings alone. 366 
+
+Thus, models that perform poorly at separating tissue lineages may still retain information useful 367 
+
+for predicting perturbation responses. However, relative rankings across the 16 methods do 368 
+
+not establish whether their predicted shifts outperform a baseline that predicts no transcriptional 369 
+
+change. 370 
+
+Zero-change control. We therefore evaluated perturbation predictions against a zero-change 371 
+
+baseline ( ˆ∆g = 0) that predicts no expression change relative to the unperturbed control mean 28,29 372 
+
+(Supplemental Table S25). This comparison revealed contrasting results between squared-error 373 
+
+and absolute-error metrics, particularly for unseen combinations of previously observed pertur- 374 
+
+bation targets. On Norman, the decoder was trained on all 105 constituent single-gene perturba- 375 
+
+tions and evaluated on 118 held-out two-gene combinations. Across all 16 methods, three-seed 376 
+
+mean Pearson ∆ scores ranged from 0.652 to 0.761 , while MSE ∆ skill was consistently positive, 377 
+
+ranging from +0 .4078 to +0 .6267 . Training-split PCA achieved a three-seed mean MSE ∆ skill 378 
+
+of +0 .6157 . On seed 41, all 16 methods also achieved positive MSE ∆ skill on top differentially 379 
+
+expressed genes ( +0 .4840 to +0 .5981 on DE-20; +0 .4824 to +0 .6253 on DE-100), exceeding 380 
+
+the training-mean shift baseline ( +0 .3180 genome-wide, +0 .3121 on DE-20, and +0 .3187 on DE- 381 
+
+100). By contrast, genome-wide absolute-error performance told a different story. Run-level 382 
+
+MAE ∆ skill ranged from −0.1261 to +0 .0144 , with positive values in only 3 of 48 runs. None 383 
+
+of the 16 methods achieved a positive three-seed mean skill, trailing the training-mean base- 384 
+
+line ( +0 .2543 ), while summing the two single-gene training shifts reached +0 .7273 in MSE ∆ and 385 
+
++0 .4086 in MAE ∆, outperforming all 16 methods on both metrics. This discrepancy may re- 386 
+
+flect small prediction errors across many genes with little true expression change, which can 387 
+
+contribute to genome-wide absolute error despite improvements in squared-error performance. 388 
+
+Together, these results indicate that models can recover aspects of the transcriptional responses 389 
+
+to unseen combinations of previously observed perturbation targets and reduce squared predic- 390 
+
+tion errors without consistently outperforming a zero-change baseline in genome-wide absolute 391 
+
+error. 392 
+
+Unseen perturbation targets. Predicting responses to perturbation targets absent from 393 
+
+decoder training was substantially more challenging across Adamson, Replogle K562, and Re- 394 
+
+plogle RPE1. None of the 16 methods outperformed the zero-change baseline in genome-wide 395 
+
+MAE ∆, with skill scores ranging from −1.4408 to −0.3496 . On both genome-scale Replogle 396 
+
+screens, all methods also performed worse than the zero-change baseline in squared error, 397 
+
+with MSE ∆ skill ranging from −1.0463 to −0.0296 . Across-gene expression-change correlations 398 
+
+were close to zero on Replogle K562, with three-seed mean Pearson ∆ ranging from −0.013 to 399 
+
++0 .041 . Restricting evaluation to the top differentially expressed genes did not reverse this pat- 400 
+
+tern. On seed 41, all 16 methods retained negative MSE ∆ skill on K562, ranging from −0.7447 to 401 
+
+−0.2494 for DE-20 and from −0.8483 to −0.3066 for DE-100. On RPE1 and Adamson, the high- 402 
+
+est DE-20 skill reached only +0 .0438 and +0 .2127 , respectively. In contrast, the training-mean 403 
+
+shift baseline achieved positive genome-wide MSE ∆ skill ranging from +0 .0316 to +0 .1737 and 404 
+
+13 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+scLong scFoundation PCA TranscriptFormer CellPLM GeneCompass UMAP Nicheformer CellFM Geneformer Tabula scPRINT2 UCE scVI LangCell scGPT 
+
+12345678910 11 12 13.5 13.5 15 16 132458.5 10 12 13 711 15 14 616 8.5 
+
+> 2.8
+> 4.1 4.0 6.8 7.1 8.1 8.8 10.2 12.1 7.7 9.5 13.1 13.0 7.3 13.3 8.1
+
+4175211 610 814 9313 12 16 15 
+
+> 5.8
+> 4.2
+> 7.3 6.2 5.0 9.7 7.0 9.4 7.6 12.2 9.2 5.4 10.2 10.0 13.6 13.2
+
+11 972.5 82.5 1415 14 12 13 616 510 
+
+> 9.2 8.5 8.2 6.8 8.3 6.8
+> 5.8
+> 6.8 10.8 10.3 9.7 9.9 7.7 11.2 7.2 8.9
+
+235.5 915 5.5 16 14 4811 12 713 110 
+
+> 5.1 6.3 7.7 8.4 10.8 7.7 11.7 10.7 7.0 8.1 10.0 10.1 8.0 10.3
+> 4.9
+> 9.2
+> scFoundation PCA scLong CellPLM UMAP TranscriptFormer GeneCompass scVI CellFM scPRINT2 UCE Geneformer Nicheformer LangCell scGPT Tabula
+
+0.00 0.25 0.50 0.75 1.00 
+
+> scFoundation PCA TranscriptFormer GeneCompass UMAP scLong CellPLM scPRINT2 Tabula CellFM LangCell Nicheformer UCE scGPT scVI Geneformer
+
+0.00 0.25 0.50 0.75 1.00 
+
+> scFoundation TranscriptFormer scLong PCA scPRINT2 Nicheformer Tabula CellPLM GeneCompass scGPT Geneformer scVI CellFM LangCell UCE UMAP
+
+14812 16 
+
+> PCA scFoundation scLong UMAP GeneCompass TranscriptFormer Tabula CellFM Geneformer Nicheformer scVI scPRINT2 scGPT UCE CellPLM LangCell
+
+0.00 0.25 0.50 0.75 1.00 
+
+a Composite ranking across Perturb-seq screens 
+
+Method Overall 
+
+Rank 
+
+Norman (pairs) 
+
+Rank Mean 
+
+Adamson 
+
+Rank Mean 
+
+K562 
+
+Rank Mean 
+
+RPE1 
+
+Rank Mean 
+
+b Pearson Δ c Spearman Δ 
+
+d MAE Δ rank e DES Figure 6: Perturbation prediction. (a) Composite 1–16 ranking table across four Perturb-seq screens. (b–e) Four-screen distributions of Pearson ∆, Spearman ∆, MAE ∆ rank, and differential-expression overlap score, DES. 
+
+MAE ∆ skill ranging from +0 .0160 to +0 .1156 across all three screens. This baseline also out- 405 
+
+performed all 16 methods on DE-20, with skill values ranging from +0 .0352 to +0 .2179 , and on 406 
+
+DE-100, with values ranging from +0 .0354 to +0 .1906 (Supplemental Table S25). Importantly, the 407 
+
+shared lookup decoder represented unseen perturbation targets using untrained condition vec- 408 
+
+tors sampled from N (0 , 1) , without incorporating external target-specific information from Gene 409 
+
+Ontology or protein-language priors. These results indicate that, under this target-uninformed 410 
+
+decoder, frozen control-cell embeddings combined with untrained perturbation condition vectors 411 
+
+were insufficient to outperform the zero-change baseline in predicting genome-wide transcrip- 412 
+
+tional responses to unseen genetic perturbations. 413 
+
+Model scale alone does not reliably predict representation quality 414 
+
+To investigate whether model scale explains differences in frozen representation quality, we ex- 415 
+
+amined the relationships between audited parameter counts, reported pretraining corpus sizes, 416 
+
+and performance across the four static tasks. We further assessed parameter composition, 417 
+
+14 
+
+.CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint extracted embedding width, and pretraining design to explore other model characteristics as- 418 
+
+sociated with downstream performance ( Table 2 , Supplemental Figures S18–S19, and Supple- 419 
+
+mental Table S26). 420 
+
+Model parameter count. We first examined whether pretrained checkpoints with more pa- 421 
+
+rameters achieved better performance across the four static tasks. Across all 13 scFMs, audited 422 
+
+parameter counts ranged from 13 .2M to 1,006 .1M. Despite this substantial variation, Spearman 423 
+
+correlations between parameter count and task mean rank were weak, with values of −0.242 424 
+
+for clustering, −0.121 for annotation, −0.143 for reconstruction, and −0.228 for native batch as- 425 
+
+sessment. Because lower mean ranks indicate better performance, negative correlations sug- 426 
+
+gest that larger models tend to perform better, although this tendency was weak in our results. 427 
+
+Moreover, excluding individual models sometimes reversed the direction of these correlations, 428 
+
+indicating that the associations were sensitive to which checkpoints were included. This lack of 429 
+
+a consistent advantage for larger models was also evident in individual model comparisons. For 430 
+
+annotation across the 12 cohorts, scLong at 1,006 .1M and CellFM at 797 .4M achieved relatively 431 
+
+poor mean ranks of 14 .89 and 13 .41 , respectively. In contrast, the substantially smaller scFoun- 432 
+
+dation at 119 .3M and scGPT at 50 .8M performed considerably better, with mean ranks of 2.33 433 
+
+and 5.70 . 434 
+
+Parameter composition. To better understand why total parameter count may not fully re- 435 
+
+flect encoder capacity, we examined how parameters were distributed across different check- 436 
+
+point components (Supplemental Table S3). Our audit included both trainable and frozen regis- 437 
+
+tered parameters but excluded module buffers. In UCE, 744 .8M of its 848 .9M audited parameters 438 
+
+(87 .7% ) belonged to a frozen ESM-2 protein lookup table, while its four-layer transformer encoder 439 
+
+contained 78 .7M parameters. Similarly, scPRINT2 contained 85 .8M frozen gene-encoder param- 440 
+
+eters and 16 .1M trainable transformer parameters within its 101 .9M total. In contrast, GeneCom- 441 
+
+pass stored 155 .4M regulatory-prior elements as module buffers, which were excluded from its 442 
+
+audited parameter count of 18 .1M. These differences illustrate why total registered parameter 443 
+
+count does not directly reflect the size of the active cell-representation encoder. 444 
+
+Pretraining corpus size. Beyond model parameters, we next investigated whether larger 445 
+
+pretraining corpora were associated with better downstream performance. Across the 10 check- 446 
+
+points with available corpus-size estimates (Supplemental Table S3), Spearman correlations 447 
+
+with task mean rank were +0 .321 for clustering, −0.353 for native batch assessment, −0.079 for 448 
+
+annotation, and +0 .152 for reconstruction, providing little evidence of a consistent advantage 449 
+
+from larger pretraining corpora. This pattern was further illustrated by Nicheformer, pretrained 450 
+
+on more than 110 M cells, and GeneCompass, pretrained on 101 .8M cells, both of which ranked 451 
+
+behind scFoundation, pretrained on more than 50 M cells, in clustering, annotation, and recon- 452 
+
+struction. Together, these findings indicate that neither parameter count nor reported pretraining 453 
+
+corpus size alone provides a reliable basis for selecting checkpoints with strong downstream 454 
+
+performance. 455 
+
+Embedding width. Having found no consistent performance advantage associated with 456 
+
+model size or pretraining data volume, we turned to the dimensionality of extracted cell em- 457 
+
+beddings and its relationship with supervised annotation performance. Across the 13 scFMs, 458 
+
+embedding width ranged from 192 to 3,072 dimensions and showed a stronger Spearman corre- 459 
+
+lation with 12-cohort annotation macro-F1, at +0 .675 , compared with +0 .121 for total parameter 460 
+
+count. After excluding three models with collapsed representations, the correlation between em- 461 
+
+bedding width and macro-F1 remained positive at +0 .721 . Consistent with this pattern, Tabula 462 
+
+with d = 192 and scLong with d = 200 had the two worst annotation mean ranks despite a 76-fold 463 
+
+difference in parameter count. Together, these observations suggest that extracted embedding 464 
+
+width may be more informative than nominal model size when comparing supervised annota- 465 
+
+tion performance, although these associations do not establish a causal effect of embedding 466 
+
+dimensionality. 467 
+
+15 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+Table 2: Checkpoint attributes and four-task ranks. 
+
+Method Corpus Params Width Input Clustering Batch Annotation Reconstruction scFoundation 50 119 3072 F+V 5.11 9.48 2.33 3.49 TranscriptFormer 57 430 2048 V 6.49 8.23 3.83 4.48 Nicheformer 110 39 512 R+C 7.42 8.23 5.49 7.40 scGPT 33 51 512 B 5.00 8.24 5.70 8.12 UCE 36 849 1280 S+P 3.19 7.44 5.97 6.74 LangCell 28 39 256 R 6.83 9.67 6.38 5.86 scPRINT2 – 102 424 A+C 9.25 9.92 8.70 6.21 Geneformer 30 40 512 R 11.34 8.30 9.62 8.81 CellPLM – 66 512 V 7.03 7.86 10.83 12.06 GeneCompass 102 18 256 R+V 11.68 8.63 11.31 11.94 CellFM 100 797 1536 A 14.63 8.20 13.41 13.53 scLong 48 1,006 200 F+V 14.99 9.00 14.89 14.94 Tabula – 13 192 V 15.15 8.42 16.00 15.97 scVI – – 256 HVG 5.18 8.43 3.93 3.32 PCA – – 256 HVG 4.32 7.66 5.21 1.10 UMAP – – 256 HVG 8.40 8.29 12.40 12.03           
+
+> Corpus: reported pretraining profiles (millions); dashes mark family-only or unresolved checkpoint corpus estimates. Params: audited instantiated parameters (millions). Width: extracted cell-embedding dimension d. Overlapping input codes: A, gene-aligned; V, gene identity and values; R, ranked genes; C, context; S, sampled genes; P, protein-derived features; F, fixed gene panel; B, expression bins; HVG ,dataset-fitted on training-split HVGs. Task columns report 12-cohort mean ranks (lower is better) separately for each task without averaging across tasks. Rows within each block are ordered by 12-cohort annotation mean rank; dataset-fitted baselines are shown below the rule.
+
+Pretraining design. Finally, we compared Geneformer and LangCell to explore how closely 468 
+
+related encoders with similar parameter counts but different pretraining strategies performed 469 
+
+across downstream tasks. LangCell initializes its 12-layer BERT cell encoder from Geneformer 470 
+
+and retains rank-ordered gene tokenization and a 2,048 -gene context window. Their audited 471 
+
+cell-encoder parameter counts were also similar, at 39 .6M for Geneformer and 39 .4M for Lang- 472 
+
+Cell. However, LangCell incorporates additional cell–cell and cell–text contrastive learning and 473 
+
+cell–text matching alongside masked gene modeling, using paired cell descriptions during pre- 474 
+
+training. Despite their similar encoder sizes, LangCell achieved better 12-cohort mean ranks 475 
+
+than Geneformer across clustering, improving from 11 .34 to 6.83 , annotation from 9.62 to 6.38 , 476 
+
+and reconstruction from 8.81 to 5.86 . At the metric level, uARI increased by 27 .6% from 0.326 477 
+
+to 0.416 , while cell-type ASW increased from 0.483 to 0.531 . Direct linear probes showed sim- 478 
+
+ilar improvements, with out-of-fold R2 increasing from 0.192 to 0.389 for proliferation and from 479 
+
+0.101 to 0.352 for interferon signaling. However, performance declined on the de-confounded 480 
+
+canonical ISG score, with R2 values of −0.466 for Geneformer and +0 .056 for LangCell (Sup- 481 
+
+plemental Tables S20 and S22). This improvement did not extend to native batch assessment, 482 
+
+where the mean rank increased from 8.30 for Geneformer to 9.67 for LangCell. Because the two 483 
+
+checkpoints also differ in pretraining data and supervision objectives, this comparison cannot 484 
+
+isolate the contribution of any single training component. Nevertheless, it illustrates that closely 485 
+
+related encoders with similar parameter counts can produce substantially different downstream 486 
+
+representations. 487 
+
+16 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+Pretraining overlap audits reveal stable rankings but sensitive annotation 488 
+
+gains 489 
+
+Because public single-cell evaluation datasets may overlap with studies included in model pre- 490 
+
+training corpora, apparent performance gains require careful examination of data provenance. 491 
+
+We therefore audited potential pretraining overlap between each of the 13 scFM checkpoints 492 
+
+and all 16 evaluation datasets, covering 208 model–dataset combinations (Supplemental Ta- 493 
+
+ble S27). To assess ranking robustness, we performed leave-one-dataset-out (LODO) and leave- 494 
+
+one-metric-out (LOMO) analyses across the 12 static cohorts (Supplemental Table S28). Finally, 495 
+
+we examined how excluding the two human cohorts with confirmed sample or donor identifier 496 
+
+matches in scFoundation’s pretraining records affected annotation rankings and macro-F1 differ- 497 
+
+ences relative to dataset-fitted baselines (Supplemental Table S29). 498 
+
+Pretraining provenance and documentation gaps. To assess the transparency of pre- 499 
+
+training data sources, we classified all 208 combinations of scFM checkpoints and evaluation 500 
+
+datasets into four mutually exclusive provenance categories (Supplemental Table S27). For 501 
+
+154 combinations (74.0%), sample- or donor-level overlap could not be determined because 502 
+
+checkpoint-specific training manifests were unavailable. Another 28 combinations (13.5%) could 503 
+
+be excluded based on documented species scope, corresponding to the seven strictly human- 504 
+
+pretrained checkpoints (TranscriptFormer TF-Sapiens, scFoundation, scGPT, Geneformer, Lang- 505 
+
+Cell, CellFM, and scLong) evaluated on the four mouse cohorts. A further 24 combinations 506 
+
+(11.5%) involved shared public data sources, including CZ CELLxGENE Census 3 and scBaseC- 507 
+
+ount, but lacked the cell-level records needed to verify overlap; these included 8 combina- 508 
+
+tions involving TranscriptFormer and human datasets, 6 involving scGPT and human datasets, 509 
+
+and 10 involving scPRINT2 and human or mouse datasets. The remaining two combinations 510 
+
+(1.0%) showed confirmed sample or donor identifier matches between scFoundation’s pretrain- 511 
+
+ing records and the evaluation datasets, comprising 19 matching sample identifiers for adult 512 
+
+human heart (AH) and 6 matching donor identifiers for multiple sclerosis brain (MS). Notably, 513 
+
+scFoundation also achieved its largest single-cohort macro-F1 advantages on MS, exceeding 514 
+
+PCA by +0 .1477 and scVI by +0 .0910 (Supplemental Tables S13 and S21). 515 
+
+Rank robustness. We first assessed whether composite model rankings were sensitive to 516 
+
+random seeds or to the removal of individual evaluation datasets or metrics. Across clustering, 517 
+
+annotation, and reconstruction, rankings remained highly consistent across random seeds and 518 
+
+under both LODO and LOMO analyses, with Spearman rank correlations ranging from 0.915 to 519 
+
+1.000 under LODO and from 0.968 to 1.000 under LOMO (Supplemental Figure S20 and Supple- 520 
+
+mental Table S28). Perturbation rankings showed moderate sensitivity to screen removal (LODO 521 
+
+0.657 to 0.912 ; LOMO 0.823 to 0.970 ). However, native batch assessment was more sensitive to 522 
+
+metric removal, with LOMO correlations ranging from 0.291 to 0.671 (Supplemental Figure S21 523 
+
+and Supplemental Table S28). This difference is consistent with the competing objectives of 524 
+
+donor mixing and cell-type conservation, which are captured by different evaluation metrics. 525 
+
+Overlap-exclusion sensitivity. We next examined whether annotation rankings and macro- 526 
+
+F1 advantages remained stable after excluding the two human cohorts with confirmed sample 527 
+
+or donor identifier matches in scFoundation’s pretraining records. After removing AH and MS, 528 
+
+scFoundation remained the top-ranked model in both human panels. Its mean annotation rank 529 
+
+changed only slightly, from 2.854 to 2.889 for human organs and from 2.156 to 2.458 for human 530 
+
+diseases (Supplemental Table S29). However, its macro-F1 advantage over dataset-fitted base- 531 
+
+lines decreased substantially. Across all 12 cohorts, scFoundation initially exceeded training-split 532 
+
+PCA by +0 .0234 in mean macro-F1, but this advantage fell by 51 .9% to +0 .0113 after excluding 533 
+
+AH and MS. Its advantage over scVI similarly decreased from +0 .0126 to +0 .0041 . Focusing 534 
+
+on human cohorts alone, scFoundation’s advantage over PCA declined by 97 .7% , from +0 .0214 535 
+
+across eight cohorts to just +0 .0005 across the remaining six. Mean macro-F1 after exclusion 536 
+
+17 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+was 0.7949 for scFoundation, 0.7944 for PCA, and 0.7965 for scVI. In contrast, scFoundation 537 
+
+maintained a +0 .0274 advantage over PCA across the four mouse cohorts, with scores of 0.8861 538 
+
+and 0.8587 , respectively. This mouse-cohort advantage accounted for nearly all of the remaining 539 
+
+difference across the 10 retained cohorts. However, removing AH and MS also changes the 540 
+
+tissue and cell-type composition of the evaluation datasets, so we cannot determine whether the 541 
+
+reduced performance advantage was caused by pretraining overlap. Nevertheless, these results 542 
+
+show that model rankings can remain stable even when the annotation advantage over classical 543 
+
+baselines nearly disappears. 544 
+
+# DISCUSSION 545 
+
+The central finding of CellBench is that the value of a cellular representation depends on the bi- 546 
+
+ological information required by the downstream task, rather than on a single measure of model 547 
+
+performance. Cell-type identity, continuous transcriptional programs, gene-expression patterns, 548 
+
+and donor-related variation represent different aspects of cellular biology that are not necessar- 549 
+
+ily captured equally well by the same embedding. This helps explain why previous benchmarks 550 
+
+have sometimes reached different conclusions about the benefits of single-cell foundation mod- 551 
+
+els 19–22 . A model that performs well in supervised annotation may not be equally effective at 552 
+
+unsupervised clustering or expression reconstruction, while strong donor mixing can coexist with 553 
+
+substantial loss of cell-type structure. The continued competitiveness of dataset-fitted PCA and 554 
+
+scVI further suggests that pretraining is not inherently advantageous for every biological task. 555 
+
+Rather than identifying a universally superior checkpoint, benchmarking should therefore es- 556 
+
+tablish which biological properties different representations preserve and under what conditions 557 
+
+those properties provide an advantage over simpler alternatives. 558 
+
+Model scale alone is also insufficient to explain what makes a cellular representation useful. 559 
+
+Although larger models and broader pretraining datasets are often expected to yield more trans- 560 
+
+ferable features, this expectation does not translate into a consistent performance advantage 561 
+
+across heterogeneous released checkpoints. This distinction is important when interpreting con- 562 
+
+trolled studies that demonstrate the benefits of particular tokenization strategies or greater pre- 563 
+
+training data diversity within individual model families 33,34 . Such experiments address the effect 564 
+
+of specific design choices under relatively controlled conditions, whereas comparisons across 565 
+
+released scFMs involve simultaneous differences in architecture, input representation, training 566 
+
+data, and learning objectives. Moreover, total parameter count does not consistently describe 567 
+
+the capacity of the cell encoder because checkpoints differ in how they allocate parameters to 568 
+
+frozen lookup tables, trainable components, and other stored information. Our observations that 569 
+
+embedding width was more strongly associated with annotation performance than parameter 570 
+
+count, and that closely related Geneformer and LangCell encoders performed differently, further 571 
+
+illustrate the limitations of using model size as a proxy for representation quality. These associa- 572 
+
+tions do not establish which architectural or training choices cause better performance. Instead, 573 
+
+they motivate more controlled investigation of how input representations, pretraining objectives, 574 
+
+and embedding design influence the biological information available to downstream tasks. 575 
+
+The ability to represent cellular states should not be equated with the ability to predict how 576 
+
+those states will respond to genetic interventions. The competitive performance of several 577 
+
+human-pretrained checkpoints on supervised mouse tasks suggests that useful cellular informa- 578 
+
+tion can transfer across species, even when the pretraining data do not explicitly cover the target 579 
+
+organism. However, this transfer remains task-dependent, as dataset-fitted representations con- 580 
+
+tinued to perform well in unsupervised mouse clustering. More importantly, the success of a 581 
+
+frozen representation in observational tasks did not ensure accurate prediction of responses to 582 
+
+unseen genetic perturbations. In our shared decoder framework, models could recover aspects 583 
+
+18 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+of responses to new combinations of previously observed perturbation targets, yet improvements 584 
+
+in squared error did not consistently translate into lower genome-wide absolute error. For entirely 585 
+
+unseen targets, the evaluated methods failed to outperform a zero-change baseline in absolute 586 
+
+error. These findings should not be interpreted as a general inability of scFMs to support per- 587 
+
+turbation prediction, because the decoder represented unseen targets using untrained condition 588 
+
+vectors without external target-specific information. Instead, they highlight a fundamental dis- 589 
+
+tinction between learning representations of observed cellular variation and learning how genetic 590 
+
+interventions alter that variation. Bridging this distinction may require more explicit modeling of 591 
+
+perturbation targets and their biological relationships, a direction that should be tested through 592 
+
+controlled comparisons with specialized approaches 28–32 . 593 
+
+Reliable evaluation of single-cell foundation models requires more than stable rankings. A 594 
+
+model can consistently occupy a leading position without offering a substantial or robust improve- 595 
+
+ment over appropriately fitted classical baselines. This distinction becomes particularly important 596 
+
+when the independence of benchmark datasets from pretraining corpora cannot be established. 597 
+
+Public single-cell resources are widely reused, yet checkpoint-specific training manifests often 598 
+
+lack the sample-level information needed to determine whether evaluation studies were included 599 
+
+during pretraining. Our provenance audit illustrates the extent of this uncertainty, while the exclu- 600 
+
+sion of two human cohorts with confirmed sample or donor identifier matches demonstrates how 601 
+
+substantially performance margins can change even when model rankings remain largely intact 602 
+
+(Supplemental Tables S27–S29). Because excluding these cohorts also changes the compo- 603 
+
+sition of the benchmark, the reduced margins cannot be attributed causally to pretraining over- 604 
+
+lap. Nevertheless, the analysis exposes an important limitation of leaderboard-based evaluation: 605 
+
+ranking stability alone cannot establish the independence, magnitude, or generalizability of a re- 606 
+
+ported advantage. More credible benchmarks therefore need to combine transparent pretraining 607 
+
+provenance with strong dataset-fitted baselines, raw performance differences, and sensitivity 608 
+
+analyses that reveal how conclusions depend on the evaluation data. 609 
+
+Together, these findings suggest that progress in single-cell foundation modeling should be 610 
+
+assessed by the biological utility and reliability of learned representations rather than by model 611 
+
+scale or leaderboard position alone. For model users, this means selecting checkpoints accord- 612 
+
+ing to the biological questions of interest and comparing them with classical methods trained un- 613 
+
+der the same data restrictions. For benchmark developers, it means evaluating complementary 614 
+
+biological properties, distinguishing donor mixing from biological conservation, and using mean- 615 
+
+ingful controls such as the zero-change predictor in perturbation studies. For model developers, 616 
+
+it calls for greater attention to what pretraining objectives and input representations encourage 617 
+
+models to preserve, alongside controlled studies of backbone adaptation, cross-species transfer, 618 
+
+and perturbation-target information. Transparent, privacy-conscious documentation of pretrain- 619 
+
+ing datasets is equally important for establishing credible evidence of generalization. Ultimately, 620 
+
+the goal should not be to develop a single foundation model that leads every benchmark, but 621 
+
+to build and evaluate representations whose biological strengths, limitations, and conditions of 622 
+
+successful transfer are clearly understood. 623 
+
+Limitations of the study 624 
+
+CellBench was designed to assess the out-of-the-box utility of released scFM checkpoints using 625 
+
+frozen backbones and standardized downstream heads. This approach enables comparisons 626 
+
+under a consistent evaluation protocol, but it does not establish whether parameter-efficient 627 
+
+adaptation, such as LoRA 50 , or full end-to-end fine-tuning would change their relative perfor- 628 
+
+mance against training-split-fitted PCA and scVI. Our benchmark also excluded task-specialized 629 
+
+atlas tools such as SCimilarity 51 and scTab 52 . Furthermore, the findings reflect the specific 630 
+
+19 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+checkpoints and embedding extraction procedures evaluated, including Tabula’s released pan- 631 
+
+creas checkpoint 18 , mean pooling of scLong’s decoded gene representations 11 , local execution 632 
+
+ports for Geneformer and scGPT, and scVI training without batch covariates. Because runtime 633 
+
+and GPU memory usage were not evaluated on identical dedicated hardware, our comparisons 634 
+
+do not support conclusions about computational efficiency. 635 
+
+An important limitation concerns the interpretation of perturbation prediction results. We 636 
+
+paired each frozen control-cell representation with a shared residual lookup decoder that did 637 
+
+not incorporate external Gene Ontology or protein-language priors for perturbation targets. Tar- 638 
+
+gets unseen during decoder training were represented by untrained condition vectors sampled 639 
+
+from N (0 , 1) . Consequently, the failure to outperform the zero-change baseline in genome-wide 640 
+
+absolute error on unseen targets applies specifically to this decoder setting. It should not be 641 
+
+generalized to scFM-based perturbation prediction in other settings or to specialized perturba- 642 
+
+tion architectures 30–32 . 643 
+
+Additional analytical limitations affect the interpretation of our diagnostic analyses. The base 644 
+
+direct linear probes were evaluated on a single 1,000-cell subsample from each of four selected 645 
+
+cohorts (HL, MS, Ci9, and MH) using seed 42 (Supplemental Table S22), where some rare cell 646 
+
+populations contained fewer than five sampled cells. Although six sensitivity regimes spanning 647 
+
+10 repeated subsamples and 3,000-cell donor-grouped cross-validation confirmed the rare-class 648 
+
+ordering, these probes operated on cached embeddings without refitting PCA, UMAP, or scVI 649 
+
+within each cross-validation fold, so they do not provide fully cross-validated estimates for the 650 
+
+complete representation pipelines. The pretraining provenance audit was also constrained by 651 
+
+incomplete documentation. Because 74.0% of checkpoint and dataset pairs lacked sample-level 652 
+
+training manifests, we could not establish whether evaluation cohorts without identified matches 653 
+
+were independent of pretraining data. 654 
+
+# METHODS 655 
+
+Benchmark datasets and preprocessing 656 
+
+To evaluate representation quality across healthy organs, disease conditions, and species, we 657 
+
+organized the static benchmark into three biological panels, each containing four cohorts (Sup- 658 
+
+plemental Table S4). The healthy human-organ panel included bone marrow mononuclear 659 
+
+cells (BM) 38 , the Human Lung Cell Atlas (HL) 1, adult heart (AH) 39 , and adult kidney (AK) 40 . 660 
+
+The human-disease panel included multiple sclerosis brain (MS) 41 , ulcerative colitis epithelium 661 
+
+(UC) 42 , lethal COVID-19 lung (C19) 43 , and triple-negative breast cancer (BC) 44 . The mouse- 662 
+
+organ panel included four anatomically matched tissues from Tabula Muris Senis, comprising 663 
+
+mouse bone marrow (MM), mouse lung (ML), mouse heart (MH), and mouse kidney (MK). The 664 
+
+MH cohort combined droplet-based 10x Genomics and plate-based Smart-seq2 profiles 2. Dur- 665 
+
+ing standardized preprocessing, cohorts containing more than 30 ,000 cells were limited to 30 ,000 666 
+
+cells, and all preserved cells were used in subsequent evaluations without further runtime sub- 667 
+
+sampling. Separately, four CRISPR Perturb-seq screens, comprising Norman 45 , Adamson 46 , 668 
+
+Replogle K562, and Replogle RPE1 47 , formed an independent fourth panel used exclusively for 669 
+
+genetic perturbation response prediction. 670 
+
+Model configurations and baseline implementation 671 
+
+All 13 pretrained scFM checkpoints were evaluated with their backbone weights frozen, using 672 
+
+standardized model-specific adapters for input preprocessing and cell-embedding extraction 673 
+
+20 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+(Supplemental Table S3). Rank-ordered and expression-binned sequence encoders included 674 
+
+Geneformer with version 1 rank-value tokenization and a 2,048 -token context 5, LangCell with a 675 
+
+12-layer Geneformer-derived cell BERT and its pretrained 256-dimensional projection head 17 , 676 
+
+and Nicheformer with a 1,500 -token context 10 . This group also included the knowledge-informed 677 
+
+GeneCompass 12 and the whole-human scGPT checkpoint using 51 expression bins and a 1,200 - 678 
+
+token context 6. Encoders incorporating protein-derived or graph-based gene information in- 679 
+
+cluded the TranscriptFormer TF-Sapiens checkpoint with a 1,023 -token context and ESM-2 pro- 680 
+
+tein features 9,23 , UCE with a four-layer transformer and frozen ESM-2 protein embeddings 8,23 , 681 
+
+and scPRINT2 with protein-derived gene representations 15,16 . We also evaluated scLong, which 682 
+
+combines dual Performer encoders with Gene Ontology graph convolutions and uses mean pool- 683 
+
+ing over decoded gene representations to generate cell-level embeddings 11,53,54 . The remaining 684 
+
+models included scFoundation, which processes expression across 19 ,264 genes with explicit 685 
+
+read-depth conditioning 7, alongside CellFM 13 , CellPLM 14 , and the tabular foundation model Tab- 686 
+
+ula, evaluated using its released pancreas checkpoint 18 . For mouse cohorts, we used model- 687 
+
+native cross-species gene vocabularies for UCE, scPRINT2, Nicheformer, and GeneCompass. 688 
+
+Checkpoints with human-specific gene vocabularies instead received inputs mapped using fixed 689 
+
+one-to-one mouse-to-human orthology tables, which retained 80 .4% of genes and 75 .2% to 87 .5% 690 
+
+of total expression across the four mouse tissues (Supplemental Table S3). 691 
+
+To prevent information leakage from held-out donors into the three dataset-fitted baselines, 692 
+
+up to 3, 000 HVGs were selected using only the training split for each seed, following library-size 693 
+
+normalization to 10 4 counts per cell and log(1 + x) transformation in Scanpy 55 . PCA fitted a 256 - 694 
+
+component linear projection on training cells 25 . UMAP learned a 256 -dimensional embedding 695 
+
+using 15 nearest neighbors on training cells and transformed validation and test cells out of 696 
+
+sample 26 . Baseline scVI trained a two-layer negative-binomial variational autoencoder with a 697 
+
+256 -dimensional latent space on raw training-split counts, without batch covariates, for up to 698 
+
+400 epochs before encoding held-out donor cells 27 . For parameter auditing, we counted unique 699 
+
+registered parameter elements in the embedding-producing backbones, including both trainable 700 
+
+and frozen weights. These included UCE’s 744 .8M frozen ESM-2 protein lookup parameters 701 
+
+and scPRINT2’s 85 .8M frozen gene-encoder parameters. Non-parameter module buffers, such 702 
+
+as GeneCompass’s 155 .4M regulatory-prior elements, were not included in parameter counts. 703 
+
+Task-specific classification heads not used for embedding extraction were also excluded from 704 
+
+the audited totals (Supplemental Table S3). 705 
+
+Experimental setup and evaluation metrics 706 
+
+All evaluations were repeated across random seeds 41, 42, and 43. For supervised cell-type 707 
+
+annotation and expression reconstruction, donors were assigned to disjoint training (70%), vali- 708 
+
+dation (10%), and test (20%) splits across all 12 static cohorts (Supplemental Table S1). Because 709 
+
+donor-level splitting can leave some rare cell types absent from the training set, closed-set an- 710 
+
+notation was restricted to labels represented among training donors. Accordingly, validation and 711 
+
+test cells with labels absent from the corresponding training split were excluded from annotation 712 
+
+evaluation. These exclusions affected 84 and 42 BM cells in seeds 41 and 42, respectively, 4 713 
+
+ML cells in seed 42, and 128 and 3 MK cells in seeds 42 and 43, respectively. No cells were 714 
+
+excluded for this reason in any other cohort or seed. Before supervised annotation, batch- 715 
+
+silhouette scoring, and expression reconstruction, extracted cell embeddings were standardized 716 
+
+using z-score means and standard deviations calculated exclusively from the training split and 717 
+
+applied unchanged to validation and test cells 25 . 718 
+
+All 16 representations, comprising 13 scFMs and three dataset-fitted baselines, were eval- 719 
+
+uated using consistent downstream head architectures to minimize differences attributable to 720 
+
+21 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+head design (Supplemental Table S2). Supervised cell-type annotation used a three-layer MLP 721 
+
+with two hidden layers of 256 units each and a C-class output layer, incorporating batch nor- 722 
+
+malization, ReLU activations, dropout of 0.5, and L2-normalized output logits. Annotation heads 723 
+
+were trained with Adam at a learning rate of 10 −3 and a batch size of 64 for up to 500 epochs, 724 
+
+retaining the checkpoint with minimum validation cross-entropy. Supervised HVG reconstruction 725 
+
+predicted log-normalized expression, computed as log(1 + CP10k) (library-size normalization to 726 
+
+10 4 counts per cell followed by log(1 + x)), over up to 400 HVGs selected strictly from the train- 727 
+
+ing split. It used a four-layer MLP with three hidden layers of 512 , 1,024 , and 512 units (batch 728 
+
+normalization, GELU activations, dropout of 0.5) and a nonnegative ReLU output layer over the 729 
+
+selected HVGs. Reconstruction heads were trained with Adam at a learning rate of 2 × 10 −3 730 
+
+and an adaptive mini-batch size of 256 to 2,048 for up to 150 epochs under MSE loss, checking 731 
+
+validation loss every 5 epochs with early stopping after four consecutive checks without improve- 732 
+
+ment. For unsupervised clustering and native batch assessment, embeddings were reduced by 733 
+
+PCA to a maximum of 256 principal components, subject to the number of cells and the original 734 
+
+embedding dimension, before constructing 15 -nearest-neighbor graphs in Scanpy 55 . Louvain 735 
+
+community detection was performed at a resolution of 1.0 for unsupervised clustering 35 , without 736 
+
+post-hoc batch alignment. 737 
+
+Each of the four static tasks was evaluated using four primary metrics, with complete math- 738 
+
+ematical definitions provided in the Supplementary Information (Supplemental Methods). Unsu- 739 
+
+pervised clustering was assessed using unsupervised adjusted Rand index (uARI) 56 , normal- 740 
+
+ized mutual information (NMI) 57 , scaled cell-type average silhouette width (ASW) 58 , and Hun- 741 
+
+garian optimal-matching accuracy 59 . Native batch assessment used scaled integration local 742 
+
+inverse Simpson’s index (iLISI) 48 , within-cell-type kBET acceptance 49 , graph connectivity 37 , and 743 
+
+scaled cell-type local inverse Simpson’s index (cLISI) 37,48 . Supervised annotation was evalu- 744 
+
+ated using macro-F1, overall accuracy, balanced accuracy, and macro-precision 25 , with macro- 745 
+
+averaged area under the precisionrecall curve (macro-AUPRC) additionally reported in Sup- 746 
+
+plemental Table S20. Expression reconstruction was evaluated on log-normalized expression 747 
+
+(log(1 + CP10k) ) using coverage-penalized per-cell Pearson r and Spearman ρ across HVGs 60 , 748 
+
+expression mean absolute error (MAE), and non-zero top-50 expressed-HVG overlap, defined as 749 
+
+|Tc ∩ Pc|/ min(50 , |Tc|) over observed expressed HVGs ( t > 0) and positive predictions ( p > 10 −8). 750 
+
+Across-cell gene-wise Pearson correlation ( rgene ) was additionally computed in Supplemental Ta- 751 
+
+ble S20, and cross-model correlations between evaluation metrics are reported in Supplemental 752 
+
+Table S23. 753 
+
+Perturbation prediction framework and evaluation 754 
+
+To prevent leakage of post-intervention expression into model inputs, each perturbed cell was 755 
+
+randomly paired with an observed unperturbed control cell from the same cell-type stratum, us- 756 
+
+ing a fixed matching seed of 42. The pretrained backbone encoded only the matched control 757 
+
+cell. Perturbation targets were represented by a trainable 128-dimensional gene lookup table, 758 
+
+with two-gene combinations encoded as the mean of their constituent gene vectors. For held- 759 
+
+out single-gene targets, the corresponding condition vectors were initialized from N (0 , 1) and 760 
+
+remained untrained. Unstandardized control-cell embeddings were concatenated with pertur- 761 
+
+bation condition vectors and passed to a shared residual MLP with three hidden layers of 512, 762 
+
+1,024, and 512 units, using batch normalization, GELU activations, and dropout of 0.5. The de- 763 
+
+coder predicted post-perturbation expression across all G genes by adding the predicted residual 764 
+
+to the matched control-cell expression and applying a nonnegative ReLU activation (Equation 1): 765 
+
+ˆyi = max( 0, xctrl (i) + MLP([ zctrl (i) ∥ e(cond i)])) . (1) 22 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+Decoders were trained across all G genes using Adam at a learning rate of 10 −3 and a batch 766 
+
+size of 64 for up to 500 epochs. Validation MSE was evaluated every 20 epochs, with early 767 
+
+stopping after five consecutive checks without improvement. On Norman, training included all 768 
+
+105 constituent single-gene perturbations, while held-out two-gene combinations were used for 769 
+
+validation and testing. On Adamson, Replogle K562, and Replogle RPE1, 10% and 20% of 770 
+
+single-gene perturbation targets were reserved for validation and testing, respectively. 771 
+
+Perturbation responses were evaluated separately for each perturbation condition within each 772 
+
+cell type. Mean predicted and observed expression changes were compared relative to the 773 
+
+mean expression of unperturbed control cells of the same cell type. The four primary metrics 774 
+
+were across-gene Pearson and Spearman correlations of expression changes ( ∆), genome-wide 775 
+
+MAE ∆, and differential-expression overlap score (DES). We additionally assessed genome-wide 776 
+
+MAE ∆ and MSE ∆ skill relative to a zero-change predictor that assumes no perturbation-induced 777 
+
+expression shift. Positive skill indicates lower prediction error than this baseline. For reference, 778 
+
+we also evaluated a training-mean shift baseline across all four screens, a single-gene additive 779 
+
+baseline summing constituent single-gene training shifts on Norman held-out combinations, and 780 
+
+seed-41 MSE ∆ skill restricted to the top 20 and top 100 differentially expressed genes (DE-20 781 
+
+and DE-100). Complete metric definitions and scoring conventions are provided in the Sup- 782 
+
+plementary Information (Supplemental Methods), with screen-specific holdout information and 783 
+
+zero-change skill results reported in Supplemental Table S25. 784 
+
+Direct linear probes of cellular programs and rare cell types 785 
+
+To assess the linear accessibility of biological information in frozen embeddings beyond nonlinear 786 
+
+downstream prediction, we evaluated cellular-program and rare-cell-type probes (Supplemental 787 
+
+Table S22). At seed 42, we sampled 1,000 cells from each of the HL, MS, C19, and MH cohorts 788 
+
+and aligned them with cached embeddings from all 16 methods, yielding 64 cohort–method 789 
+
+evaluations. The dataset-fitted baseline representations were not refitted within probe cross- 790 
+
+validation folds. 791 
+
+Continuous targets included library depth, ribosomal transcript fraction, and interferon signal- 792 
+
+ing across all four cohorts. Library depth was defined as log 10 (UMI + 1) , while expression-based 793 
+
+program scores were derived from profiles normalized to 10 4 counts per cell and transformed us- 794 
+
+ing log(1+ x). Ribosomal markers comprised RPL* and RPS* genes, while interferon markers in- 795 
+
+cluded ISG15 , IFIT1 , IFIT3 , MX1 , STAT1 , OAS1 , IRF7 , B2M , HLA-A , and their mouse orthologs, 796 
+
+including H2-K1 . For HL and C19, we additionally evaluated proliferation using MKI67 , TOP2A , 797 
+
+PCNA , MCM2 , CDK1 , CCNB1 , and TYMS , together with mitochondrial transcript fraction based 798 
+
+on MT-* genes. To test whether interferon decodability was confounded by constitutive tran- 799 
+
+scripts or sequencing covariates, we additionally scored a canonical interferon-stimulated gene 800 
+
+(ISG) target excluding B2M, HLA-A, and mouse H2-K1 and regressed out log library depth and 801 
+
+ribosomal transcript fraction within each cohort. 802 
+
+Linear decodability was assessed using Ridge regression with α = 10 and five-fold cross- 803 
+
+validation, applying z-score standardization within each training fold. Regression used donor- 804 
+
+grouped folds where possible and cell-stratified folds when fewer than five donors were avail- 805 
+
+able. Performance was summarized by pooled out-of-fold R2. Separately, five-fold cell-stratified 806 
+
+Ridge classification with the same regularization and standardization procedure assessed rare- 807 
+
+cell-type discrimination. Out-of-fold classification F1 was averaged separately across 11 rare 808 
+
+cell types with cohort frequencies below 1% and 26 abundant cell types with frequencies of 809 
+
+at least 5% . Rare classes with fewer than five sampled cells were preserved, although their 810 
+
+representation in every fold could not be guaranteed. To test sensitivity to embedding dimen- 811 
+
+sionality, regularization, subsampling, and donor structure, rare-class probes were additionally 812 
+
+23 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+repeated across six control regimes spanning native versus PCA-192-matched embeddings, 813 
+
+nested RidgeCV regularization, 10 repeated subsamples, and donor-grouped five-fold cross- 814 
+
+validation on 3,000 cells per cohort, alongside direct 192-dimensional PCA on log-normalized 815 
+
+HVGs (Supplemental Table S22). Complete scoring definitions are provided in the Supplemen- 816 
+
+tary Information (Supplemental Methods). 817 
+
+Rank aggregation, robustness analyses, and pretraining provenance 818 
+
+Within each dataset, seed, and metric evaluation block, all 16 methods were ranked from 1 (best) 819 
+
+to 16 (worst), using average ranks for exact ties and orienting error metrics so that lower values 820 
+
+received better ranks. Ranks were averaged with equal weight across three seeds and four 821 
+
+primary metrics per dataset, four datasets per biological panel, and all 12 cohorts for cross-panel 822 
+
+summaries. Ranking robustness was assessed using 48 leave-one-dataset-out (LODO) and 48 823 
+
+leave-one-metric-out (LOMO) analyses across the 12 static task–panel combinations, together 824 
+
+with 4 LODO and 4 LOMO analyses across the perturbation panel, excluding one dataset or one 825 
+
+metric at a time, respectively (Supplemental Table S28). 826 
+
+Associations between model attributes and downstream performance were assessed using 827 
+
+Spearman rank correlation 60 . Audited parameter counts were compared with task mean ranks 828 
+
+across all 13 scFMs, while reported pretraining corpus sizes were evaluated across the 10 scFMs 829 
+
+with available estimates. We also examined the association between extracted embedding di- 830 
+
+mension d and supervised annotation macro-F1 across all 13 scFMs. This analysis was repeated 831 
+
+after excluding three models with collapsed representations to assess whether the association 832 
+
+remained consistent. Leave-one-model-out analyses assessed the sensitivity of these associ- 833 
+
+ations to individual checkpoints, without relying on parametric significance tests (Supplemental 834 
+
+Table S26). 835 
+
+We examined potential pretraining data overlap between each of the 13 scFM checkpoints 836 
+
+and all 16 evaluation datasets, covering 208 modeldataset combinations. The audit used primary 837 
+
+publications, supplemental sample manifests, and public repository metadata (Supplemental Ta- 838 
+
+ble S27). To assess sensitivity to confirmed study overlap, human-organ annotation rankings 839 
+
+were recalculated after excluding AH, and human-disease annotation rankings were recalculated 840 
+
+after excluding MS, the two cohorts with matching sample or donor identifiers in scFoundation’s 841 
+
+pretraining records (Supplemental Table S29). 842 
+
+# RESOURCE AVAILABILITY 843 
+
+Lead contact 844 
+
+Requests for further information and resources should be directed to and will be fulfilled by the 845 
+
+lead contact, Zelin Zang (zangzelin@westlake.edu.cn). 846 
+
+Materials availability 847 
+
+This study did not generate new unique reagents. 848 
+
+Data and code availability 849 
+
+All 16 evaluation datasets were obtained from publicly accessible repositories, including GEO, 850 
+
+CZ CELLxGENE Discover 3, the Broad Single Cell Portal, and original Perturb-seq data re- 851 
+
+24 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+leases 45–47 . Source collection URLs and prepared matrix dimensions are provided in Supple- 852 
+
+mental Table S4. The benchmark code, frozen-backbone model adapters, dataset and check- 853 
+
+point download manifests, diagnostic analysis scripts, run-level evaluation results, parameter 854 
+
+and pretraining-provenance audits, and supplemental workbooks are publicly available at https: 855 
+
+//github.com/BiologyNet/CellBench-scFM . The repository also provides instructions for ob- 856 
+
+taining the original datasets and pretrained model checkpoints from their respective sources. 857 
+
+Additional information required to reanalyze the results reported in this study is available from 858 
+
+the lead contact upon reasonable request. 859 
+
+# ACKNOWLEDGMENTS 860 
+
+This work was supported by the National Science and Technology Major Project of China (grant 861 
+
+no. 2022ZD0115100), the National Natural Science Foundation of China (grant no. U21A20427), 862 
+
+and the Center of Synthetic Biology and Integrated Bioengineering of Westlake University (grant 863 
+
+no. WU2022A009). We thank the Westlake University HPC Center for computational support. 864 
+
+# AUTHOR CONTRIBUTIONS 865 
+
+Conceptualization, Z.Z. and F.H.; methodology, Y.X., Y.L., and Y.Y.; data curation, Y.L., Q.X., and 866 
+
+H.T.; investigation, Y.X., Y.L., and Y.Y.; writing–original draft, Y.X., Y.L., and Y.Y.; writing–review 867 
+
+& editing, all authors. 868 
+
+# DECLARATION OF INTERESTS 869 
+
+The authors declare no competing interests. 870 
+
+# DECLARATION OF GENERATIVE AI AND AI-ASSISTED TECH- 871 
+
+# NOLOGIES 872 
+
+During the preparation of this work, the authors used Gemini, Claude, and Codex to assist with 873 
+
+manuscript outline structuring, cross-table numerical verification, Cell Press Patterns formatting 874 
+
+checks, and English prose editing. After using these tools, the authors reviewed, verified against 875 
+
+raw benchmark exports, and edited the content as needed and take full responsibility for the 876 
+
+content of the publication. 877 
+
+# SUPPLEMENTARY INFORMATION INDEX 878 
+
+Supplementary Information. Supplemental Methods, Figures S1–S21, and Tables S1–S29 879 
+
+25 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+# References 880 
+
+[1] Sikkema, L., Ramírez-Suástegui, C., Strobl, D.C., et al. (2023). An integrated cell atlas of 881 
+
+the lung in health and disease. Nat. Med. 29 , 1563–1577. https://doi.org/10.1038/s4 882 
+
+1591-023-02327-2 . 883 
+
+[2] The Tabula Muris Consortium (2020). A single-cell transcriptomic atlas characterizes ageing 884 
+
+tissues in the mouse. Nature 583 , 590–595. https://doi.org/10.1038/s41586-020-2496- 885 
+
+1. 886 
+
+[3] CZI Cell Science Program, Abdulla, S., Aevermann, B., et al. (2025). CZ CELLxGENE Dis- 887 
+
+cover: A single-cell data platform for scalable exploration, analysis and modeling of aggre- 888 
+
+gated data. Nucleic Acids Res. 53 , D886–D900. https://doi.org/10.1093/nar/gkae1142 . 889 
+
+[4] Yang, F., Wang, W., Wang, F., et al. (2022). scBERT as a large-scale pretrained deep 890 
+
+language model for cell type annotation of single-cell RNA-seq data. Nat. Mach. Intell. 4 , 891 
+
+852–866. https://doi.org/10.1038/s42256-022-00534-z . 892 
+
+[5] Theodoris, C.V., Xiao, L., Chopra, A., et al. (2023). Transfer learning enables predictions in 893 
+
+network biology. Nature 618 , 616–624. https://doi.org/10.1038/s41586-023-06139-9 . 894 
+
+[6] Cui, H., Wang, C., Maan, H., et al. (2024). scGPT: Toward building a foundation model 895 
+
+for single-cell multi-omics using generative AI. Nat. Methods 21 , 1470–1480. https://doi. 896 
+
+org/10.1038/s41592-024-02201-0 . 897 
+
+[7] Hao, M., Gong, J., Zeng, X., et al. (2024). Large-scale foundation model on single-cell tran- 898 
+
+scriptomics. Nat. Methods 21 , 1481–1491. https://doi.org/10.1038/s41592-024-02305- 899 
+
+7. 900 
+
+[8] Rosen, Y., Roohani, Y., et al. (2026). Universal cell embedding provides a foundation model 901 
+
+for cell biology. Nature 656 , 183–191. https://doi.org/10.1038/s41586-026-10689-z . 902 
+
+[9] Pearce, J.D., Simmonds, S.E., Mahmoudabadi, G., et al. (2026). TranscriptFormer: A gen- 903 
+
+erative cell atlas across 1.5 billion years of evolution. Science 393 , eaec8514. https: 904 
+
+//doi.org/10.1126/science.aec8514 . 905 
+
+[10] Tejada-Lapuerta, A., Schaar, A.C., et al. (2025). Nicheformer: A foundation model for single- 906 
+
+cell and spatial omics. Nat. Methods 22 , 2525–2538. https://doi.org/10.1038/s41592- 907 
+
+025-02814-z . 908 
+
+[11] Bai, D., et al. (2026). scLong: A billion-parameter foundation model for capturing long-range 909 
+
+gene context in single-cell transcriptomics. Nat. Commun. 17 , 2380. https://doi.org/10. 910 
+
+1038/s41467-026-69102-y . 911 
+
+[12] Yang, X., Liu, G., Feng, G., et al. (2024). GeneCompass: Deciphering universal gene reg- 912 
+
+ulatory mechanisms with a knowledge-informed cross-species foundation model. Cell Res. 913 
+
+34 , 830–845. https://doi.org/10.1038/s41422-024-01034-y . 914 
+
+[13] Zeng, Y., Xie, J., Shangguan, N., et al. (2025). CellFM: A large-scale foundation model 915 
+
+pre-trained on transcriptomics of 100 million human cells. Nat. Commun. 16 , 4679. https: 916 
+
+//doi.org/10.1038/s41467-025-59926-5 . 917 
+
+26 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+[14] Wen, H., Tang, W., Dai, X., et al. (2024). CellPLM: Pre-training of cell lan- 918 
+
+guage model beyond single cells. In International Conference on Learning Represen- 919 
+
+tations (ICLR) . https://proceedings.iclr.cc/paper_files/paper/2024/hash/173bcdbd 920 
+
+820edbe43284e0941109ada9-Abstract-Conference.html . 921 
+
+[15] Kalfon, J., Samaran, J., Peyré, G., and Cantini, L. (2025). scPRINT: Pre-training on 50 922 
+
+million cells allows robust gene network predictions. Nat. Commun. 16 , 3607. https:// 923 
+
+doi.org/10.1038/s41467-025-58699-1 . 924 
+
+[16] Kalfon, J., Peyré, G., and Cantini, L. (2025). scPRINT-2: Towards the next-generation of 925 
+
+cell foundation models and benchmarks. Preprint at bioRxiv, 2025.12.11.693702. https: 926 
+
+//doi.org/10.64898/2025.12.11.693702 . 927 
+
+[17] Zhao, S., Zhang, J., Wu, Y., Luo, Y., and Nie, Z. (2024). LangCell: Language-cell pre-training 928 
+
+for cell identity understanding. In Proceedings of the 41st International Conference on Ma- 929 
+
+chine Learning (ICML) , PMLR 235 , 61159–61185. https://proceedings.mlr.press/v23 930 
+
+5/zhao24u.html . 931 
+
+[18] Ding, J., Lin, J., Jiang, S., et al. (2025). Tabula: A tabular self-supervised foundation model 932 
+
+for single-cell transcriptomics. In Advances in Neural Information Processing Systems 933 
+
+(NeurIPS) . https://papers.nips.cc/paper_files/paper/2025/hash/95d590995a8722259 934 
+
+c61e094b62b25ac-Abstract-Conference.html . 935 
+
+[19] Qiu, P., Chen, Q., Qin, H., et al. (2025). BioLLM: A standardized framework for integrating 936 
+
+and benchmarking single-cell foundation models. Patterns 6 , 101326. https://doi.org/ 937 
+
+10.1016/j.patter.2025.101326 . 938 
+
+[20] Wu, J., Ye, Q., Wang, Y., et al. (2025). Biology-driven insights into the power of single-cell 939 
+
+foundation models. Genome Biol. 26 , 334. https://doi.org/10.1186/s13059-025-03781- 940 
+
+6. 941 
+
+[21] K˛ edzierska, K.Z., Crawford, L., Amini, A.P., and Lu, A.X. (2025). Zero-shot evaluation re- 942 
+
+veals limitations of single-cell foundation models. Genome Biol. 26 , 101. https://doi.org/ 943 
+
+10.1186/s13059-025-03574-x . 944 
+
+[22] Boiarsky, R., Singh, N.M., Buendia, A., Getz, G., and Sontag, D. (2023). A deep dive into 945 
+
+single-cell RNA sequencing foundation models. Preprint at bioRxiv, 2023.10.19.563100. 946 
+
+https://doi.org/10.1101/2023.10.19.563100 . 947 
+
+[23] Lin, Z., Akin, H., Rao, R., et al. (2023). Evolutionary-scale prediction of atomic-level protein 948 
+
+structure with a language model. Science 379 , 1123–1130. https://doi.org/10.1126/ 949 
+
+science.ade2574 . 950 
+
+[24] Chen, Y., and Zou, J. (2025). Simple and effective embedding model for single-cell biology 951 
+
+built from ChatGPT. Nat. Biomed. Eng. 9 , 483–493. https://doi.org/10.1038/s41551- 952 
+
+024-01284-6 . 953 
+
+[25] Pedregosa, F., Varoquaux, G., Gramfort, A., et al. (2011). Scikit-learn: Machine learning 954 
+
+in Python. J. Mach. Learn. Res. 12 , 2825–2830. https://www.jmlr.org/papers/v12/ped 955 
+
+regosa11a.html . 956 
+
+[26] McInnes, L., Healy, J., and Melville, J. (2018). UMAP: Uniform Manifold Approximation and 957 
+
+Projection for dimension reduction. J. Open Source Softw. 3 , 861. https://doi.org/10. 958 
+
+21105/joss.00861 . 959 
+
+27 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+[27] Lopez, R., Regier, J., Cole, M.B., Jordan, M.I., and Yosef, N. (2018). Deep generative 960 
+
+modeling for single-cell transcriptomics. Nat. Methods 15 , 1053–1058. https://doi.org/ 961 
+
+10.1038/s41592-018-0229-2 . 962 
+
+[28] Ahlmann-Eltze, C., Huber, W., and Anders, S. (2025). Deep-learning-based gene pertur- 963 
+
+bation effect prediction does not yet outperform simple linear baselines. Nat. Methods 22 , 964 
+
+1657–1661. https://doi.org/10.1038/s41592-025-02772-6 . 965 
+
+[29] Miller, H.E., Mejia, G.M., Leblanc, F.J.A., Swain, B., Wang, B., and de Lima Camillo, L.P. 966 
+
+(2026). Deep learning perturbation models can outperform baselines on calibrated metrics. 967 
+
+Nat. Biotechnol. https://doi.org/10.1038/s41587-026-03307-w . 968 
+
+[30] Roohani, Y., Huang, K., and Leskovec, J. (2024). Predicting transcriptional outcomes of 969 
+
+novel multigene perturbations with GEARS. Nat. Biotechnol. 42 , 927–935. https://doi. 970 
+
+org/10.1038/s41587-023-01905-6 . 971 
+
+[31] Lotfollahi, M., Wolf, F.A., and Theis, F.J. (2019). scGen predicts single-cell perturbation 972 
+
+responses. Nat. Methods 16 , 715–721. https://doi.org/10.1038/s41592-019-0494-8 . 973 
+
+[32] Lotfollahi, M., Klimovskaia Susmelj, A., De Donno, C., et al. (2023). Predicting cellular re- 974 
+
+sponses to complex perturbations in high-throughput screens. Mol. Syst. Biol. 19 , e11517. 975 
+
+https://doi.org/10.15252/msb.202211517 . 976 
+
+[33] Haber, E., Alam, S., Ho, N., et al. (2025). HEIMDALL: Disentangling tokenizer design for 977 
+
+robust transfer in single-cell foundation models. Preprint at bioRxiv, 2025.11.09.687403v2. 978 
+
+https://doi.org/10.1101/2025.11.09.687403 . 979 
+
+[34] DenAdel, A., Hughes, M., Thoutam, A., et al. (2026). Evaluating the role of pretraining 980 
+
+dataset size and diversity on single-cell foundation model performance. Nat. Methods 23 , 981 
+
+1447–1457. https://doi.org/10.1038/s41592-026-03120-y . 982 
+
+[35] Blondel, V.D., Guillaume, J.-L., Lambiotte, R., and Lefebvre, E. (2008). Fast unfolding of 983 
+
+communities in large networks. J. Stat. Mech. 2008 , P10008. https://doi.org/10.1088/ 984 
+
+1742-5468/2008/10/P10008 . 985 
+
+[36] Traag, V.A., Waltman, L., and van Eck, N.J. (2019). From Louvain to Leiden: Guaranteeing 986 
+
+well-connected communities. Sci. Rep. 9 , 5233. https://doi.org/10.1038/s41598-019-4 987 
+
+1695-z . 988 
+
+[37] Luecken, M.D., Büttner, M., Chaichoompu, K., et al. (2022). Benchmarking atlas-level data 989 
+
+integration in single-cell genomics. Nat. Methods 19 , 41–50. https://doi.org/10.1038/s4 990 
+
+1592-021-01336-8 . 991 
+
+[38] Luecken, M.D., Burkhardt, D.B., Cannoodt, R., et al. (2021). A sandbox for predic- 992 
+
+tion and integration of DNA, RNA, and proteins in single cells. In NeurIPS Datasets 993 
+
+and Benchmarks . https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/ 994 
+
+hash/158f3069a435b314a80bdcb024f8e422-Abstract-round2.html . 995 
+
+[39] Litvi ˇ nuková, M., Talavera-López, C., Maatz, H., et al. (2020). Cells of the adult human heart. 996 
+
+Nature 588 , 466–472. https://doi.org/10.1038/s41586-020-2797-4 . 997 
+
+[40] Lake, B.B., Menon, R., Winfree, S., et al. (2023). An atlas of healthy and injured cell states 998 
+
+and niches in the human kidney. Nature 619 , 585–594. https://doi.org/10.1038/s4158 999 
+
+6-023-05769-3 . 1000 
+
+28 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+[41] Jäkel, S., Agirre, E., Mendanha Falcão, A., et al. (2019). Altered human oligodendrocyte 1001 
+
+heterogeneity in multiple sclerosis. Nature 566 , 543–547. https://doi.org/10.1038/s4 1002 
+
+1586-019-0903-2 . 1003 
+
+[42] Smillie, C.S., Biton, M., Ordovas-Montanes, J., et al. (2019). Intra- and inter-cellular rewiring 1004 
+
+of the human colon during ulcerative colitis. Cell 178 , 714–730.e22. https://doi.org/10. 1005 
+
+1016/j.cell.2019.06.029 . 1006 
+
+[43] Melms, J.C., Biermann, J., Huang, H., et al. (2021). A molecular single-cell lung atlas of 1007 
+
+lethal COVID-19. Nature 595 , 114–119. https://doi.org/10.1038/s41586-021-03569-1 . 1008 
+
+[44] Yan, Y., Lin, Y., Kumar, T., et al. (2026). Ecotypes of triple-negative breast cancer in 1009 
+
+response to chemotherapy. Nature 654 , 1088–1097. https://doi.org/10.1038/s41586- 1010 
+
+026-10469-9 . 1011 
+
+[45] Norman, T.M., Horlbeck, M.A., Replogle, J.M., et al. (2019). Exploring genetic interaction 1012 
+
+manifolds constructed from rich single-cell phenotypes. Science 365 , 786–793. https:// 1013 
+
+doi.org/10.1126/science.aax4438 . 1014 
+
+[46] Adamson, B., Norman, T.M., Jost, M., et al. (2016). A multiplexed single-cell CRISPR 1015 
+
+screening platform enables systematic dissection of the unfolded protein response. Cell 1016 
+
+167 , 1867–1882.e21. https://doi.org/10.1016/j.cell.2016.11.048 . 1017 
+
+[47] Replogle, J.M., Saunders, R.A., Pogson, A.N., et al. (2022). Mapping information- 1018 
+
+rich genotype-phenotype landscapes with genome-scale Perturb-seq. Cell 185 , 2559– 1019 
+
+2575.e28. https://doi.org/10.1016/j.cell.2022.05.013 . 1020 
+
+[48] Korsunsky, I., Millard, N., Fan, J., et al. (2019). Fast, sensitive and accurate integration of 1021 
+
+single-cell data with Harmony. Nat. Methods 16 , 1289–1296. https://doi.org/10.1038/ 1022 
+
+s41592-019-0619-0 . 1023 
+
+[49] Büttner, M., Miao, Z., Wolf, F.A., Teichmann, S.A., and Theis, F.J. (2019). A test metric for 1024 
+
+assessing single-cell RNA-seq batch correction. Nat. Methods 16 , 43–49. https://doi. 1025 
+
+org/10.1038/s41592-018-0254-1 . 1026 
+
+[50] Hu, E.J., Shen, Y., Wallis, P., et al. (2022). LoRA: Low-rank adaptation of large lan- 1027 
+
+guage models. In International Conference on Learning Representations (ICLR) . https: 1028 
+
+//openreview.net/forum?id=nZeVKeeFYf9 . 1029 
+
+[51] Heimberg, G., Kuo, T., DePianto, D.J., et al. (2025). A cell atlas foundation model for scal- 1030 
+
+able search of similar human cells. Nature 638 , 1085–1094. https://doi.org/10.1038/s4 1031 
+
+1586-024-08411-y . 1032 
+
+[52] Fischer, F., Fischer, D.S., Mukhin, R., et al. (2024). scTab: Scaling cross-tissue single- 1033 
+
+cell annotation models. Nat. Commun. 15 , 6611. https://doi.org/10.1038/s41467-024 1034 
+
+-51059-5 . 1035 
+
+[53] Choromanski, K., Likhosherstov, V., Dohan, D., et al. (2021). Rethinking attention with 1036 
+
+Performers. In International Conference on Learning Representations (ICLR) . https:// 1037 
+
+openreview.net/forum?id=Ua6zuk0WRH . 1038 
+
+[54] Kipf, T.N., and Welling, M. (2017). Semi-supervised classification with graph convolu- 1039 
+
+tional networks. In International Conference on Learning Representations (ICLR) . https: 1040 
+
+//openreview.net/forum?id=SJU4ayYgl . 1041 
+
+29 
+
+> .CC-BY-NC 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 23, 2026. ;https://doi.org/10.64898/2026.04.01.714123 doi: bioRxiv preprint
+
+[55] Wolf, F.A., Angerer, P., and Theis, F.J. (2018). SCANPY: Large-scale single-cell gene ex- 1042 
+
+pression data analysis. Genome Biol. 19 , 15. https://doi.org/10.1186/s13059-017-13 1043 
+
+82-0 . 1044 
+
+[56] Hubert, L., and Arabie, P. (1985). Comparing partitions. J. Classif. 2 , 193–218. https: 1045 
+
+//doi.org/10.1007/BF01908075 . 1046 
+
+[57] Strehl, A., and Ghosh, J. (2002). Cluster ensembles—a knowledge reuse framework for 1047 
+
+combining multiple partitions. J. Mach. Learn. Res. 3 , 583–617. https://www.jmlr.org/ 1048 
+
+papers/v3/strehl02a.html . 1049 
+
+[58] Rousseeuw, P.J. (1987). Silhouettes: A graphical aid to the interpretation and validation of 1050 
+
+cluster analysis. J. Comput. Appl. Math. 20 , 53–65. https://doi.org/10.1016/0377-0427 1051 
+
+(87)90125-7 . 1052 
+
+[59] Kuhn, H.W. (1955). The Hungarian method for the assignment problem. Nav. Res. Logist. 1053 
+
+Q. 2 , 83–97. https://doi.org/10.1002/nav.3800020109 . 1054 
+
+[60] Spearman, C. (1904). The proof and measurement of association between two things. Am. 1055 
+
+J. Psychol. 15 , 72–101. https://doi.org/10.2307/1412159 . 1056 
+
+30

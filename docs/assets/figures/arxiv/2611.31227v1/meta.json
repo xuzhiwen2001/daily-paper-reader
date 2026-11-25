@@ -1,0 +1,69 @@
+{
+  "version": 3,
+  "extractor": "arxiv-html",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.31227v1/fig-001.webp",
+      "caption": "Figure 1: One linear decomposition, two directions. Both tasks rest on one decomposition of a perturbation’s effect into a part shared across cell lines and a part specific to the perturbation. (a) Forward: predict a perturbation’s effect in a new cell line from the lines where it was measured (Sec. 4.1 ). (b) Inverse: name the perturbation behind an observed state in a new line, with no labels from that line (Sec. 4.2 ).",
+      "page": 0,
+      "index": 1,
+      "width": 1400,
+      "height": 503,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31227v1/fig-002.webp",
+      "caption": "Figure 2: BiPert-ID: our training-free linear prototype model. (1) One prototype g p g_{p} per perturbation is built from the training cell lines. (2) A query cell is represented by its change d d from control. (3) Each candidate p p is scored by cosine similarity plus own-gene drop (Eq. 8 ).",
+      "page": 0,
+      "index": 2,
+      "width": 1400,
+      "height": 421,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31227v1/fig-003.webp",
+      "caption": "Figure 3: Mean perturbation transfer on COMPASS’s benchmark : four held-out lines (left) and the Orion pair (right). † Published values.",
+      "page": 0,
+      "index": 3,
+      "width": 1400,
+      "height": 972,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31227v1/fig-004.webp",
+      "caption": "Figure 3: Mean perturbation transfer on COMPASS’s benchmark : four held-out lines (left) and the Orion pair (right). † Published values.",
+      "page": 0,
+      "index": 4,
+      "width": 1400,
+      "height": 908,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31227v1/fig-005.webp",
+      "caption": "Figure S1: How BiPert-FS adapts to a new cell line. Schematic in two dimensions. (a) Knockdowns (dots) in the source average. (b) BiPert-FS fits an affine map z p ≈ b + C ​ a p z_{p}\\approx b+Ca_{p} from source-average scores a p a_{p} to new-line scores z p z_{p} : b b shifts all knockdowns together, and C C moves both programs. (c) Mixing: each new score combines both source scores. The weights on the same program (0.75, 1.05) rescale it; those on the other program (0.40, − 0.30 -0.30 ) mix the two. Bottom: what each method estimates for a new line, for G = 2,000 G=2{,}000 genes, r = 30 r=30",
+      "page": 0,
+      "index": 5,
+      "width": 1400,
+      "height": 700,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31227v1/fig-006.webp",
+      "caption": "Figure S2: BiPert-ID ablation. Mean over the four held-out lines of Table 2 , on ExPert’s test cells. ∗ Own-gene drop read only from genes measured in every training cell line.",
+      "page": 0,
+      "index": 6,
+      "width": 1400,
+      "height": 480,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31227v1/fig-007.webp",
+      "caption": "Figure S3: What forward models predict, and how well it identifies knockdowns. (a) Correlation between the predicted and the measured effect of a knockdown, after removing the mean effect of all knockdowns, for GenePert and State. “Seen” and “not seen” refer to knockdowns for GenePert and to cell lines for State. (b) Pseudobulk top-10 recall among 1,157 candidates on the four held-out lines, for the model’s predicted profiles and for measured effects from its training data under the same scoring. For GenePert the bar shows knockdowns left out of the fit, and the tick those included in it. Stat",
+      "page": 0,
+      "index": 7,
+      "width": 1400,
+      "height": 396,
+      "label": "Figure"
+    }
+  ]
+}

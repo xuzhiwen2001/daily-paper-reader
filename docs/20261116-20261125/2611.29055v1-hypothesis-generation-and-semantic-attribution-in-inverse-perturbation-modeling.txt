@@ -1,0 +1,4624 @@
+Preprint
+HYPOTHESIS GENERATION
+AND SEMANTIC ATTRIBUTION
+IN INVERSE PERTURBATION MODELING
+Pascal Passigan & Manolis Kellis
+Massachusetts Institute of Technology
+{ppxscal,manoli}@mit.edu
+ABSTRACT
+Understanding gene regulatory relationships at scale can help identify interven-
+tion points and anticipate unintended effects. However, connecting a black-box
+model’s learned computation to biological knowledge remains difficult, particu-
+larly for unfamiliar cellular states. We investigate whether a sparse, typed gene
+network can generate inspectable hypotheses for steering malignant transcrip-
+tional programs toward expression patterns associated with favorable prognosis.
+Using LINCS L1000 CRISPR/Cas9 profiles paired with matched plate controls,
+we train a graph neural network to recover the perturbed gene from baseline and
+endpoint expression. Its nodes combine ProTrek-derived protein representations
+with expression features; its edges encode signed regulatory relationships and
+other gene interactions. We use this inverse formulation to nominate interventions
+for a desired multigene expression change and examine the biological relation-
+ships supporting each nomination. We query the model in a specified cancer-cell
+context with endpoints that upregulate favorable prognostic markers and down-
+regulate unfavorable ones. To examine the sensitivity of nominations with respect
+to structures such as gene states, typed messages, and residual connections, we
+use integrated gradients and conductance along a path from the cell baseline to-
+wards the requested expression endpoint. In A549, the model nominates TTK
+although its expression is unchanged in the request. The account assigns support-
+ing credit through the checkpoint-associated MAD1L1 relationship and opposing
+credit through the E2F4 transcriptional-regulatory channel, distinguishing their
+contributions within the same nomination. Across 333 screened nominations in
+nine held-out cell lines, request-path attribution shows positive line-averaged cor-
+respondence with finite message-deletion effects at every transition. Existing TTK
+knockout measurements show requested-direction agreement across other markers
+at the 98.2nd percentile (10 wells); ten of seventeen measured cases in the illustra-
+tive screen meet the predefined support criterion. Together, these analyses make
+competing biological accounts examinable through their distinct contributions to
+a nomination, with evidence from perturbation measurements and experimental
+literature.
+1
+INTRODUCTION
+Recent interest in the virtual cell has focused attention on perturbation experiments and modeling
+(Bunne et al., 2024). A central goal is to predict the change in transcriptional state following a ge-
+netic or small-molecule intervention and generalize to unseen cell contexts. Perturb-seq made such
+measurements scalable by combining pooled genetic screens with single-cell expression profiling
+(Adamson et al., 2016; Dixit et al., 2016), later extending to genome-scale surveys (Replogle et al.,
+2022).
+Forward models predict expression responses to specified interventions (Klein et al., 2025; Roohani
+et al., 2024; Lotfollahi et al., 2023; Adduri et al., 2025); inverse methods nominate interventions for
+a desired state (Gonzalez et al., 2026). Both can learn from the same observations. We choose the in-
+verse formulation for two main reasons. First, its input lets us specify a desired multigene expression
+1
+arXiv:2611.29055v1  [cs.LG]  21 Nov 2026
+
+
+Preprint
+change. Here we request changes in prognostic biomarkers. Other possible requests could represent
+movement toward a treatment-sensitive cancer-cell state (Bell et al., 2019), lineage maturation in
+immature cancer cells (Sykes et al., 2016), or a functional beta-cell expression program (Pagliuca
+et al., 2014). Second, we want a window into the biology supporting a nomination for that change.
+For treatment sensitivity, we could examine support associated with treatment-response features and
+broader proliferation changes; for differentiation, lineage-maturation and cell-cycle features; and
+for beta-cell function, cell-identity, secretion-related, and stress-response features. Gradient-based
+attribution separates supporting and opposing contributions from requested changes and named re-
+lationships, making the model’s support for different biological explanations examinable. These
+broader applications would require appropriate perturbation data and functional testing in the rele-
+vant cellular context. Forward prediction followed by response matching is also a valid approach;
+our choice concerns the nomination we want to interrogate, without assuming a ranking or compu-
+tational advantage.
+A recent perturbation-prediction benchmark found that the evaluated deep learning methods did not
+outperform simple linear baselines (Ahlmann-Eltze et al., 2025), while subsequent work showed
+that conclusions depend on metric calibration (Miller et al., 2026). We evaluate predictive perfor-
+mance alongside a separate question: how does a requested expression program contribute to an
+intervention nomination through named biological relationships?
+Logistic regression offers a familiar starting point: its coefficients connect named inputs to a logit.
+In an interacting model, however, contributions depend on other inputs and on the comparison being
+made. We therefore ask whether the representation can preserve the scientific identities needed to
+inspect those dependencies. We retain the graph’s named relationships while allowing their contri-
+butions to depend on the surrounding expression program through nonlinear updates. This provides
+a model in which to examine how combinations of requested changes support or oppose an inter-
+vention nomination.
+To make these dependencies inspectable, we combine protein features, paired expression, and typed
+graph messages at gene/protein nodes (Figure 1). We use semantic attribution to quantify how re-
+quested changes contribute to a nomination through those identities and relationships. The graph
+supplies available relationships; the fitted account quantifies their contributions for a particular re-
+quest, including opposing contributions from different relationship types connecting the same genes.
+With 33 distinct neighbors per gene on average, corresponding to approximately 52 incoming typed
+messages per node excluding self-loops, the graph offers many possible relationships to examine.
+Their relative contributions can help prioritize hypotheses for subsequent wet-lab investigation. We
+illustrate this account with TTK in A549, a nomination whose score rises under the requested pro-
+gram and falls when that program is reversed (Section 6), test request-path attributions against finite
+message deletion across every screened nomination in 9 held-out lines (Section 6.2), and compare
+the requested directions with measured knockout responses (Section 7). Predictive evaluation pro-
+vides context for the learned representations we inspect. The original PYGL and CCDC86 examples
+are retained as contrasts between own-edit-dependent nomination and measured other-marker sup-
+port (Appendix J).
+2
+RELATED WORK
+Perturbation prediction and inverse design. PDGrapher couples perturbagen discovery with an
+intervention-conditioned response model (Gonzalez et al., 2026). Causal differential networks re-
+cover intervention targets from observational and perturbed distributions (Wu et al., 2025). Our
+direct inverse classifier learns on a fixed communication graph.
+Biologically structured representations. DCell and DrugCell show how biological entities can
+organize neural computation (Ma et al., 2018; Kuenzi et al., 2020). We build on this principle using
+gene-indexed states and relation-specific message passing (Bronstein et al., 2021; Schlichtkrull et al.,
+2018) to inspect individual inverse nominations.
+Attribution and graph explanations. Integrated gradients (IG) allocate a scalar difference relative
+to a reference (Sundararajan et al., 2017), while conductance follows it through hidden represen-
+tations (Dhamdhere et al., 2019). For graph explanations, GNNExplainer optimizes subgraph and
+feature masks (Ying et al., 2019), whereas GNN-LRP attributes predictions to higher-order relevant
+2
+
+
+Preprint
+walks (Schnake et al., 2022). Our signed allocation through gene states, typed messages, and residu-
+als precedes display selection. Routes then organize marginal transitions without higher-order route
+scores. Our evaluation concerns signed accounting and finite message effects; visual plausibility
+alone is not validation (Adebayo et al., 2018).
+3
+LEARNING CONTEXT-DEPENDENT GENE REPRESENTATIONS
+We learn these representations by identifying knockouts from paired expression, allowing graph
+neighbors to shape each gene’s state.
+3.1
+OBSERVED PAIRS AND GENE-INDEXED STATES
+For training, each LINCS L1000 observation pairs a CRISPR/Cas9 knockout endpoint with matched
+plate controls and labels the targeted gene (Subramanian et al., 2017; Broad Institute, 2017). The
+Level-3 cohort contains 269,769 eligible pairs across 17 lines and 11 tissues. LINCS BING supplies
+10,073 measured and inferred expression coordinates (Appendix A). Training-only means and stan-
+dard deviations normalize baseline and endpoint expression. We test new cell contexts by holding
+out whole lines in multi-line tissues; singleton tissues permit only physical-replicate holdouts. At
+each graph depth, we fit three models, H1/H2/H3, on different training/held-out partitions with a
+shared seed. Their training data overlap. Whole-plate validation selects checkpoints (Appendix A).
+The 17,308 nodes comprise expression genes, retained perturbation-target labels, and their one-hop
+neighbors in STRING and CollecTRI (Szklarczyk et al., 2025; Müller-Dott et al., 2023). Directed
+families have separate forward/reverse transport channels; computational reversal does not reverse
+biological causality. At each node,
+h(0)
+i
+= mp
+i Pθ(zi) + mx
+i ai
+
+Bθ(x(0)
+i ) + Aθ(x(1)
+i )
+
+.
+(1)
+The shared encoders combine frozen ProTrek-derived vectors (Su et al., 2026) and paired expres-
+sion. Availability masks suppress missing inputs; ai masks both expression channels together during
+training. The protein projector is learned.
+Typed messages contextualize these states through repeated updates:
+M (ℓ)
+i
+=
+X
+r,j
+eAr
+ijWℓ,rh(ℓ)
+j ,
+(2)
+h(ℓ+1)
+i
+= LNℓ
+
+h(ℓ)
+i
++ SiLU(M (ℓ)
+i
+)
+
+,
+ℓ= 0, . . . , L −1.
+(3)
+We apply SiLU to the aggregated messages before the residual update, providing a smooth nonlin-
+ear transformation of the combined neighborhood signal. Adjacency fixes where messages travel;
+transforms and node-local LayerNorm are learned separately at each layer. The residual carries the
+current state, including earlier messages. H(L) ∈RN×128 retains one identifiable row per gene.
+3.2
+SHARED DECODING AND PREDICTIVE CONTEXT
+The shared decoder ranks 17,225 nodes with mapped ProTrek vectors; 83 others remain in the
+computation but are ineligible candidates. Genes without positive training examples remain eligible;
+unseen-target accuracy is untested. Training uses global cross-entropy (CE) plus a margin against
+the hardest 20 incorrect candidates (Appendix B). Genetic labels keep the intended target explicit;
+multitarget chemical action is examined later through annotations (Keiser et al., 2009).
+We compare the GNN with a protein-informed node-local predictor and an expression-only global
+multilayer perceptron (MLP). Predictive performance depends on the setting: GNN versus node-
+local mean reciprocal rank (MRR) is 0.1344 versus 0.1150 for held replicates and 0.1433 versus
+0.1499 for unseen cells (three-seed tissue-balanced means; Table 21). These measure observed-
+knockout recovery, not intervention recommendation quality. The node-local candidate’s raw score
+cannot depend on other genes’ edits; the global MLP can use those edits and support input attri-
+bution. We use the GNN to examine named, typed relationships that participate in the cross-gene
+computation producing the score. The fixed-budget comparison does not establish best-achievable
+graph-free performance. Depth comparisons likewise do not establish a uniformly preferred depth
+(Appendix B).
+3
+
+
+Preprint
+Inverse perturbation task
+Control + endpoint expression
+q = (x(0), x(1)) ∈R2×10,073
+Predict the perturbed gene identity
+by ∈C; 17,225 candidate genes
+A
+Learn context-dependent gene representations
+Gene identities and graph edges stay ﬁxed; 128-dimensional states change at every hop.
+Frozen protein prior
+Learned projector
+Control expression
+Control encoder
+Endpoint expression
+Endpoint encoder
++
+a
+b
+i
+c
+d
+H(0)
+a
+b
+i
+c
+d
+H(1)
+a
+b
+i
+c
+d
+H(2)
+a
+b
+i
+c
+d
+H(L)
+· · ·
+Hop 1
+Hop 2
+Hop L
+Initial states
+Two-hop example: h(0)
+a
+→h(1)
+b
+→h(2)
+i
+Learned states
+STRING
+functional
+STRING
+physical
+STRING
+regulatory
+CollecTRI
+activation
+CollecTRI
+repression
+5 prior families →8 computational channels; directed priors have separate forward / reverse transforms.
+Each hop: relation-speciﬁc messages →sum + SiLU →residual + node-local LayerNorm.
+B
+Shared decoder and global competition
+JOINT TRAINING
+Learned gene vectors
+H(L) ∈R17,308×128
+a
+b
+i
+d
+· · ·
+...
+One vector per gene
+Shared decoder
+128→64→1
+Same readout
+for every gene
+All 17,225 eligible candidates
+s1
+s2
+s3
+sC−1
+sC
+sy
+· · ·
+CE trains the encoders, every message layer, and the shared decoder jointly.
+LCE = −sy + log
+17,225
+X
+j=1
+esj
+One target; all other candidates share the softmax denominator.
+∂LCE
+∂sy
+= py −1 < 0
+∂LCE
+∂si̸=y = pi > 0
+Target up; every alternative down
+(negative logit gradients)
+Auxiliary top-20 margin: +0.1 Ltop-20.
+Representations and logit bars are schematic.
+C
+Query and inspect the ﬁtted computation
+WEIGHTS FROZEN
+Design endpoint
+Rank genes
+Select a score
+Trace conductance
+Inspect support
+Designed pair
+q = (x(0), x(∗))
+Control held ﬁxed
+Candidate scores
+Own-edit masking
+Program reversal
+Nominee k
+Score change
+sk(1) −sk(0)
+Request path
+c →c + d−k
+Proteins ﬁxed
+Named relations
+Signed credit
+Inputs +
+messages
+Each layer accounts for the same request-induced score difference:
+∑
+i C(ℓ+1)
+i
+= ∑
+e E(ℓ)
+e
++ ∑
+i R(ℓ)
+i
+≈∆sk.
+Figure 1: Inverse perturbation prediction and computational inspection. (A) Shared encoders
+combine protein features and paired expression; typed messages update gene states. (B) A shared
+decoder scores 17,225 eligible genes. Cross-entropy trains the representations and decoder. The
+arrows beside the logit bars indicate the direction favored by cross-entropy: increasing the target
+logit and decreasing the alternatives. Shared-parameter updates need not change every logit in those
+directions. (C) With weights frozen, a desired endpoint replaces the observed endpoint. Own-edit
+masking and reversal test the nomination’s dependence on the request. The request path moves
+expression from no change to the requested state while proteins stay fixed. Input IG identifies
+supporting and opposing edits; conductance follows the same score difference through node states
+(C), typed messages (E), and residuals (R). Complete layers account for the same difference and
+are not added. States and bars are schematic; edge glyphs denote biological priors, not attribution
+signs.
+4
+
+
+Preprint
+4
+FROM A DESIRED PROGRAM TO A NOMINATION
+After training, we freeze the weights and replace the observed endpoint with a requested profile
+to nominate interventions. Human Protein Atlas (HPA) survival associations supply expression di-
+rections, not causal effects (Uhlen et al., 2017; Yuan et al., 2025; Human Protein Atlas, n.d.). For
+A549, validation-tier markers in Lung Adenocarcinoma (validation) specify 2 increases and 155 de-
+creases, including decreases in the unfavorable markers MAD2L1, BUB1B and PLK1. Each edit
+has amplitude 2 H1-reference SDs; other coordinates remain unchanged. HPA supplies the direc-
+tions; PRECOG provides a separate concordance check, not a requirement for selecting markers
+(Appendix K).
+One native baseline/endpoint pair is transformed through each model’s normalizer. Four-hop parti-
+tion models H1 and H3 both held A549 out of training and validation; their mean raw logit defines
+the ranking. Unfavorable markers requested to decrease, such as the originally illustrated PYGL
+and CCDC86, remain eligible knockout candidates. Directly reducing an unfavorable marker agrees
+with its requested direction; a single-gene perturbation may also affect other coordinates. Candi-
+dates are ranked against the complete multigene request. Of the top 50 nominees, 20 have edited
+own inputs. We therefore test whether nominations persist when their own requested edit is removed
+(Section 6).
+5
+FOLLOWING A NOMINATION THROUGH NODES AND MESSAGES
+A nomination becomes more informative when we can identify the requested edits that support it
+and the relationships through which the model combines that information. We trace the score change
+from no change to the requested endpoint.
+5.1
+FIX THE QUESTION AND THE PATH
+For nominee k, conductance explains a score difference between a reference input and a target
+input along a straight path, with weights and graph fixed. Write pi = Pθ(zi) and ri(x(0), x(1)) =
+mx
+i [Bθ(x(0)
+i ) + Aθ(x(1)
+i )], the two terms of Equation 1 with inference mask ai = 1. In general,
+either the expression endpoint or the proteins move:
+h(0)
+i (α) = ri
+ x(0), x(1)(α)
+
++ mp
+i pi(α),
+(4)
+∆sk = sk(1) −sk(0),
+0 ≤α ≤1.
+(5)
+Request path (Section 6). Actual proteins stay fixed, pi(α) = pi, and the endpoint moves from no
+change to the request. For baseline c and request d, let d−k set candidate k’s own edit to zero; then
+x(0) = c and x(1)(α) = c+αd−k. For member f, ∆sk is the raw response akf = skf(c, c+d−k)−
+skf(c, c); the reversed response is bkf = skf(c, c −d−k) −skf(c, c). Expression IG allocates akf
+to individual requested edits (Appendix Equation 25), and the conductances below carry the same
+quantity through nodes, messages, and residuals. This path asks which requested changes move a
+nomination.
+Protein path. With the request fixed, projected proteins move jointly from their common mean to
+their actual values (Appendix D). This examines protein identity in the requested context. Its totals
+and signs are not interchangeable with the request path.
+Measure what each state and connection carries. Conductance combines the score’s sensitivity to
+a representation with that representation’s movement along the path (Dhamdhere et al., 2019). The
+node value is
+C(ℓ)
+i
+=
+Z 1
+0
+*
+∂sk
+∂h(ℓ)
+i
+, dh(ℓ)
+i
+dα
++
+dα.
+(6)
+At the initial state, C(0)
+i
+is input IG summed within gene i: over requested expression edits on the
+request path and over protein features on the protein path. After message passing, C(ℓ)
+i
+follows the
+allocation carried by that gene’s current representation, which can include earlier information from
+other genes. Every value concerns the same final nominated logit.
+5
+
+
+Preprint
+For an edge e = (j →i, r), let m(ℓ)
+e
+= eAr
+ijWℓ,rh(ℓ)
+j . The receiver sums these messages into M (ℓ)
+i
+,
+while u(ℓ)
+i
+= h(ℓ)
+i
++ SiLU(M (ℓ)
+i
+) is the pre-normalization state. Their two branches have separate
+conductances:
+E(ℓ)
+e
+=
+Z 1
+0
+*
+∂sk
+∂M (ℓ)
+i
+, dm(ℓ)
+e
+dα
++
+dα,
+(7)
+R(ℓ)
+i
+=
+Z 1
+0
+*
+∂sk
+∂u(ℓ)
+i
+, dh(ℓ)
+i
+dα
++
+dα.
+(8)
+The residual carries the current representation, including earlier messages. The chain rule reconciles
+these contributions with the receiving node and the same total difference:
+C(ℓ+1)
+i
+=
+X
+e:e→i
+E(ℓ)
+e
++ R(ℓ)
+i ,
+X
+i
+C(ℓ+1)
+i
+=
+X
+e
+E(ℓ)
+e
++
+X
+i
+R(ℓ)
+i
+= ∆sk.
+(9)
+At each layer, node states provide one account; incoming messages and residuals provide the corre-
+sponding branch account. Each complete layer recovers the same difference, so layer totals are not
+added; on the request path, summed input IG equals initial node conductance and the largest layer
+discrepancy is 1.58 × 10−8 (Appendix K). Positive and negative values support or oppose that logit
+difference; relationship signs retain their separate biological-prior meaning.
+Select a readable view. H1 and H3 receive the same native request. We average corresponding
+signed scalar contributions, not hidden feature coordinates. A positive mean can hide disagreement,
+so TTK routes require positive credit at every transition in both fits; the original protein-path displays
+use a positive mean (Appendix E).
+Edited markers anchor widest positive routes through messages and residuals. We select complete
+member route witnesses, not paths assembled from unrelated fragments. Figure 2 overlays final-
+message opposition on the shared positive core; Appendix Figure 5 separately shows routes of both
+signs. Signed profiles and per-layer coverage report what the partial display omits (Appendix E).
+6
+A PROGRAM-DRIVEN NOMINATION
+We first ask whether a nomination is supported by the other requested changes, beyond the requested
+decrease in the nominated gene itself. To test this, we restore only that gene’s endpoint expression
+to its baseline value and keep the rest of the request unchanged. PYGL and CCDC86 lose their high
+rankings under this control, showing that their own requested decreases strongly influence their nom-
+inations. Their measured knockouts provide separate evidence about effects on the other requested
+markers (Table 1). We therefore screen for candidates whose scores rise under the remaining re-
+quest and fall under its reversal in every eligible model. Requiring candidate-specific masked rank
+≤200 and mean (akf −bkf)/2 ≥0.5 yields 19 cases in six of fourteen lines. We use TTK/A549
+as a worked example because its own expression was never edited. This choice is retrospective; the
+population test includes every nomination passing without the illustrative 0.5 floor.
+6.1
+TTK IN A549: FROM REQUESTED EDITS TO AN UNEDITED INTERMEDIARY
+The A549 request does not ask the model to decrease TTK. Nevertheless, the checkpoint kinase
+TTK/MPS1 (Zheng et al., 2019) ranks 2/3 under the candidate-specific masked screen in H1/H3.
+In this screening procedure, each competing candidate is scored with its own requested change
+removed. TTK’s input does not change, but its competitors’ scores can change, explaining the
+difference from its 18/17 ranks in Table 1. The requested changes raise its score by +1.517/+1.329;
+reversing them lowers it by −1.834/−1.216. Both models held A549 out, so we can ask what in the
+other genes’ requested changes supports this nomination.
+At the input, decreasing MAD2L1 supplies the strongest support in both models (+0.251/+0.236).
+Decreases in BUB1B and PLK1 also support both fits. Other edits behave differently: BRCA1 down
+opposes in H1, and TK1 down opposes in H3. The model therefore does not assign the same sign to
+every decrease in this program (Table 10).
+6
+
+
+Preprint
+Table 1: Dependence on the nominee’s own expression change and measured effects on other
+markers. A549 ranks are shown for the separately fitted H1/H3 models, both of which exclude
+A549 from training and validation. H2 trained on A549 and is not included here. For each nom-
+inee, we restore its requested endpoint expression to baseline, leave all other requested changes
+unchanged, and score all candidates again. TTK’s input is already unchanged, so its ranks remain
+18/17. Measured percentiles compare knockout agreement with the requested directions across the
+other markers, excluding the nominee’s own marker (Section 7). Lower ranks and higher percentiles
+indicate stronger nomination scores and measured agreement, respectively.
+Nominee
+Rank with
+full request
+Rank with nominee’s
+expression unchanged
+Measured agreement
+percentile (wells)
+TTK
+18/17
+18/17 (no own edit)
+98.2 (10)
+PYGL
+5/10
+3084/2214
+70.8 (17)
+CCDC86
+4/2
+2670/2455
+88.5 (9)
+Figure 2A follows the combined request into the gene states before the final message step. MAD1L1
+carries substantial node conductance (+0.432/+0.245), despite zero input IG: its later representa-
+tion carries information received from other genes. The strip orders selected partners from support
+to opposition, including CCNB1 and E2F4; arrows mark only requested expression changes. Panel
+B then shows the relationships carrying the account. The final MAD1L1-to-TTK reverse-regulatory
+message supplies the strongest supporting relationship in the mean account (+0.420/+0.150). E2F4
+supplies substantial shared opposition (−0.058/−0.071). Of all 99 final typed messages into TTK,
+43 support it and four oppose it in both fits; the other shared opponents, CCNB1, KIF14 and EXO1,
+are much smaller (each below 0.007 in magnitude). Thus an unchanged input can become an impor-
+tant intermediary, while another relationship in the same neighborhood opposes the nomination.
+These allocations suggest a specific biological reading. MPS1 phosphorylates KNL1, BUB1 and
+MAD1 (encoded by MAD1L1) to organize checkpoint signaling (Ji et al., 2017); MAD2 and
+BUBR1, encoded by MAD2L1 and BUB1B, participate in the mitotic checkpoint complex (Sudakin
+et al., 2001). PLK1 strengthens MPS1-dependent signaling (von Schubert et al., 2015). Support
+from the requested decreases in these components, together with the unedited MAD1L1 intermedi-
+ary, is consistent with nominating loss of their checkpoint coordinator. In contrast, E2F4/DREAM
+regulates TTK transcription (Müller et al., 2017), and its channel opposes the nomination. The
+account distinguishes checkpoint-associated support from transcriptional-regulatory opposition; it
+does not establish which mechanism operates in A549 (Table 10).
+The dependence extends beyond the immediate neighborhood: 30.2%/26.3% of absolute input IG
+originates outside TTK’s 92 immediate prior neighbors. Named inputs and final MAD1L1 support
+also persist at a smaller request size. Recurrence across H1/H3 tests partition sensitivity: these
+separately trained models share a seed and 64% of training wells. The DANG comparison changes
+the request, cell and model together and shows only partial recurrence (Appendix L). Section 7 then
+asks whether existing knockout measurements support the requested direction.
+The same partner can contribute through opposing channels.
+The distinction extends be-
+yond choosing which neighboring gene matters.
+For SORL1/A549, APP’s physical channel
+supports the nomination in H1/H3 (+0.0436/+0.0108), while its functional channel opposes it
+(−0.0149/−0.0062). For CAMSAP2/DANG in H2, CKAP2 likewise supports through its physical
+channel (+0.0604) and opposes through its functional channel (−0.0301). These are final-transition
+(3 →4) request-path contributions in score units. Collapsing each pair to one unlabeled edge would
+hide the opposing allocations. Together with TTK, they illustrate how a quantitative query yields
+relationship-specific hypotheses beyond a target name. Appendix S retains all 19 cases with cover-
+age labels and expanded accounts for six complete-field cases. SORL1/A549 uses complete fields;
+CAMSAP2/DANG remains panel-based. Opposing channels remain active in the computation; their
+signs do not establish mutually exclusive biological mechanisms.
+6.2
+CHECKING CONDUCTANCE WITH FINITE MESSAGE SUPPRESSION
+We next test the computational account by suppressing messages. We remove one message at a time
+and ask how much this changes the nominee’s response to the request. We measure that response as
+7
+
+
+Preprint
+±
+±
+±
+±
+A  Which genes support or oppose TTK?
+A549 · TTK
+Node conductance, layer 3 · selected partners from B · ordered by signed mean
+MAD1L1
++.432
++.245
+MAD2L1
+↓
++.037
++.148
+CENPE
++.013
++.017
+CENPF
++.009
++.010
+MIS18BP1
++.016
++.001
+NUSAP1
+↓
++.014
++.003
+KIF14
+↓
+-.002
+-.004
+EXO1
+↓
+-.0003
+-.007
+CCNB1
+↓
+-.005
+-.003
+E2F4
+-.058
+-.071
+H1
+H3
+− opposes
++ supports
+Logit units
+Full-layer sums: H1 +1.517 · H3 +1.329
+B  Relationships supporting or opposing TTK
+20 of 107 shared positive routes · 28 genes / 28 links + 4 opposing messages
+STRING:
+Functional
+Physical
+Regulatory
+CollecTRI repression
+Request:
+↓
+unchanged
+Prior sign: → positive  ⊣ negative  ± mixed
+Blue tick: final message opposing TTK in H1 and H3
+Log scales: node area = positive peak; width = peak layer credit (not flow).
+BUB1
+BUB1B
+BUB3
+CCNB1
+CDC20
+CENPE
+CENPF
+E2F4
+ERCC6L
+EXO1
+FOXM1
+HMMR
+KIF14
+KIF20A
+KIF2C
+KIFC1
+KNL1
+MAD1L1
+MAD2L1
+MIS18A
+MIS18BP1
+NDC80
+NEK2
+NUSAP1
+PLK1
+PRC1
+RACGAP1
+TRIP13
+TTK
+UBE2C
+ZWINT
+−0.4
+0.0
+0.4
+Figure 2: MAD1L1 carries strong support for TTK; E2F4 and CCNB1 contribute opposition.
+A: one signed strip of node conductance at h(3), before the final message step. Among partners
+shown in B, excluding TTK, we select the six strongest shared-positive and four strongest shared-
+negative states, then order them by signed H1/H3 mean. Arrows mark requested expression changes;
+a blank means no edit. Red supports and blue opposes the request-induced score change. Full-
+layer sums include all nodes, not just this selection. B: twenty shared positive routes (28 genes,
+28 relationships) with four shared opposing final messages marked by blue ticks. E2F4 dominates
+this shared opposition; CCNB1, EXO1 and KIF14 are much smaller. Node fill denotes the request;
+colors and arrowheads retain biological-prior meanings, not attribution sign or transport direction.
+Width uses a common logarithmic magnitude scale. This is a route-based view, not a global ranking
+of edges. Selection and coverage: Appendix L; explicit layers and transport: Figure 5.
+the difference between its score at the requested endpoint and its score when no expression change is
+requested. We then compare the reduction in this response with the message’s signed conductance.
+We suppress one typed, directed message at one transition and recompute downstream states (Ap-
+pendix P). For member f, let s\e
+k,f(α) denote the score after removing message e, where endpoints
+0 and 1 are no change and the requested expression. The request-response drop (Gap drop) is
+Dgap
+e,f = [sk,f(1) −sk,f(0)] −[s\e
+k,f(1) −s\e
+k,f(0)].
+(10)
+8
+
+
+Preprint
+0→1
+1→2
+2→3
+3→4
+Transition
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Correlation with request-response drop
+(signed conductance; Spearman ρ)
+A549 (9)
+A375 (58)
+HCC1806 (57)
+MCF7 (8)
+IPC298 (69)
+DANG (54)
+YAPC (2)
+U251MG (7)
+HS944T (69)
+A  Across held-out cell lines (2 SD)
+Equal-line mean, 95% CI
+Shuffled null (≤95th pct)
+0→1
+1→2
+2→3
+3→4
+Transition
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Mean correlation with
+request-response drop
+B  Conductance or size alone?
+Conductance, 2 SD
+Message L₂, 2 SD
+Conductance, KO-anchored request
+Message L₂, KO-anchored request
+Figure 3: Mean attribution–deletion correspondence is positive in all nine held-out lines and
+weakens with depth. Both panels use request-response drop: how much deleting one message
+changes the nomination’s request-minus-no-change score difference. A: per-line Spearman corre-
+lation with signed conductance at the two-SD request; parentheses give nominations per line. Blue
+shows the equal-line mean and 95% bootstrap interval over lines and cases; red shows the shuffled
+null up to its 95th percentile. B: does signed conductance track request-response drop better than
+raw message size (L2 norm at the requested endpoint)? Solid lines show conductance; dotted lines
+show message size. Colors distinguish two-SD edits from smaller edits scaled to observed knockout
+displacements (Section 7). Message size is unsigned; this comparison tests signed effects, not their
+absolute magnitudes. Displayed means weight lines equally; both panels use stratified messages
+(signed extremes plus controls), not all edges. Pre-declared protocol, Appendix P.
+This subtracts the deletion effect at no change from its effect at the requested endpoint, comparing
+the same nominee in both conditions. It is a finite intervention check, not an attribution identity;
+no integral is recomputed. Population correlations are computed within each member’s panel, then
+averaged over members, nominees and lines equally. The original protein-path case panels instead
+compare member-averaged drops with mean signed conductance (Appendix F).
+Request-path population study. We pre-declared this test (protocol, pool, and decision rule frozen
+before any run; Appendix P). The pool is every nomination passing the screen without its 0.5 floor;
+in the 9 held-out lines it contains 333 nominations (359 model runs; five lines contribute one eli-
+gible model). Nominees within a line share one request, so we weight lines equally. Each run’s
+panel holds signed extremes plus low-|E| and random controls, fixed before deletion. Mean within-
+panel Spearman correlation between signed message conductance and request-response drop is pos-
+itive in all 9 lines at every transition, with equal-line means 0.86/0.74/0.57/0.43 from 0 →1 to
+3 →4; no permuted mean reaches any observed value (p = 0.001, 1,000 permutations). At the
+observed-knockout-anchored request size the means are 0.87/0.74/0.57/0.44, again positive in all 9
+lines. We also ask whether a message’s size alone tracks its deletion effect: its L2 norm at the re-
+quested endpoint gives correlations of 0.00–0.11 with request-response drop at two SD (Figure 3B).
+Correspondence declines with depth, and TTK’s final-transition case panel is negative in both fits
+(Table 13). The allocation is therefore an imperfect predictor of the deletion effect, especially at
+later layers. Pairwise deletion and normalization controls do not establish a general explanation for
+this disagreement (Appendix P.1). These tests assess the fitted computation; they do not establish
+that displayed routes are necessary biological mechanisms.
+9
+
+
+Preprint
+Separate protein-path checks. These show positive mean deletion correspondence but weak early-
+layer cross-refit agreement; they are not request-path independent-seed replications (Appendices Q–
+R).
+7
+TESTING THE REQUESTED PROGRAM AGAINST MEASUREMENTS
+Measured responses. The signed account makes a hypothesis about TTK worth examining, but
+the computation alone cannot show what a knockout does. We therefore compare existing LINCS
+knockout wells with the requested marker directions, excluding the target’s own marker. Measured
+TTK knockout agreement reaches the 98.2nd percentile among 5,115 A549 targets (10 wells). The
+input-attribution profile also corresponds to measured requested-direction marker displacement (ρ =
+0.492; 98.8th percentile against 4,654 other knockouts with at least three wells; Appendix O.1). The
+first statistic measures program agreement; the second asks whether the more strongly credited
+markers move further in the requested direction.
+The full 19-case computational screen gives a mixed picture: ten cases meet the pre-set measured-
+support criterion (≥75th percentile), seven are at or below the 50th percentile, and two are unmea-
+sured (Table 15). These are retrospective, case-specific results. TTK’s high percentile corresponds
+to a mean signed displacement of 0.418 reference SD, far below a uniform two-SD shift. For com-
+parison, CKS2/HS944T reaches the 95.0th percentile with a mean displacement of 0.074 SD (six
+wells). The measurements support directions for particular nominations, not attainment of the whole
+requested vector.
+Request size. Because two-SD edits exceed typical knockout displacements, we also query sizes
+anchored to the measurements. At 0.527 SD in A549, TTK retains a positive request response
+and negative reversed response, with masked ranks 14/7; MAD2L1 remains its strongest input.
+CKS2/HS944T weakens at 0.275 SD: its rank falls from 10 to 54 and response from +0.768 to
++0.050 (Appendix M). Even TTK’s persistent nomination does not imply an unchanged internal
+account: H3’s 2 →3 message-field cosine is −0.172 across sizes (Table 12).
+What existing signatures already tell us. We include a retrospective reference that scores each
+knockout’s measured responses in other lines for agreement with the requested marker directions
+(4,970 common A549 targets; Table 16). It asks how informative those existing responses are for
+the query. It is not a trained forward model and does not reproduce each inverse fold’s information
+boundary, so it does not establish comparative ranking performance.
+Compound context.
+The explorer links nominees to source-reported drug annotations (Ap-
+pendix G). These do not establish efficacy; an inhibitor need not reproduce a knockout.
+8
+LIMITATIONS AND CONCLUSION
+Observed-pair recovery does not establish intervention efficacy. Survival associations specify di-
+rections, not causal effects or amplitudes, and bulk patient cohorts only coarsely match cell-line
+contexts. L1000 averages cell populations, so differences may reflect within-cell changes or shifts
+in cell-state proportions; these accounts do not isolate phase-specific mechanisms. Training does not
+filter by technical quality control (QC). The original cases’ baseline-sensitivity checks do not extend
+to TTK or CKS2 (Appendix H). Protein references and interpolation are computational compar-
+isons; biological priors and suppression checks do not establish that a displayed route is a necessary
+mechanism.
+The resulting account connects a quantitative expression request to biological relationships that
+can be examined.
+TTK separates recurring checkpoint-associated support from transcriptional-
+regulatory opposition; SORL1 and CAMSAP2 show why even the same partner cannot be assigned
+one contribution sign across relationship types. Population suppression assesses computational cor-
+respondence, while measured knockout responses provide complementary, case-specific evidence.
+Together, these results make intervention hypotheses more specific and open to experimental chal-
+lenge. The biological mechanism responsible for the measured response remains to be tested.
+10
+
+
+Preprint
+AI USE STATEMENT
+Generative AI tools assisted with conceptual framing and methodology design, implementation and
+debugging, data-cleaning and identifier-mapping code, numerical verification code, interpretation
+of saved results, literature discovery, figure preparation, and drafting and editing this manuscript.
+Expression requests follow an explicit rule applied to the stated source data. Reported numerical
+results are outputs of executed code, not numbers generated by a language model. Automated checks
+cover source and artifact identities, splits and coordinates, checkpoint restoration, selected derivative
+comparisons, attribution completeness and refinement, and manuscript exports. AI-assisted visual
+checks informed layout. These checks are not independent biological validation and do not replace
+the authors’ responsibility for the final content.
+REPRODUCIBILITY STATEMENT
+The notebook presents the observations, model, learning procedure, request, and conductance calcu-
+lations beside their shared implementation. The recorded load-mode execution has 39 code cells and
+identifies both original protein-reference cases, their member calculations, signed arrays, profiles,
+and finite suppression results. Frozen paper exports retain source hashes and numerical locators
+and build without raw assay matrices or model checkpoints. Code, model weights, the notebook,
+frozen evidence, and the supplementary outputs cited in the text will be released upon publication.
+Appendix I distinguishes this current evidence from a separate historical full-training execution.
+REFERENCES
+Britt Adamson, Thomas M. Norman, Marco Jost, Min Y. Cho, James K. Nuñez, Yuwen Chen,
+Jacqueline E. Villalta, Luke A. Gilbert, Max A. Horlbeck, Marco Y. Hein, Ryan A. Pak, An-
+drew N. Gray, Carol A. Gross, Atray Dixit, Oren Parnas, Aviv Regev, and Jonathan S. Weissman.
+A Multiplexed Single-Cell CRISPR Screening Platform Enables Systematic Dissection of the
+Unfolded Protein Response. Cell, 167(7):1867–1882.e21, 2016. doi: 10.1016/j.cell.2016.11.048.
+Abhinav K. Adduri, Dhruv Gautam, Beatrice Bevilacqua, Alishba Imran, Rohan Shah, Mohsen
+Naghipourfar, Noam Teyssier, Rajesh Ilango, Sanjay Nagaraj, Mingze Dong, Chiara Ricci-Tam,
+Christopher Carpenter, Vishvak Subramanyam, Aidan Winters, Sravya Tirukkovular, Jeremy Sul-
+livan, Brian S. Plosky, Basak Eraslan, Nicholas D. Youngblut, Jure Leskovec, Luke A. Gilbert, Sil-
+vana Konermann, Patrick D. Hsu, Alexander Dobin, Dave P. Burke, Hani Goodarzi, and Yusuf H.
+Roohani. Predicting cellular responses to perturbation across diverse contexts with State. bioRxiv,
+2025. doi: 10.1101/2025.06.26.661135. URL https://www.biorxiv.org/content/
+10.1101/2025.06.26.661135v1. Preprint, version 1.
+Julius Adebayo, Justin Gilmer, Michael Muelly, Ian Goodfellow, Moritz Hardt, and Been
+Kim.
+Sanity Checks for Saliency Maps.
+In Advances in Neural Information Pro-
+cessing
+Systems,
+volume
+31,
+2018.
+URL
+https://papers.nips.cc/paper/
+8160-sanity-checks-for-saliency-maps.
+Constantin Ahlmann-Eltze, Wolfgang Huber, and Simon Anders. Deep-learning-based gene pertur-
+bation effect prediction does not yet outperform simple linear baselines. Nature Methods, 22(8):
+1657–1661, 2025. doi: 10.1038/s41592-025-02772-6.
+Charles C. Bell, Katie A. Fennell, Yih-Chih Chan, et al. Targeting enhancer switching overcomes
+non-genetic drug resistance in acute myeloid leukaemia. Nature Communications, 10:2723, 2019.
+doi: 10.1038/s41467-019-10652-9.
+Broad Institute.
+Perturbagen types and controls.
+https://clue.io/connectopedia/
+perturbagen_types_and_controls, 2017. Page last modified December 8, 2017; ac-
+cessed September 25, 2026.
+Broad Institute.
+CRISPR v1.0 Data release README.
+https://s3.amazonaws.com/
+assets.clue.io/clue/public/resources/Broad_Institute_LINCS_
+CRISPRv1.0_early_access_data_deposition_README.pdf,
+2018a.
+July
+2018 early-access release documentation; accessed September 25, 2026.
+11
+
+
+Preprint
+Broad Institute. Is the L1000 data "fully QC’d"?
+https://clue.io/connectopedia/
+l1000_qc, 2018b. Page last modified January 5, 2018; accessed September 25, 2026.
+Broad
+Institute.
+Drug
+Repurposing
+Hub:
+drug
+information
+annotation
+snap-
+shot.
+https://repo-hub.broadinstitute.org/public/data/
+repo-drug-annotation-20250818.txt, 2025.
+Snapshot dated August 18, 2025;
+checksum and queried rows retained with the code.
+Michael M. Bronstein, Joan Bruna, Taco Cohen, and Petar Veliˇckovi´c. Geometric Deep Learning:
+Grids, Groups, Graphs, Geodesics, and Gauges, 2021. URL https://arxiv.org/abs/
+2104.13478v2. Version 2, revised May 2, 2021.
+Charlotte Bunne, Yusuf Roohani, Yanay Rosen, Ankit Gupta, Xikun Zhang, Marcel Roed, Theo
+Alexandrov, Mohammed AlQuraishi, Patricia Brennan, Daniel B. Burkhardt, Andrea Califano,
+Jonah Cool, Abby F. Dernburg, Kirsty Ewing, Emily B. Fox, Matthias Haury, Amy E. Herr,
+Eric Horvitz, Patrick D. Hsu, Viren Jain, Gregory R. Johnson, Thomas Kalil, David R. Kel-
+ley, Shana O. Kelley, Anna Kreshuk, Tim Mitchison, Stephani Otte, Jay Shendure, Nicholas J.
+Sofroniew, Fabian Theis, Christina V. Theodoris, Srigokul Upadhyayula, Marc Valer, Bo Wang,
+Eric Xing, Serena Yeung-Levy, Marinka Zitnik, Theofanis Karaletsos, Aviv Regev, Emma Lund-
+berg, Jure Leskovec, and Stephen R. Quake. How to build the virtual cell with artificial intelli-
+gence: Priorities and opportunities. Cell, 187(25):7045–7063, 2024. doi: 10.1016/j.cell.2024.11.
+015.
+C. F. Chen et al. Novel regulation of nuclear factor-YB by miR-485-3p affects the expression of
+DNA topoisomerase II alpha and drug responsiveness. Molecular Pharmacology, 2011. doi:
+10.1124/mol.110.069633.
+Claudia C. Chini and Junjie Chen. Human claspin is required for replication checkpoint control.
+Journal of Biological Chemistry, 2003. doi: 10.1074/jbc.M301136200.
+Steven M Corsello, Joshua A Bittker, Zihan Liu, Joshua Gould, Patrick McCarren, Jodi E
+Hirschman, Stephen E Johnston, Anita Vrcic, Bang Wong, Mariya Khan, Jacob Asiedu, Rajiv
+Narayan, Christopher C Mader, Aravind Subramanian, and Todd R Golub. The Drug Repur-
+posing Hub: a next-generation drug library and information resource. Nature Medicine, 23(4):
+405–408, 2017. doi: 10.1038/nm.4306.
+Kedar Dhamdhere, Mukund Sundararajan, and Qiqi Yan. How Important Is a Neuron? In Interna-
+tional Conference on Learning Representations, 2019. URL https://openreview.net/
+forum?id=SylKoo0cKm.
+Atray Dixit, Oren Parnas, Biyu Li, Jenny Chen, Charles P. Fulco, Livnat Jerby-Arnon, Nemanja D.
+Marjanovic, Danielle Dionne, Tyler Burks, Raktima Raychowdhury, Britt Adamson, Thomas M.
+Norman, Eric S. Lander, Jonathan S. Weissman, Nir Friedman, and Aviv Regev. Perturb-Seq: Dis-
+secting Molecular Circuits with Scalable Single-Cell RNA Profiling of Pooled Genetic Screens.
+Cell, 167(7):1853–1866.e17, 2016. doi: 10.1016/j.cell.2016.11.038.
+Elena Favaro, Karim Bensaad, Mei G. Chong, Daniel A. Tennant, David J. P. Ferguson, Cameron
+Snell, Graham Steers, Helen Turley, Ji-Liang Li, Ulrich L. Günther, Francesca M. Buffa, Alan
+McIntyre, and Adrian L. Harris. Glucose utilization via glycogen phosphorylase sustains pro-
+liferation and prevents premature senescence in cancer cells. Cell Metabolism, 16(6):751–764,
+2012. doi: 10.1016/j.cmet.2012.10.017.
+M Frontini et al. The CDK subunit CKS2 counteracts CKS1 to control cyclin A/CDK2 activity in
+maintaining replicative fidelity and neurodevelopment. Developmental cell, 2012. doi: 10.1016/
+j.devcel.2012.06.018.
+Andrew J Gentles, Aaron M Newman, Chih Long Liu, Scott V Bratman, Weiguo Feng, Dongkyoon
+Kim, Viswam S Nair, Yue Xu, Amanda Khuong, Chuong D Hoang, Maximilian Diehn, Robert B
+West, Sylvia K Plevritis, and Ash A Alizadeh. The prognostic landscape of genes and infiltrating
+immune cells across human cancers. Nature Medicine, 21(8):938–945, 2015. doi: 10.1038/nm.
+3909.
+12
+
+
+Preprint
+Guadalupe Gonzalez, Xiang Lin, Isuru Herath, Kirill Veselkov, Michael Bronstein, and Marinka
+Zitnik.
+Combinatorial prediction of therapeutic perturbations using causally inspired neu-
+ral networks.
+Nature Biomedical Engineering, 10(5):1008–1025, 2026.
+doi:
+10.1038/
+s41551-025-01481-x. First published online September 9, 2025.
+Xin-Ling He, Wen-Yu Lyu, Xin-Yuan Li, Hong Zhao, Lu Qi, and Jin-Jian Lu.
+Identification
+of glycogen phosphorylase L as a potential target for lung cancer.
+Medical Oncology, 40
+(7):211, 2023.
+doi: 10.1007/s12032-023-02069-8.
+URL https://doi.org/10.1007/
+s12032-023-02069-8.
+Human Protein Atlas.
+The Cancer resource - methods summary.
+https://www.
+proteinatlas.org/humanproteome/cancer/method, n.d. Accessed September 25,
+2026; the study’s query uses pinned version 25.1 annotations.
+Xingfa Huo, Helei Hou, Chuantao Zhang, Xueqin Duan, Hongwei Lan, Yufeng Li, Na Zhou, and
+Xiaochun Zhang. Chicoric acid targets PYGL to normalize glycogenolysis-driven glycolysis to
+suppress non-small cell lung cancer. Cellular & Molecular Biology Letters, 31:105, 2026. doi:
+10.1186/s11658-026-00930-y.
+Zhejian Ji, Haishan Gao, Luying Jia, Bing Li, and Hongtao Yu. A sequential multi-target Mps1
+phosphorylation cascade promotes spindle checkpoint signaling. eLife, 6:e22513, 2017. doi:
+10.7554/eLife.22513.
+Michael J. Keiser, Vincent Setola, John J. Irwin, Christian Laggner, Atheir I. Abbas, Sandra J.
+Hufeisen, Niels H. Jensen, Michael B. Kuijer, Roberto C. Matos, Thuy B. Tran, Ryan Whaley,
+Richard A. Glennon, Jérôme Hert, Kelan L. H. Thomas, Douglas D. Edwards, Brian K. Shoichet,
+and Bryan L. Roth. Predicting new molecular targets for known drugs. Nature, 462(7270):175–
+181, 2009. doi: 10.1038/nature08506.
+Dominik Klein, Jonas Simon Fleck, Daniil Bobrovskiy, Lea Zimmermann, Sören Becker, Alessan-
+dro Palma, Leander Dony, Alejandro Tejada-Lapuerta, Guillaume Huguet, Hsiu-Chuan Lin,
+Nadezhda Azbukina, Fátima Sanchís-Calleja, Theo Uscidda, Artur Szalata, Manuel Gander, Aviv
+Regev, Barbara Treutlein, J. Gray Camp, and Fabian J. Theis.
+CellFlow enables generative
+single-cell phenotype modeling with flow matching.
+bioRxiv, 2025.
+doi: 10.1101/2025.04.
+11.648220.
+URL https://www.biorxiv.org/content/10.1101/2025.04.11.
+648220v1. Preprint, version 1.
+Brent M Kuenzi, Jisoo Park, Samson H Fong, Kyle S Sanchez, John Lee, Jason F Kreisberg, Jianzhu
+Ma, and Trey Ideker. Predicting Drug Response and Synergy Using a Deep Learning Model of
+Human Cancer Cells. Cancer Cell, 38(5):672–684.e6, 2020. doi: 10.1016/j.ccell.2020.09.014.
+URL https://pubmed.ncbi.nlm.nih.gov/33096023/.
+Jinping Liu, Dingyu Du, Yukai Huang, Jie Tian, Xuhui Wang, Longyi Chen, and Feng Wang.
+CCDC86-BHLHE40-ATF3 axis promotes aerobic glycolysis and tumor development in glioma.
+Genes & Diseases, 12(6):101643, 2025. doi: 10.1016/j.gendis.2025.101643. URL https:
+//doi.org/10.1016/j.gendis.2025.101643.
+Mohammad Lotfollahi, Anna Klimovskaia Susmelj, Carlo De Donno, Leon Hetzel, Yuge Ji, Igna-
+cio L Ibarra, Sanjay R Srivatsan, Mohsen Naghipourfar, Riza M Daza, Beth Martin, Jay Shendure,
+Jose L McFaline-Figueroa, Pierre Boyeau, F Alexander Wolf, Nafissa Yakubova, Stephan Günne-
+mann, Cole Trapnell, David Lopez-Paz, and Fabian J Theis. Predicting cellular responses to com-
+plex perturbations in high-throughput screens. Molecular Systems Biology, 19(6):e11517, 2023.
+doi: 10.15252/msb.202211517. URL https://doi.org/10.15252/msb.202211517.
+Jianzhu Ma, Michael Ku Yu, Samson Fong, Keiichiro Ono, Eric Sage, Barry Demchak, Roded
+Sharan, and Trey Ideker. Using deep learning to model the hierarchical structure and function
+of a cell. Nature Methods, 15(4):290–298, 2018. doi: 10.1038/nmeth.4627. URL https:
+//pubmed.ncbi.nlm.nih.gov/29505029/.
+Leland McInnes, John Healy, and James Melville. UMAP: Uniform Manifold Approximation and
+Projection for Dimension Reduction. arXiv preprint arXiv:1802.03426, 2018. URL https:
+//arxiv.org/abs/1802.03426v3. Version 3, revised 2020.
+13
+
+
+Preprint
+H. E. Miller et al. Deep learning perturbation models can outperform baselines on calibrated metrics.
+Nature Biotechnology, 2026. doi: 10.1038/s41587-026-03307-w.
+Gerd A. Müller, Konstanze Stangner, Thomas Schmitt, Axel Wintsche, and Kurt Engeland. Timing
+of transcription during the cell cycle: Protein complexes binding to E2F, E2F/CLE, CDE/CHR,
+or CHR promoter elements define early and late cell cycle gene expression. Oncotarget, 8(58):
+97736–97748, 2017. doi: 10.18632/oncotarget.10888.
+Sophia Müller-Dott, Eirini Tsirvouli, Miguel Vazquez, Ricardo O Ramirez Flores, Pau Badia-I-
+Mompel, Robin Fallegger, Dénes Türei, Astrid Lægreid, and Julio Saez-Rodriguez. Expand-
+ing the coverage of regulons from high-confidence prior knowledge for accurate estimation
+of transcription factor activities.
+Nucleic Acids Research, 51(20):10934–10949, 2023.
+doi:
+10.1093/nar/gkad841. URL https://doi.org/10.1093/nar/gkad841.
+Felicia W. Pagliuca, Jeffrey R. Millman, Mads Gürtler, Michael Segel, Alana Van Dervort, Jen-
+nifer Hyoje Ryu, Quinn P. Peterson, Dale Greiner, and Douglas A. Melton. Generation of func-
+tional human pancreatic β cells in vitro. Cell, 159(2):428–439, 2014. doi: 10.1016/j.cell.2014.
+09.040.
+Joseph M. Replogle, Reuben A. Saunders, Angela N. Pogson, Jeffrey A. Hussmann, Alexander
+Lenail, Alina Guna, Lauren Mascibroda, Eric J. Wagner, Karen Adelman, Gila Lithwick-Yanai,
+Nika Iremadze, Florian Oberstrass, Doron Lipson, Jessica L. Bonnar, Marco Jost, Thomas M.
+Norman, and Jonathan S. Weissman. Mapping information-rich genotype-phenotype landscapes
+with genome-scale Perturb-seq. Cell, 185(14):2559–2575.e28, 2022. doi: 10.1016/j.cell.2022.
+05.013.
+Yusuf Roohani, Kexin Huang, and Jure Leskovec. Predicting transcriptional outcomes of novel
+multigene perturbations with GEARS. Nature Biotechnology, 42(6):927–935, 2024. doi: 10.
+1038/s41587-023-01905-6. First published online August 17, 2023.
+Michael Schlichtkrull, Thomas N. Kipf, Peter Bloem, Rianne van den Berg, Ivan Titov, and Max
+Welling. Modeling Relational Data with Graph Convolutional Networks. In The Semantic Web:
+ESWC 2018, pp. 593–607. Springer, 2018. doi: 10.1007/978-3-319-93417-4_38. URL https:
+//doi.org/10.1007/978-3-319-93417-4_38.
+Vanessa Schmidt et al.
+SorLA/LR11 regulates processing of amyloid precursor protein via in-
+teraction with adaptors GGA and PACS-1.
+Journal of Biological Chemistry, 2007.
+doi:
+10.1074/jbc.M705073200.
+Thomas Schnake, Oliver Eberle, Jonas Lederer, Shinichi Nakajima, Kristof T. Schütt, Klaus-Robert
+Müller, and Grégoire Montavon. Higher-Order Explanations of Graph Neural Networks via Rel-
+evant Walks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 44(11):7581–
+7596, 2022.
+doi: 10.1109/TPAMI.2021.3115452.
+URL https://ieeexplore.ieee.
+org/document/9547794/.
+Natsaranyatron Singharajkomron et al.
+miR-145-5p/CAMSAP2 axis modulates cisplatin sen-
+sitivity in non-small cell lung cancer.
+Cancer Cell International, 2026.
+doi:
+10.1186/
+s12935-026-04209-2.
+Konstantinos Stamatiou, Aldona Chmielewska, Shinya Ohta, William C. Earnshaw, and Paola
+Vagnarelli. CCDC86 is a novel Ki-67-interacting protein important for cell division. Journal
+of Cell Science, 136(2):jcs260391, 2023. doi: 10.1242/jcs.260391. URL https://doi.org/
+10.1242/jcs.260391.
+Jin Su, Yan He, Shiyang You, Shiyu Jiang, Xibin Zhou, Xuting Zhang, Yuxuan Wang, Xining Su,
+Igor Tolstoy, Xing Chang, Hongyuan Lu, and Fajie Yuan. A trimodal protein language model
+enables advanced protein searches. Nature Biotechnology, 44(8):1310–1316, 2026. doi: 10.1038/
+s41587-025-02836-0. First published online October 2, 2025.
+Aravind Subramanian, Rajiv Narayan, Steven M Corsello, David D Peck, Ted E Natoli, Xiaodong
+Lu, Joshua Gould, John F Davis, Andrew A Tubelli, Jacob K Asiedu, David L Lahr, Jodi E
+Hirschman, Zihan Liu, Melanie Donahue, Bina Julian, Mariya Khan, David Wadden, Ian C Smith,
+14
+
+
+Preprint
+Daniel Lam, Arthur Liberzon, Courtney Toder, Mukta Bagul, Marek Orzechowski, Oana M
+Enache, Federica Piccioni, Sarah A Johnson, Nicholas J Lyons, Alice H Berger, Alykhan F
+Shamji, Angela N Brooks, Anita Vrcic, Corey Flynn, Jacqueline Rosains, David Y Takeda,
+Roger Hu, Desiree Davison, Justin Lamb, Kristin Ardlie, Larson Hogstrom, Peyton Greenside,
+Nathanael S Gray, Paul A Clemons, Serena Silver, Xiaoyun Wu, Wen-Ning Zhao, Willis Read-
+Button, Xiaohua Wu, Stephen J Haggarty, Lucienne V Ronco, Jesse S Boehm, Stuart L Schreiber,
+John G Doench, Joshua A Bittker, David E Root, Bang Wong, and Todd R Golub. A Next Gen-
+eration Connectivity Map: L1000 Platform and the First 1,000,000 Profiles. Cell, 171(6):1437–
+1452.e17, 2017. doi: 10.1016/j.cell.2017.10.049. URL https://doi.org/10.1016/j.
+cell.2017.10.049.
+Valery Sudakin, Gordon K. T. Chan, and Tim J. Yen. Checkpoint inhibition of the APC/C in HeLa
+cells is mediated by a complex of BUBR1, BUB3, CDC20, and MAD2. Journal of Cell Biology,
+154(5):925–936, 2001. doi: 10.1083/jcb.200102093.
+Mukund Sundararajan, Ankur Taly, and Qiqi Yan. Axiomatic Attribution for Deep Networks. In Pro-
+ceedings of the 34th International Conference on Machine Learning, volume 70, pp. 3319–3328.
+PMLR, 2017. URL https://proceedings.mlr.press/v70/sundararajan17a.
+html.
+David B. Sykes, Youmna S. Kfoury, François E. Mercier, et al. Inhibition of dihydroorotate dehydro-
+genase overcomes differentiation blockade in acute myeloid leukemia. Cell, 167(1):171–186.e15,
+2016. doi: 10.1016/j.cell.2016.08.057.
+Damian Szklarczyk, Katerina Nastou, Mikaela Koutrouli, Rebecca Kirsch, Farrokh Mehryary, Radja
+Hachilif, Dewei Hu, Matteo E Peluso, Qingyao Huang, Tao Fang, Nadezhda T Doncheva, Sampo
+Pyysalo, Peer Bork, Lars J Jensen, and Christian von Mering. The STRING database in 2025:
+protein networks with directionality of regulation. Nucleic Acids Research, 53(D1):D730–D737,
+2025. doi: 10.1093/nar/gkae1113. URL https://doi.org/10.1093/nar/gkae1113.
+Ying-Ming Tsai, Kuan-Li Wu, Yung-Yun Chang, Jen-Yu Hung, Wei-An Chang, Chao-Yuan Chang,
+Shu-Fang Jian, Pei-Hsun Tsai, Yung-Chi Huang, Inn-Wen Chong, and Ya-Ling Hsu. Upregulation
+of Thr/Tyr kinase increases the cancer progression by neurotensin and dihydropyrimidinase-like
+3 in lung cancer. International Journal of Molecular Sciences, 21(5):1640, 2020. doi: 10.3390/
+ijms21051640.
+Mathias Uhlen, Cheng Zhang, Sunjae Lee, Evelina Sjöstedt, Linn Fagerberg, Gholamreza Bid-
+khori, Rui Benfeitas, Muhammad Arif, Zhengtao Liu, Fredrik Edfors, Kemal Sanli, Kalle
+von Feilitzen, Per Oksvold, Emma Lundberg, Sophia Hober, Peter Nilsson, Johanna Mattsson,
+Jochen M Schwenk, Hans Brunnström, Bengt Glimelius, Tobias Sjöblom, Per-Henrik Edqvist,
+Dijana Djureinovic, Patrick Micke, Cecilia Lindskog, Adil Mardinoglu, and Fredrik Ponten. A
+pathology atlas of the human cancer transcriptome. Science, 357(6352):eaan2507, 2017. doi:
+10.1126/science.aan2507. URL https://doi.org/10.1126/science.aan2507.
+Keziban Ünsal-Kaçmaz, Thomas E. Mullen, William K. Kaufmann, and Aziz Sancar. Coupling of
+human circadian and cell cycles by the timeless protein. Molecular and Cellular Biology, 25(8):
+3109–3116, 2005. doi: 10.1128/MCB.25.8.3109-3116.2005.
+Virginia Vassilevska, R. Ryan Williams, and Raphael Yuster. All Pairs Bottleneck Paths and Max-
+Min Matrix Products in Truly Subcubic Time.
+Theory of Computing, 5(9):173–189, 2009.
+doi: 10.4086/toc.2009.v005a009. URL https://toc.cs.uchicago.edu/articles/
+v005a009/.
+Conrad von Schubert, Fabien Cubizolles, Jasmine M. Bracher, Tale Sliedrecht, Geert J. P. L. Kops,
+and Erich A. Nigg. Plk1 and Mps1 cooperatively regulate the spindle assembly checkpoint in
+human cells. Cell Reports, 12(1):66–78, 2015. doi: 10.1016/j.celrep.2015.06.007.
+Menghua Wu, Umesh Padia, Sean H. Murphy, Regina Barzilay, and Tommi Jaakkola. Identifying
+biological perturbation targets through causal differential networks.
+In Aarti Singh, Maryam
+Fazel, Daniel Hsu, Simon Lacoste-Julien, Felix Berkenkamp, Tegan Maharaj, Kiri Wagstaff, and
+Jerry Zhu (eds.), Proceedings of the 42nd International Conference on Machine Learning, volume
+267 of Proceedings of Machine Learning Research, pp. 67537–67561. PMLR, 13–19 Jul 2025.
+URL https://proceedings.mlr.press/v267/wu25v.html.
+15
+
+
+Preprint
+Zhitao Ying, Dylan Bourgeois, Jiaxuan You, Marinka Zitnik, and Jure Leskovec. GNNExplainer:
+Generating Explanations for Graph Neural Networks. In Advances in Neural Information Pro-
+cessing Systems, volume 32, 2019. URL https://proceedings.neurips.cc/paper/
+2019/hash/d80b7040b773199015de6d3b4293c8ff-Abstract.html.
+Meng Yuan, Cheng Zhang, Kalle Von Feilitzen, Martin Zwahlen, Mengnan Shi, Xiangyu Li, Hong
+Yang, Xiya Song, Hasan Turkez, Mathias Uhlén, and Adil Mardinoglu. The Human Pathol-
+ogy Atlas for deciphering the prognostic features of human cancers. eBioMedicine, 111:105495,
+2025. doi: 10.1016/j.ebiom.2024.105495. URL https://doi.org/10.1016/j.ebiom.
+2024.105495. Published online December 10, 2024.
+Lin Zheng, Zibo Chen, Masanori Kawakami, Yulong Chen, Jason Roszik, Lisa Maria Mustachio,
+Jonathan M. Kurie, Pamela Villalobos, Wei Lu, Carmen Behrens, Barbara Mino, Luisa M. Solis,
+Jennifer Silvester, Kelsie L. Thu, David W Cescon, Jaime Rodriguez-Canales, Ignacio I. Wistuba,
+Tak W. Mak, Xi Liu, and Ethan Dmitrovsky. Tyrosine Threonine Kinase Inhibition Eliminates
+Lung Cancers by Augmenting Apoptosis and Polyploidy. Molecular Cancer Therapeutics, 18
+(10):1775–1786, 2019. doi: 10.1158/1535-7163.MCT-18-0864.
+16
+
+
+Preprint
+A
+DATA, GRAPH, AND VARIABLE DEFINITIONS
+A.1
+ASSAY AND RETENTION
+The pinned inputs are CLUE’s LINCS2020 beta Level-3 CRISPR-treated and control GCTX ma-
+trices, sample metadata, and gene annotations. L1000 measures expression abundance rather than
+transcription rates. The selected trt_xpr modality denotes CRISPR/Cas9 knockout, not CRISPR
+interference. Level-3 values are processed expression, not raw counts or Level-5 differential signa-
+tures. All retained treated wells are measured at 96 hours; dose is missing and is not interpreted as
+zero.
+Retention requires physical replicate X1, X2, or X3, a nonmissing target label, and matched controls
+on the same plate. The target vocabulary is the intersection of labels present in X1/X2 and X3
+before hybrid splitting. This produces 270,331 paired wells on 915 plates, with 21,687 matched
+controls. Of 5,119 retained target identities, 5,108 map to eligible positive labels, yielding 269,769
+supervised pairs. Protein-covered candidate nodes form a broader set; a never-positive candidate
+receives competition-based negative supervision but is not an established biological negative or a
+validated zero-shot prediction.
+LINCS supplies expression estimates inferred from the 978 measured landmarks; we use these sup-
+plied values without fitting a new inference model. The BING (Best Inferred Genes) space combines
+landmarks with genes whose inferred expression passed the provider’s validation against RNA-seq
+(Subramanian et al., 2017). In the pinned LINCS annotation, 10,174 genes belong to BING and
+10,086 of these are annotated protein-coding. The historical identifier intersection retains 10,073
+coordinates: all 978 landmarks and 9,095 inferred genes. This ordered feature table is preserved
+as a contract; no GTEx expression enters this study. Extending expression coverage lets more gene
+nodes combine cellular context with protein features and typed relationships. Inferred coordinates
+remain dependent estimates, and we make no claim of exact variance preservation. Native control
+values are averaged with float64 accumulation and stored in float32 before normalization.
+A.2
+TRAINING-ONLY COORDINATES AND SPLIT SEMANTICS
+For rotation f, eligible inner-training treated wells Tf determine the per-gene moments for both
+input channels:
+µfj =
+1
+|Tf|
+X
+n∈Tf
+vnj,
+σ2
+fj =
+1
+|Tf|
+X
+n∈Tf
+(vnj −µfj)2,
+x(c)
+j
+=
+v(c)
+j
+−µfj
+sfj
+.
+(11)
+Here sfj = 1 if σfj < 10−6 and sfj = σfj otherwise. Moments use population variance, float64
+accumulation, and float32 storage. Controls, validation, test, and constructed requests never fit these
+moments. There is no extra log transform, clipping, rank transform, or per-profile centering.
+H1/H2/H3 are hybrid split rotations, not X1/X2/X3 physical replicates or independent random seeds.
+Multi-line tissues hold out an entire cell line, including every plate and replicate. Singleton tissues
+hold out one complete physical replicate while other replicates of that line remain in development.
+Within each development line, a seeded 10% of whole plates is assigned to validation, rounding up
+while retaining a training plate. Validation selects the minimum unmasked CE and does not include
+the outer test.
+H1 and H3 each contain 30,921 A549 test rows and no A549 training or validation rows. H2 includes
+A549 in development and is not a primary consensus member. Repeated holdouts of the same line
+are not independent biological units. Neither evaluation setting holds out target genes.
+A.3
+BASELINE QUALITY
+The query baseline is the native matched-control mean for the lexicographically first retained
+A549 sample whose plate’s matched controls all carry qc_pass=1 in the CLUE metadata:
+XPR008_A549.311_96H_X3_B35, with 20 controls. Failed and unlabeled controls both dis-
+qualify a plate, and the rule uses QC metadata alone, so it is fixed before any model is queried. It is
+a deterministic selection, not an estimate of a typical cell.
+17
+
+
+Preprint
+Training retention records but does not filter technical QC. Raw metadata retain separate failed,
+passing, and missing labels. CLUE cautions against assuming that all downloaded L1000 columns
+pass QC (Broad Institute, 2018b); its CRISPR documentation also distinguishes technical quality
+from functional perturbation checks (Broad Institute, 2018a). The baseline’s conductance is an
+explanation of that model input, not evidence that it represents a typical A549 state. Appendix H
+reports robustness across all QC-passing A549 plates.
+A.4
+GRAPH CONSTRUCTION AND PROTEIN INPUTS
+The ordered expression features and resolved retained perturbation targets span 11,791 distinct
+genes. The unresolved historical label RIEG2 is also retained for audit, giving 11,792 seed nodes.
+Adding 5,516 one-hop neighbors across STRING v12.5 and CollecTRI yields 17,308 nodes; we then
+retain the selected relations within that universe. Resolved nodes use canonical HGNC symbols; all
+nodes follow lexicographic symbol order. STRING pairs retain their maximum confidence after
+mapping; a threshold of 700 removes lower-confidence pairs, and STRING self-pairs are excluded.
+The evidence-filtered CollecTRI subset requires a PMID-decided sign and at least two distinct un-
+derlying resources after normalizing resource suffixes and excluding the umbrella label. Source
+signed self-edges are retained.
+Five biological families become eight transport channels: STRING functional and physical expand
+bidirectionally within their channels; STRING regulatory, CollecTRI activation, and CollecTRI re-
+pression each have separate forward and reverse channels. Collapsing relationship types and reverse
+copies gives 286,303 unique unordered nonself gene pairs across all 17,308 nodes, with 33.1 distinct
+neighbors per node on average (median 15). Counting transport channels separately gives 900,896
+nonself directed typed edges, or 52.1 incoming messages per node per message-passing transition
+on average; this count excludes self-edges and residual connections. Their learned transformations
+are not constrained to positive or negative latent effects. STRING confidence determines retention,
+not the runtime message coefficient. For sender j and receiver i,
+eAr
+ij =
+1[(j →i) ∈Er]
+q
+max(1, dr
+in,i) max(1, dr
+out,j)
+.
+(12)
+All relation channels read the same preceding state and are summed before SiLU. No additional
+self-loops are introduced; the residual provides a direct carried-state path.
+Protein vectors are reconstructed from the pinned published SwissProt ProTrek-650M FAISS index;
+setup does not run a new sequence encoder. HGNC UniProt mappings, with STRING accession fall-
+back, provide vectors for 17,225 nodes. Candidate eligibility follows this availability mask, rather
+than an HGNC protein-coding filter. The 83 nodes without mapped vectors remain computational
+context but are excluded from ranking; five are annotated protein-coding in the pinned HGNC table.
+The shared projector maps 1,024 dimensions through 256 to 128 with SiLU between affine maps.
+Baseline and endpoint encoders are separate scalar-to-128 affine maps. Missing protein or expres-
+sion suppresses that component, including expression-encoder biases when the input is unavailable.
+Of the 10,073 expression-bearing nodes, 10,071 also have protein vectors.
+The official September 4, 2026 HGNC archive replaced an unavailable August 28 source during
+acquisition. The recorded reconstruction reproduced seven ordered graph tables and both protein
+arrays byte-for-byte; source metadata retain the two source identities and the equivalence record.
+This is acquisition provenance, not a change of graph or scientific interpretation.
+B
+TRAINING AND PREDICTIVE CHARACTERIZATION
+The shared decoder is affine 128 →64, SiLU, affine 64 →1. Its eligible outputs compete in one
+global softmax. For correct target y and the highest-scoring Keff = min(20, |Vp| −1) incorrect
+candidates HK, training uses
+L(q, y) = −sy + log
+X
+i∈Vp
+esi +
+λ
+Keff
+X
+j∈HK
+[m + sj −sy]+,
+λ = 0.1,
+m = 1.
+(13)
+Only the auxiliary margin is restricted to hard negatives. Cross-entropy compares all candidates
+for every pair. The input graph and protein vectors are frozen; the projector, expression encoders,
+18
+
+
+Preprint
+Table 2: Notation shared by the model and attribution. Node states are indexed from 0 through L;
+transition ℓconnects states ℓand ℓ+ 1.
+Symbol
+Meaning
+N, F, |Vp|, d
+17,308 graph nodes, 10,073 inputs, 17,225 protein-covered candidates, hidden
+width 128.
+q = (x(0), x(1))
+Ordered baseline/endpoint pair, shape [2, F].
+mp
+i , mx
+i , ai
+Protein/expression availability and paired training keep mask.
+pi, ri(q), ¯p
+Projected protein, expression encoding, and projected protein-population
+mean.
+h(ℓ)
+i , H(ℓ)
+A node vector in Rd and the all-node matrix in RN×d.
+m(ℓ)
+e , M (ℓ)
+i
+, u(ℓ)
+i
+Individual typed message, receiver message sum, and pre-LayerNorm carried-
+state-plus-message sum.
+sk, ∆sk
+Nominated raw logit and score difference along the chosen attribution path.
+C(ℓ)
+i , E(ℓ)
+e , R(ℓ)
+i
+Signed node, message, and residual conductance, in nominated-logit units.
+Table 3: Predictive context for the interpreted models. Equal-tissue means keep five unseen-line tis-
+sues and six held-replicate tissues separate. Differences are descriptive: these overlapping rotations
+are not independent seeds, and the study does not isolate depth from capacity or nonlinear compu-
+tation.
+Depth
+Unseen MRR
+CE
+Replicate MRR
+CE
+1
+0.1463
+7.3530
+0.1213
+7.4106
+2
+0.1414
+7.4310
+0.1296
+7.1058
+3
+0.1408
+7.4816
+0.1325
+6.9100
+4
+0.1456
+7.5455
+0.1352
+6.7383
+relation transforms, LayerNorm parameters, and decoder are learned. Expression encoders initialize
+at zero but remain trainable. A Bernoulli keep mask of probability 0.85 hides each available gene’s
+two expression channels together, without inverted-dropout rescaling. Evaluation uses no random
+mask.
+AdamW uses learning rate 1.00×10−3, weight decay 1.00×10−4, and gradient-norm clipping at 5,
+without a scheduler or mixed precision in the declared path. The budget is 30 epochs with patience 5
+and minimum CE improvement zero; training and validation use seed 20260903. Four CUDA ranks
+each process a nominal 16 pairs. Balanced, disjoint, unpadded shards include every training row;
+local loss sums are scaled by world size over global example count before DDP gradient averaging,
+including uneven final shards. Validation CE selects the checkpoint, after which full outer tests are
+evaluated.
+Across twelve fits, one-to-four-hop held-replicate MRR rises from 0.1213 to 0.1352, while unseen-
+line MRR is similar (0.1463 versus 0.1456) and CE worsens. Depth changes capacity and reach; no
+uniformly preferred depth is established.
+The twelve fits share the declared graph, ordered features, candidate policy, and non-depth training
+recipe; within each rotation their split and normalizer identities match. This comparison character-
+izes depth within the GNN; the matched architecture comparison is reported in Appendix R.
+For target rank ra and target softmax probability pa(ya), MRR is n−1 P
+a r−1
+a
+and CE is
+−n−1 P
+a log pa(ya). A uniformly random ordering of the |Vp| = 17,225 candidates has expected
+MRR |Vp|−1 P|Vp|
+r=1 r−1 ≈0.00060. The held-out rank convention gives ties their average occupied
+rank: ra = 1 + ga + (ea −1)/2, with ga strictly greater scores and ea equal scores including
+the target. Hits uses the recorded torch.topk convention. The nomination table separately uses
+minimum tied rank; a fixed node order resolves displayed ties.
+Group means are pooled by example count within a fold/evaluation unit. Repeated holdouts of a unit
+are averaged, then distinct units receive equal weight within tissue and tissues receive equal weight
+19
+
+
+Preprint
+within a setting:
+mfu =
+P
+g∈(f,u) ngmg
+P
+g∈(f,u) ng
+,
+mu =
+1
+|Fu|
+X
+f
+mfu,
+mt =
+1
+|Ut|
+X
+u
+mu,
+msetting = 1
+|T|
+X
+t
+mt.
+(14)
+For unseen-line tests, physical replicates are pooled within a line/fold before repeated line holdouts
+are averaged. For held-replicate tests, the unit is a line/physical-replicate pair. This weights tissues
+deliberately rather than estimating the average recorded well. Repeated rotations do not support
+independence-based confidence intervals. Group medians cannot recover a pooled median, and
+MRR cannot recover mean rank.
+C
+THE REQUEST AND ITS TWO GEOMETRIES
+C.1
+PROGNOSTIC EVIDENCE AND COORDINATES
+HPA separates high- and low-expression patient groups at an expression cutoff and assesses survival
+association. For the primary A549 request, we use the validated tier in the pinned 25.1 table, which
+identifies prognostic associations replicated across cohorts (Yuan et al., 2025; Human Protein Atlas,
+n.d.). Its entries are P values, not expression amplitudes or causal effect sizes. We use only vali-
+dated favorable/unfavorable entries for Lung Adenocarcinoma (validation), deduplicate by Ensembl
+identity, and exclude conflicting directions or ambiguous mappings. Graph-only markers cannot be
+edited expression inputs. The resulting primary request has 157 mapped coordinates, not the whole
+raw HPA marker list. The other cell contexts and their evidence tiers are described in Appendix K.
+Let cnat be the exact matched native control mean and (µR, sR) the H1 reference moments. The
+request is
+cR = (cnat −µR) ⊘sR,
+tR = cR + a1S+ −a1S−,
+a = 2,
+(15)
+qnat = (qR ⊙sR) + µR,
+qf = (qnat −µf) ⊘sf,
+f ∈{H1, H3}.
+(16)
+The reference pair is formed in float32, then transferred through native units in float64. This retains
+the declared physical request and its rounding. All other coordinates remain unchanged; there is no
+clipping or profile-wide renormalization. H1 defines the edit units, each member’s normalizer de-
+fines scoring coordinates, and the projected protein mean defines the separate attribution reference.
+The original PYGL and CCDC86 nominees both have own-coordinate decreases; TTK does not.
+The primary fits are sibling rotations of the specified four-hop run, not a search over the newest or
+best available checkpoint. Model membership is selected from saved train/validation/test exposure.
+The explorer labels contexts without whole-line-held-out models as seen-cell exploration rather than
+presenting them as held out. A missing HPA cohort or evidence tier is not silently replaced by
+another policy.
+C.2
+OBSERVED RESPONSE GEOMETRY
+One observed-displacement point is a retained knockout well.
+It uses the complete vector
+(vendpoint
+n
+−¯vplate(n)) ⊘sH1, retaining replicate and partition membership without unit normaliza-
+tion. The exploratory UMAP uses all retained wells and is not part of predictor fitting or checkpoint
+selection. A second view uses the same coordinates, colored by the within-tissue rank of full-feature
+cosine alignment with favorable-up/unfavorable-down directions. That descriptive overview uses
+explicitly matched TCGA cohorts and potential-plus-validated markers, separately from the primary
+validation-only A549 request. Unmatched cohorts or undefined cosines are unscored, not imputed.
+C.3
+LEARNED GENE-STATE GEOMETRY
+The representation view instead contains one row per gene at each stage of the same frozen H1
+model and request. One CPU UMAP fit uses all 86,540 unscaled node-stage vectors, Euclidean
+distance, 30 neighbors, minimum distance 0.15, 500 epochs, random initialization, seed 20260903,
+and one job. Neither logits nor ranks enter the fit. No stage-specific centering or normalization is
+performed.
+20
+
+
+Preprint
+D
+CONDUCTANCE CALCULATIONS AND NUMERICAL EVIDENCE
+Protein-reference path. The request stays fixed, and covered genes’ projected proteins move from
+their common mean ¯p = |Vp|−1 P
+i∈Vp pi to their actual values, pi(α) = (1−α)¯p+αpi. The mean
+is taken after the learned projector; all covered proteins move jointly. Because weights are shared,
+∆sk on this path, written ∆sprotein
+k
+, measures how much actual protein identities distinguish the
+nominee in the requested context; expression and graph position can still distinguish genes, so the
+reference is not a random guess. The two paths answer different questions, so their totals and signs
+are not interchanged.
+D.1
+INITIAL FEATURES AND COMPLETE COMPUTATIONAL LAYERS
+The formulas below first specify the original fixed-expression protein path; the request path sub-
+stitutes expression-input tangents as defined in Appendix K. At each integration point, the same
+learned updates in Equation 3 act on the interpolated initial state. The projected protein endpoints
+and mean are detached, fixed values; all trained parameters and graph coefficients are unchanged.
+For a covered node, its initial tangent is pi −¯p; for a missing-protein node it is zero. Initial feature
+attribution is
+Ii,a = (pi,a −¯pa)
+Z 1
+0
+∂sk
+∂h(0)
+i,a
+
+α
+dα,
+C(0)
+i
+=
+X
+a
+Ii,a,
+(17)
+with Ii,a = 0 where protein is missing. A node can have zero own initial protein attribution yet
+carry nonzero later conductance through incoming messages.
+The node-local decoder makes the nominee’s final state the only directly read final node. Its con-
+ductance therefore equals the full difference at that layer, up to numerical integration error. Earlier
+layers can distribute the same difference across many nodes. This architectural endpoint is explic-
+itly separated in the profile heatmaps; it is not evidence that earlier computation lacked network
+dependence.
+D.2
+FULL FORWARD PATH, REVERSE SENSITIVITIES, AND FORWARD TANGENTS
+For each quadrature position, stages_from_initial evaluates the actual full graph, recording
+node states, summed messages, and pre-LayerNorm states. One backward call obtains the nominated
+score’s sensitivities to those tensors. Tangents propagate forward through the same transforms. For
+edge e = (j →i, r),
+˙m(ℓ)
+e
+= eAr
+ijWℓ,r ˙h(ℓ)
+j ,
+˙u(ℓ)
+i
+= ˙h(ℓ)
+i
++ SiLU′(M (ℓ)
+i
+) ⊙˙M (ℓ)
+i
+,
+˙h(ℓ+1)
+i
+= D LNℓ(u(ℓ)
+i )[ ˙u(ℓ)
+i ].
+(18)
+A dot denotes differentiation with respect to α. The LayerNorm directional derivative includes
+centering, variance, epsilon, and learned scale. It is not an interpolation between independently
+chosen hidden-layer endpoints.
+Message conductance contracts each transformed sender tangent with the receiver’s message-sum
+sensitivity and fixed normalized coefficient. Contractions are chunked without materializing the
+full edge-by-hidden Jacobian. The gradient includes SiLU, LayerNorm, later messages, and the
+decoder; residual sensitivities bypass SiLU but include downstream normalization and computation.
+Receptive-field bookkeeping retains every layer-edge instance that can reach the nominee, including
+residual reachability. Only structurally unrelated contractions are omitted; the forward path remains
+the full graph.
+The implementation compares analytic tangents and edge contractions against explicit autograd cal-
+culations on small test models. It separately verifies that the actual-protein endpoint reproduces
+ordinary model scoring. These checks concern the chosen mathematical instrument, not the biolog-
+ical validity of its reference.
+D.3
+QUADRATURE AND RECONCILIATION
+Gauss–Legendre points and weights are transformed from [−1, 1] to [0, 1]. All feature, node, mes-
+sage, and residual integrals share the same positions and weights. We compare 16 versus 32 points,
+21
+
+
+Preprint
+Table 4: Saved numerical evidence for the original PYGL/CCDC86 protein-path cases and models.
+Completeness checks compare full signed cuts to the endpoint difference; reconciliation checks both
+ends of each transition. These are recorded computations, not biological-validation measurements.
+Nominee
+Fit
+Points
+Completeness
+error
+Reconciliation
+error
+PYGL
+H1
+32
+9.77e-06
+1.78e-15
+PYGL
+H3
+64
+3.20e-08
+7.11e-15
+CCDC86
+H1
+32
+1.23e-06
+8.88e-15
+CCDC86
+H3
+32
+3.13e-06
+8.88e-15
+continuing to 64 or 128 if required. For each attribution array or specified layer slice V ,
+∥bV2Q −bVQ∥1 ≤10−5 + 10−3∥bV2Q∥1.
+(19)
+Each complete signed cut must also recover the independently evaluated score difference within the
+absolute-plus-relative tolerance based on its own absolute mass. This avoids judging numerical ac-
+curacy solely by a cancellation-sensitive total. Node/residual slices and message slices are checked
+separately per layer. Endpoint parity uses absolute and relative tolerances of 10−10.
+In addition to receiving-node reconciliation, we check the allocation leaving each sender:
+C(ℓ)
+j
+=
+X
+e=(j→i,r)
+E(ℓ)
+e
++ R(ℓ)
+j .
+(20)
+Maximum incoming/outgoing discrepancies must be at most 10−5. Failure to satisfy the criteria by
+128 points stops the calculation. The saved accepted orders and errors for every case/member are
+reported below.
+E
+CONSENSUS, ROUTE SELECTION, AND DISPLAY SEMANTICS
+Representation geometry. The notebook first follows the H1 query through encoded inputs and
+four message layers using one joint UMAP (McInnes et al., 2018). Points are genes, with final
+nomination colors held fixed (the supplementary output gene_geometry_paper.pdf). These
+are stages of one model, not expression trajectories. Geometry makes the representation visible;
+conductance supplies its quantitative account.
+This section describes the original protein-path displays. The stricter shared-sign selection and re-
+vised widths in Figure 2 are specified in Appendix L. The two models receive byte-identical native
+expression pairs but retain their own normalizers, projectors, means, and decoders. Candidate identi-
+ties, graph relations, and layer indices align. We average signed scalar allocations after each member
+passes its numerical checks:
+¯C(ℓ)
+i
+= 1
+2
+X
+f∈{H1,H3}
+C(ℓ)
+i,f ,
+∆¯sprotein
+k
+= 1
+2
+X
+f
+[sk,f(1) −sk,f(0)].
+(21)
+The same rule applies to messages and residuals. Initial feature channels are summed within each
+gene before cross-model averaging; hidden coordinate bases are not aligned or averaged. Mean
+actual scores agree with the ranking table. Opposing member contributions can cancel before any
+positive-part display rule.
+E.1
+SELECT A STRUCTURE WITHOUT CHANGING THE ATTRIBUTION
+For one member, a route connects an edited marker’s initial state to the nominee’s final state with
+exactly one transition per layer, using positive messages or residuals. A widest route maximizes
+its minimum transition conductance (Vassilevska et al., 2009). Ties prefer residuals, then relation
+and original-edge order. The union retains every node and connection used by at least one selected
+route; shared instances are counted once. Unreachable anchors remain recorded rather than receiving
+invented connectors.
+22
+
+
+Preprint
+Table 5: The original PYGL/CCDC86 fixed-request nominations. Mean-logit ranks use the same
+17,225 candidates. Member ranks expose fit variation. N90 counts the smallest set carrying 90%
+of positive node conductance after three message rounds, before the final decoder state. It does not
+measure how many genes are biologically necessary.
+Nominee
+Consensus rank
+H1 / H3 rank
+∆sprotein
+N90 after 3
+PYGL
+6
+5 / 10
++8.8719
+8
+CCDC86
+3
+4 / 2
++11.7054
+1
+For consensus, candidate routes are complete member witnesses. A witness is eligible only when
+every corresponding mean message/residual conductance exceeds 10−5; among eligible witnesses,
+the greatest bottleneck is selected for each anchor. This does not assemble a route from unrelated
+positive fragments of different fits. The path is a display of positive marginal transition allocations:
+positivity does not establish the sign or necessity of an isolated complete route. Exact ordered-route
+integration is a separate optional inspection, not a reported experiment on the primary displayed
+paths.
+E.2
+READ THE OVERVIEW AND PROFILE AS COMPLEMENTARY OBJECTS
+Node size uses maxℓ[C(ℓ)
+i ]+, with a logarithmic mapping and a visibility/text floor. It is not an
+incident-edge sum or a conserved cross-layer total. Edge width sums positive conductance over all
+full-field layer instances of the displayed biological relationship; route selection determines which
+relationships appear, not the width’s denominator. Reverse computational channels return to source-
+prior orientation for the overview. STRING physical/functional pairs remain undirected; regulatory
+sign annotations preserve positive, negative, mixed, or unassigned source evidence.
+Names are the union of the 18 largest displayed node summaries, 12 highest displayed degrees, up
+to four strongest favorable-marker summaries, up to four strongest unfavorable-marker summaries,
+and the nominee. Overlap reduces the label count. Unnamed genes remain in the selected graph and
+exports. Node fill denotes the requested edit; neutral includes unchanged inputs and graph context
+without mapped expression. Neither a prior repression bar nor a requested decrease fixes the sign of
+a learned score contribution.
+Full signed node arrays and typed message records underlie the profiles. Panel A separates positive
+mass from opposing magnitude for each complete node layer and message/residual transition. Panel
+B selects positive and opposing peaks, retains raw values with one within-case symmetric-log scale,
+and attributes the same final prediction in every column. Panel C’s upper part counts components
+needed for 90% of positive conductance; its lower part compares selected positive conductance with
+full positive conductance, separately for messages and residuals. A row with zero positive mass has
+undefined coverage, not an invented zero or 100%.
+The overview’s log scales and profile color scales are case-specific display conventions. Quantitative
+cross-case comparisons use the recorded values and denominators. Layout positions and edge bends
+carry no biological distance or temporal meaning. Paper print reflow retains the scientific values,
+identities, selected nodes/relationships, and their source records.
+F
+FINITE MESSAGE SUPPRESSION
+This section describes suppression for the original protein-path examples and defines the two out-
+comes retained in the appendix. The endpoint-score drop (Actual drop) measures how much deleting
+a message lowers the score at the path’s endpoint:
+Dactual
+e,f
+= sk,f(1) −s\e
+k,f(1).
+(22)
+Gap drop (Equation 10) additionally subtracts the deletion effect at the reference endpoint. On the
+request path, these endpoints are requested expression and no expression change, so Gap drop is
+the request-response drop used in Figure 3; both outcomes are retained in Table 13. On the original
+protein path below, they are actual and reference protein representations at fixed expression. Neither
+outcome compares different nominees.
+23
+
+
+Preprint
+The conductance values, native expression request, protein references, and checkpoint members
+match Section 5 and the original examples (Appendix J.1). Both members held A549 out of training
+and validation. Sampling uses the full signed receptive field, rather than only the positive routes
+selected for the network overview.
+At each of the four transitions, we select up to six largest positive and six most negative mean
+message conductances.
+A 10−5 sign cutoff excludes near-zero entries; it is not a significance
+or integration-error threshold. All transitions here contain six extremes of each sign, well above
+that cutoff. For each positive selection we sample a low-|E| control from the lowest absolute-
+conductance quartile and a random control in the same transition and typed relation. Selections are
+disjoint, unavailable controls are omitted, and seed 20260924 fixes the selection before suppres-
+sion outcomes are evaluated. Each transition contains 24 sampled messages, except PYGL’s final
+transition, which contains 17 because only three low-|E| and two random controls are available.
+An intervention sets one original layer/relation/edge gate from one to zero. Reverse channels, other
+occurrences of the same relationship, residuals, and original degree factors remain unchanged. We
+recompute the full forward pass at both actual and reference protein endpoints with frozen weights.
+The binary gate intervention produces a continuous score change through the nonlinear model. Con-
+ductance follows those nonlinearities along the original protein path; neither finite drop is alge-
+braically equal to the original message conductance. Equal-weight mean member drops are com-
+pared with signed mean conductance using Spearman correlation. Selecting extremes and controls
+changes the sampled distribution, so these correlations are not estimates for all messages or signifi-
+cance claims.
+The supplementary notebook_suppression_groups.tex shows directional agreement in
+the group means, with more consistent individual Gap-drop signs for CCDC86 than PYGL. Smaller
+mean control effects do not imply zero effects for every control. Pooling transitions summarizes the
+sampled messages without measuring the combined effect of suppressing a group or establishing
+independent biological replicates.
+Some tested messages also lie on selected overview routes. For example, suppressing the final
+STRING regulatory PHKB →PYGL message lowers the actual score and protein-reference gap.
+The final GYG2 →PYGL reverse-channel message lowers the actual score but increases the gap,
+because the reference score falls further. This explains why the two contrasts must be retained. A
+pooled overview relationship can occur at several transitions; a layer-specific suppression tests only
+one instance. Residual paths and other messages remain available, so agreement does not rule out
+redundancy or nonlinear interactions.
+The frozen evidence contains the selection, consensus and member effects, correlations, and source
+study receipts. The notebook retains the complete signed scatterplots and matched-control diag-
+nostics. The original-case summary in Appendix J.1 retains the signed outcomes; the full plot is a
+supplementary output.
+G
+COMPOUND EVIDENCE AND SCOPE
+The explorer is an interactive interface in the accompanying notebook for configuring expression re-
+quests and inspecting ranked nominees and their attribution networks. Its compound panel matches
+nominees by exact symbol to the pinned Broad Drug Repurposing Hub (Corsello et al., 2017; Broad
+Institute, 2025), returning source-reported mechanisms, all targets, stages, and indications without
+changing rankings or the selected network.
+For TTK, the source lists ten exact-symbol matches, including four with reported clinical stages;
+CKS2 has none (Table 6). The panel retains other annotated targets and source-reported actions
+so users can examine their compatibility with the hypothesis. These annotations do not establish
+selectivity or efficacy; an inhibitor need not reproduce a knockout. The original PYGL matches are
+described below.
+The explorer uses the pinned August 18, 2025 Broad Drug Repurposing Hub annotation snapshot,
+checked by SHA-256 before use. Exact gene symbols are matched against the full target-list field.
+No fuzzy alias expansion or clinical-status inference is performed, and no selected gene is sent to
+the source server during offline matching.
+24
+
+
+Preprint
+Table 6: All exact-symbol TTK matches in the pinned source, with source-reported stage and mech-
+anism labels. CKS2 has no exact-symbol match. Stages, mechanisms, and targets are source anno-
+tations, not measurements performed here.
+Compound
+Reported stage
+Source mechanism label
+Annotated targets
+BAY1217389
+Phase 1
+kinase inhibitor
+TTK
+BOS-172722
+Phase 1
+monopolar spindle 1 kinase inhibitor
+TTK
+CFI-402257
+Phase 1/Phase 2
+dual specificity protein kinase inhibitor
+TTK
+Mps1-IN-5
+Phase 1
+protein kinase inhibitor
+TTK
+MPI-0479605
+Preclinical
+mitotic kinase inhibitor
+TTK
+Mps-BAY-2a
+Preclinical
+monopolar spindle 1 kinase inhibitor
+TTK
+Mps1-IN-1
+Preclinical
+monopolar spindle 1 kinase inhibitor
+ALK, TTK
+NMS-P715
+Preclinical
+protein kinase inhibitor
+TTK
+TC-Mps1-12
+Preclinical
+monopolar spindle 1 kinase inhibitor
+TTK
+pyrazolanthrone
+Preclinical
+JNK inhibitor
+LRRK2,
+MAPK10,
+MAPK8,
+MAPK8IP1,
+MAPK9, TTK
+For PYGL, the full set includes records with broad target lists, metabolite-related annotations, and
+differing source-reported stages. The notebook’s PYGL table uses the explicit source-label filter
+Preclinical plus glycogen phosphorylase inhibitor; it does not claim those rows are exhaustive phar-
+macology or that a one-gene annotation proves selectivity. The full matched rows and source identity
+are preserved in the frozen paper evidence. CCDC86 has no exact-symbol match in this resource,
+which is not evidence that no compound exists or that the target is undruggable. For TTK, Ta-
+ble 6 lists every exact-symbol match without a source-label filter; CKS2 has none, with the same
+interpretation. Most TTK records annotate only TTK, but a one-gene annotation does not establish
+selectivity.
+A source label such as Launched or Phase 3 is not an independent check of present FDA approval,
+oncology indication, trial status, target engagement, or an effect compatible with knockout. The role
+of the lookup is to place existing evidence beside a model-generated hypothesis for a researcher to
+examine.
+H
+ROBUSTNESS ACROSS QC-PASSING BASELINES
+The query baseline (Appendix A) is one of 44 A549 plates whose matched controls all pass QC
+(20–33 controls each). To test whether the original PYGL/CCDC86 cases depend on that choice,
+we repeat the query with each of these plates as a single-plate baseline—the same construction
+used for every training pair—and with a pooled mean of all 1,790 QC-passing A549 controls across
+78 plates. The pooled baseline is smoother than any training baseline and is reported separately.
+Weights, graph, request rule, validated markers, and H1/H3 members are unchanged.
+Table 7: Rank robustness across QC-passing baselines. Mean-logit ranks over H1/H3 among
+17,225 candidates. The final row summarizes all 44 single-plate QC-passing baselines. Overlap and
+Spearman ρ compare the full ranking with the query baseline.
+Baseline
+PYGL (H1/H3)
+CCDC86 (H1/H3)
+Top-20 overlap
+ρ
+Query baseline (single plate)
+6 (5/10)
+3 (4/2)
+20/20
+1.00
+Pooled QC-passing controls
+5 (3/9)
+2 (4/2)
+18/20
+0.98
+44 QC-passing plates, median [range]
+5 [2–7]
+2 [2–6]
+–
+–
+Both nominees rank within the top 7 on every QC-passing plate (Table 7). Member disagreement
+persists across plates (PYGL: H1 ranks 1–7, H3 ranks 6–15), so it is not confined to the selected
+baseline.
+We also repeated protein-path conductance under the pooled baseline. For PYGL, 12 of the 15
+largest positive node contributors are shared with the query baseline, including GYG2, PHKB,
+PHKG1, PHKG2, PYGM, and PYGB; the protein-reference difference is +5.44, N90 after three
+25
+
+
+Preprint
+Table 8: The original nominees rely on their own requested decrease. Each entry gives H1/H3
+common-query ranks over all 17,225 candidates; each intervention defines its own fixed input. “Rest
+reversed” retains the own decrease but flips every other edit.
+Nominee
+Full request
+Own edit removed
+Own edit only
+Rest reversed
+PYGL
+5/10
+3084/2214
+1/1
+1/1
+CCDC86
+4/2
+2670/2455
+1/1
+1/1
+rounds is 7, and final-transition messages contribute +1.73 against a residual of +3.71, so the
+glycogen-associated structure is stable while the magnitude of final-layer message support varies
+with the baseline. For CCDC86, all 15 largest contributors are shared, and the difference (+12.21),
+N90 = 1, and residual-dominated final transition (+11.96) are essentially unchanged. Outputs and
+scripts will be released with the code.
+I
+EXECUTION RECORDS AND REPRODUCIBILITY BOUNDARY
+The supplementary materials, to be released with the code and model weights upon publication,
+retain frozen inputs, outputs, source hashes, and reproduction commands for the reported analyses.
+The recorded notebook load-mode run contains 39 code cells; a historical full-training execution is
+separate. Building this revision uses saved results and does not rerun training. Numerical parity,
+completeness, and source checks establish computational consistency, not independent biological
+validation. The supplementary notebook and saved-field renderers reproduce additional geometry,
+training, and circuit views omitted from this PDF.
+J
+OWN-EDIT DEPENDENCE AND MEASURED SUPPORT OF THE ORIGINAL
+NOMINEES
+The PYGL and CCDC86 networks were the original illustrations. Their supporting structures remain
+accounts of the specified protein-reference contrasts, but do not establish dependence on the rest of
+the prognosis request. Both targets were themselves unfavorable markers requested to decrease.
+Table 8 records the decisive intervention on those inputs. Removing an edit restores that endpoint
+coordinate to its baseline; it does not remove the gene, its protein, or its graph messages.
+J.1
+ORIGINAL EXAMPLES: FIXED-REQUEST PROTEIN-REFERENCE ACCOUNTS
+The original protein-reference accounts are summarized below; their full figures and signed profiles
+can be regenerated from the supplementary notebook. Their different supporting structures moti-
+vate different biological hypotheses. Measured other-marker responses are reported separately in
+Appendix O.
+J.1.1
+PYGL: GLYCOGEN-ASSOCIATED REGULATORY AND METABOLIC PROPAGATION
+PYGL has mean-logit rank 6, with member ranks 5 and 10.
+Its selected structure in-
+cludes phosphorylase-kinase components, glycogen branching/storage machinery, and a Col-
+lecTRI HIF1A→GYS1 activation route into glycogen synthesis (the supplementary output
+pygl_network_paper.pdf). PYGL knockdown reduces proliferation and migration in lung
+cancer cells (He et al., 2023); subsequent NSCLC work connects PYGL-dependent glycogenolysis
+to glycolytic flux and tumor growth (Huo et al., 2026). Broader cancer studies connect hypoxia-
+induced glycogen metabolism to redox balance and avoidance of senescence (Favaro et al., 2012).
+Together these motivate a glycogenolysis-fueled glycolysis hypothesis in hypoxia-related signaling.
+The request does not specify oxygen tension, and the attribution measures neither metabolic flux nor
+the relative importance of metabolic and mitotic mechanisms.
+The profile in the supplementary output pygl_profile_paper.pdf shows supporting and op-
+posing allocations recovering the +8.8719-logit protein-reference difference. At 3 →4, signed
+messages contribute +4.58 and the residual +4.30 logit units. This motivates a propagation-oriented
+26
+
+
+Preprint
+interpretation: glycogen-associated regulatory relationships connect the nominee to a broader
+metabolic program. Whether PYGL loss produces the requested expression program through these
+processes remains the biological prediction.
+J.1.2
+CCDC86: A PHYSICAL-INTERACTION CONTEXT FOR RIBOSOME BIOGENESIS
+CCDC86 ranks 3 in the mean, with member ranks 4 and 2.
+Its selected network includes
+nucleolar/ribosome-associated genes, with STRING functional links to WDR18, NLE1, and large-
+subunit ribosomal proteins and physical links to EIF6, LAS1L, ZNF593, and GNL2 (the supplemen-
+tary output ccdc86_network_paper.pdf), motivating a hypothesis about partners involved in
+ribosome biogenesis and complex organization. CCDC86 has established chromosome-periphery
+and cell-division literature (Stamatiou et al., 2023) and functional evidence in glioma (Liu et al.,
+2025). The context-specific hypothesis is that CCDC86 loss can move A549 toward the requested
+program, with nucleolar/ribosome processes participating. An independently measured response
+aligned with the request would support the endpoint prediction; a confirmed perturbation without
+that response would count against it. A response without the proposed functional involvement would
+weaken the mechanistic lead.
+After three message rounds, the smallest set carrying 90% of positive node conductance contains 8
+nodes for PYGL but 1 for CCDC86. CCDC86’s final residual carries +12.02 logit units, while final
+messages contribute −0.31 (the supplementary output ccdc86_profile_paper.pdf). Earlier
+information is already present in that carried state. Together, the cases illustrate propagation through
+regulatory/metabolic relationships and attribution involving physical partners; both use the same
+message-passing architecture. These are interpretations of distinct allocations, not measurements of
+metabolic flux, complex assembly, or biological timing. Many higher-ranked nominees are well-
+characterized cancer genes; we selected PYGL as a nominee with supporting lung-cancer literature
+and CCDC86 as one with limited lung-cancer characterization. Complete rankings and signed fields
+remain available.
+J.1.3
+FINITE MESSAGE SUPPRESSION FOR THE ORIGINAL EXAMPLES
+The supplementary output message_suppression_paper.pdf summarizes 89 PYGL and
+96 CCDC86 sampled messages. Gap correlations are positive at every transition for both nomi-
+nees: CCDC86 ranges from ρ = +0.63 to +0.92 and PYGL from +0.09 to +0.54. Positive/negative
+selections have correspondingly signed average drops and control means lie closer to zero (the sup-
+plementary notebook_suppression_groups.tex). Individual PYGL gap signs agree less
+often (18/24 positive, 15/24 negative) than CCDC86’s (23/24, 22/24); single-message deletion is a
+finite, nonlinear change that path-averaged conductance need not match edge by edge. These corre-
+lations describe the stratified sample, not all edges, total layer reliance, or necessity of the displayed
+network.
+K
+REQUEST AUDIT, SELECTION, AND EXPRESSION ATTRIBUTION
+K.1
+THREE DISTINCT RANK DEFINITIONS
+Let S be the mapped requested coordinates and let d(−k) equal d except that the candidate’s own
+coordinate is restored to no change, if present. This intervention edits the endpoint input, not the
+graph or a learned representation; the baseline channel is unchanged. For the fixed full request, the
+common-query rank is
+rcommon
+kf
+= 1 +
+X
+j∈Vp
+1[sjf(c, c + d) > skf(c, c + d)].
+(23)
+A fixed own-masked query instead scores all candidates on (c, c + d(−k)) and ranks k against those
+scores. This is the rank reported for “own edit removed” in Table 8. The population screen uses a
+third quantity: the candidate-specific masked score ujf = sjf(c, c + d(−j)) and its rank
+rmasked
+kf
+= 1 +
+X
+j∈Vp
+1[ujf > ukf].
+(24)
+27
+
+
+Preprint
+Table 9: The full corrected computational screen. Directional candidates pass every-member rank
+and sign requirements; Above floor additionally requires mean (akf −bkf)/2 ≥0.5 logit. This floor
+does not denote measured biological support. All rows have 17,225 eligible candidates.
+Cell
+Exposure
+Members
+Directional
+Above floor
+A375
+held out
+1
+58
+1
+A549
+held out
+2
+9
+4
+AGS
+seen
+3
+0
+0
+DANG
+held out
+1
+54
+4
+ES2
+seen
+3
+2
+0
+HCC1806
+held out
+1
+57
+0
+HS944T
+held out
+1
+69
+4
+HT29
+seen
+3
+0
+0
+IPC298
+held out
+1
+69
+5
+MCF7
+held out
+2
+8
+0
+PC3
+seen
+3
+1
+0
+SNU761
+seen
+3
+1
+0
+U251MG
+held out
+2
+7
+0
+YAPC
+held out
+2
+2
+1
+Here each competitor has its own edit removed; the ranked scores are not outputs under one com-
+mon input. Finally, ranking the response akf = ukf −skf(q0) would be yet another ordering,
+which can favor low-baseline candidates. We do not relabel response ranks as common-query ranks.
+At two SD, TTK has common-query ranks 18/17 and candidate-specific masked ranks 2/3; CKS2
+has common-query rank 19 and candidate-specific masked rank 10. At empirical amplitudes the
+respective common-query ranks are 19/12 and 55, whereas masked ranks are 14/7 and 54. Neither
+nominee has an own edit, but masking competitors changes its screen rank. The masked ranks were
+independently recomputed from archived full-pool masked scores; they were not obtained from a
+fresh all-candidate masked inference run. Fresh canonical scoring verified the request/reversal re-
+sponses and common-query ranks.
+The computational screen requires rmasked
+kf
+≤200, akf > 0, and bkf < 0 in every member, then
+mean (akf −bkf)/2 ≥0.5. These logit thresholds are descriptive selection choices, not signifi-
+cance levels or calibrated probabilities. Full per-member endpoint tables, not rounded averages or
+historical pass flags, determine eligibility. Table 9 retains all 14 available tissue-matched contexts,
+including zero-yield cells and seen-cell exploration, and yields 19 cases in 6 cells. Cases can share
+targets and requests, so the count is not 19 independent biological discoveries. Choosing TTK and
+CKS2 as detailed illustrations was post hoc, informed by the available audits and measured support;
+neither their selection nor their percentiles estimate prospective success.
+K.2
+ENDPOINT EVIDENCE AND REVERSAL
+The screen uses 28 members across 14 lines, with whole-line-held-out models where available and
+explicitly flagged seen-cell members otherwise. Nine cell-line contexts, including A549 and DANG,
+use HPA’s validated tier; five (A375, HS944T, IPC298, AGS, and PC3) use potential-tier mark-
+ers. No single marker-evidence policy is silently imposed on all cells. HS944T uses 170 potential
+melanoma markers with two-reference-SD edits and the saved internally assessed-control baseline;
+A549 uses the original 157-coordinate validation-tier request and QC-passing baseline. The differ-
+ent marker and control policies limit a direct comparison between their accounts.
+An external direction check against the adult PRECOG patient-cohort compendium (Gentles et al.,
+2015) finds 85.8% agreement among 2,051 matched marker-direction entries, and 96.6% among 953
+entries with |z| ≥1.96 in PRECOG (positive z denotes adverse prognosis). PRECOG concordance
+was assessed separately, without requiring agreement for marker inclusion. These are pooled entries
+with repeated cell/cohort uses, not independent genes or patients. Agreement supports the choice
+of prognostic directions, not the two-SD amplitude, intervention causality, or a survival benefit in
+cultured cells.
+28
+
+
+Preprint
+Across the 28 members, the median fraction of top-50 response-ranked nominees leaving the top 50
+under reversal is 82%; median all-candidate response/reversal correlation is −0.40. Nevertheless, a
+median 44% of those top-50 nominees do not decrease relative to no change under reversal. Leaving
+a top list and having a negative reversed response are different tests. We therefore use the explicit
+sign requirements of Section 6, rather than a rank shift alone, to distinguish directional candidates
+from magnitude responders.
+K.3
+EXPRESSION IG AND CONDUCTANCE SHARE THE REQUEST RESPONSE
+For a fixed member with actual proteins and graph held constant, define
+Ix
+jkf = d(−k)
+j
+Z 1
+0
+∂skf(c, c + αd(−k))
+∂x(1)
+j
+dα,
+X
+j
+Ix
+jkf = akf.
+(25)
+The integral allocates the joint no-change-to-request response; it is not the effect of making edit j
+alone. Unchanged coordinates have zero attribution, including the masked own coordinate. Each
+member receives the same native request in its own normalization coordinates. The network con-
+ductance in Section 5.1 follows this same expression path and accounts for ∆sx
+k = akf. Protein-
+reference conductance instead keeps expression fixed and interpolates projected proteins (Section 5);
+its endpoint difference and signs must not be interchanged with the expression response.
+The six case/member/amplitude computations for TTK/A549 (H1/H3) and CKS2/HS944T (H3),
+each at two request sizes, use shared 32-point Gauss–Legendre quadrature for raw IG, nodes,
+messages, and residuals. Maximum raw-IG/initial-node disagreement is 1.94 × 10−16; maximum
+complete-cut discrepancy against fresh raw score differences is 1.58 × 10−8. The two-SD CKS2
+input account retains all 170 coordinates, with positive total 1.135624 and negative total −0.367135,
+giving 0.768490; at the empirical amplitude the corresponding totals are 0.110203 and −0.060073,
+giving 0.050130. Its own-coordinate attribution remains zero.
+L
+THE TTK EXPRESSION-PATH FIGURE: FULL VIEW AND DISPLAY
+SEMANTICS
+Biological meaning of the signed account.
+The biological question is which relationships make
+TTK loss a plausible response to this A549 expression program. The prior makes 92 immediate
+TTK neighbors available; the learned computation gives their contextualized contributions a sign
+and magnitude. Table 10 links representative numerical observations to experimentally established
+functions. The quantities are contributions to the joint request-minus-no-change logit, with protein
+representations fixed. Input IG and layer-message conductance are different accounts of that same
+difference, so they are compared within their respective accounts rather than added across them.
+Interpretation and display.
+Checkpoint membership does not determine support: BUB3, TK1,
+and BRCA1 input signs differ between H1/H3. E2F4/DREAM promoter regulation was character-
+ized in T98G and fibroblast systems (Müller et al., 2017); its attribution here concerns the A549
+request. TTK depletion in A549 also affects proliferation and migration through other reported ac-
+counts (Tsai et al., 2020); our comparison does not test those alternatives head to head. It supplies
+a checkpoint-related lead with named supporting and opposing contributions. These findings sug-
+gest examining whether the requested marker response tracks checkpoint assembly, transcriptional
+regulation, or both. The channel signs do not decide that question in A549.
+Panel A uses node conductance at h(3), not input IG or final-message credit. Its candidate set is the
+partners displayed in B, excluding the nominee. We require each selected sign in both fits, retain
+the six largest positive and four most negative signed means, and order that subset from positive
+to negative. The top negative full-field node omitted from B is CDC27 (−0.0123/−0.0018); the
+strip is therefore not a global top-ten ranking. Full-field totals and additional node states are in
+Figure 4. MAD1L1’s node credit (+0.432/+0.245) differs from its final regulatory-reverse message
+(+0.420/+0.150), because node credit includes all outgoing message and residual allocations.
+The complete mean overview retains 124 of 157 edited anchors; the shared positive core retains
+107, with the top 20 drawn in Figure 2. All complete cuts recover the mean response +1.423 within
+29
+
+
+Preprint
+Entity / relationship
+Signed observation
+Literature-grounded interpretation
+MAD2L1 and BUB1B
+Down-input IG:
++0.251/+0.236 and
++0.169/+0.048 (H1/H3).
+MAD2 and BUBR1 participate in the checkpoint
+complex that inhibits APC/C (Sudakin et al., 2001).
+Decreases in both supply positive evidence for loss of
+the kinase organizing this machinery (Ji et al., 2017).
+PLK1
+Down-input IG:
++0.059/+0.070 (H1/H3).
+PLK1 strengthens MPS1 activity and
+checkpoint-component recruitment (von Schubert
+et al., 2015). Its decrease supplies concordant, smaller
+support than MAD2L1 in each model.
+MAD1L1–TTK
+Final message:
++0.420/+0.150;
+MAD1L1 has no
+expression edit.
+MAD1 is an MPS1 substrate and a scaffold in
+MAD2-associated signaling (Ji et al., 2017). Support
+through its contextualized state identifies an unedited
+checkpoint intermediary.
+E2F4–TTK
+Messages at 1 →2 and
+3 →4: −0.096/−0.058
+(H1), −0.115/−0.071
+(H3); H1 is +0.141 at
+2 →3.
+E2F4-containing DREAM binds the TTK promoter
+and regulates its transcription (Müller et al., 2017).
+This distinct regulatory relationship carries
+counterevidence in both models, unlike final MAD1L1
+support.
+Table 10: Numerical discrimination among biological roles around TTK. Values use the original
+two-SD request. The papers establish functions of checkpoint proteins and transcriptional regu-
+lators; the interpretation column relates those functions to the model’s A549 nomination. Posi-
+tive/negative attribution means support/opposition to TTK knockout, independently of a prior’s ac-
+tivating/repressing annotation.
+7.9 × 10−9. Final messages contribute +0.753 and the residual +0.670. Figure 2 selects the twenty
+widest shared positive routes using the smaller member’s transition credit, each transition exceeding
+10−5 in both fits. They cover 59%/72% of positive final-transition and 12%/9% of all positive
+message conductance. Positive relationship widths use the maximum positive mean layer-instance
+credit; opposing overlays use mean absolute final-message credit on the same logarithmic scale. The
+archived overview instead pools positive credit across layers. Neither is conserved cross-layer flow.
+Layer identity matters: H3 MAD1L1-to-TTK is −0.271 at 2 →3 but +0.150 at 3 →4. Appendix
+Figure 5 retains layers when displaying both signs.
+At the empirical amplitude, MAD2L1 remains the strongest input (+0.130/+0.183), BUB1B sup-
+ports (+0.068/+0.057), and final MAD1L1 support persists (+0.269/+0.059). Nevertheless, the
+H3 2 →3 message-field cosine across amplitudes is −0.172; persistent nomination does not im-
+ply an invariant internal account. Absolute input IG outside the complete one-hop neighborhood
+is 28.0%/17.3% at the empirical size. These are global-field allocations, not source-specific path
+integrals or effects of isolated edits.
+Recurrence in DANG under H2.
+DANG has one held-out model, H2, which trains on A549.
+Removing the requested TTK decrease leaves rank 44 (response +0.895, reversed −1.438). Only
+15 edits are shared with A549, excluding MAD2L1, BUB1B, and PLK1. Final MAD1L1 support
+recurs (+0.092), while E2F4 supports (+0.101), unlike A549; the pre-declared reading is partial
+(Table 14). At 0.271 SD, rank is 152 (response +0.169, reversed −0.181). Deletion correlations are
+0.78, −0.35, 0.46, 0.56 across transitions on the 88-message panel. Measured agreement reaches
+the 82.1st percentile (six wells). This changes request, cell, and fitted model together.
+M
+ENDPOINT-AMPLITUDE SENSITIVITY ON THE COMMON EXPRESSION PATH
+The original endpoint moves each marker by two reference SD in its HPA-associated direction.
+The empirical endpoint uses 0.527130407904365 reference SD in A549 and 0.2751588147442933
+in HS944T. These are the cell-specific 90th percentiles of observed knockout-induced per-marker
+RMS displacement, computed from target-mean responses for knockouts with at least three wells.
+The marker directions, baseline, model, actual proteins, normalizer, and own-mask policy are un-
+changed. This retrospective magnitude anchor does not confirm the directions, establish simulta-
+30
+
+
+Preprint
+h(0)
+h(1)
+h(2)
+h(3)
+h(4)
+0.0
+2.5
+Logit allocation
+Node states
+0 → 1
+1 → 2
+2 → 3
+3 → 4
+0.0
+2.5
+Messages + carried state
+h(0)
+h(1)
+h(2)
+h(3)
+h(4)
+Node state (same final logit)
+TTK
+MAD1L1
+MAD2L1
+BUB1B
+CDCA8
+BUB3
+E2F4
+FZR1
+PLK1
+CCNB1
+CENPE
+ZBTB7A
+FBXO5
+BRCA1
+MYBL2
+PKM
+E2F3
+RAD51
+GAPDH
+CIT
+0
+0.081
+0.17
+0.67
+1.4
+0
+0.039
+0.17
+0.34
+0
+0.24
+0.16
+0.04
+0.093
+0
+0.11
+0.098
+0.043
+-0.0018
+0
+0
+0.1
+0.034
+0.063
+0
+0.088
+0.08
+0.075
+0.0014
+0
+0
+-0.086
+0.041
+-0.064
+0
+0
+0.071
+0.012
+0
+0
+0.065
+0.01
+0.002
+-0.0013
+0
+0.064
+0.012
+0.0029
+-0.004
+0
+0
+0.063
+0.039
+0.015
+0
+0
+-0.032
+-0.0012
+0
+0
+0
+-0.025
+-0.013
+0
+0
+-0.02
+-0.0044
+-0.024
+0
+0
+-0.016
+-0.01
+-0.01
+0
+0
+-0.014
+0.011
+4.4e-05
+0
+0
+0
+-0.013
+0.00034
+0
+0
+-0.012
+-0.0039
+-0.0061
+0
+0
+-0.011
+-0.007
+-5.5e-07
+0
+0
+0.01
+0.00059
+-0.01
+0
+0
+-1.4
+-0.14
+-0.014
+0
+0.014
+0.14
+1.4
+Signed contribution to final logit (symlog)
+0%
+100%
+Share of row total
+h(0)
+h(1)
+0 → 1 M
+h(2)
+1 → 2 M
+h(3)
+2 → 3 M
+h(4)
+3 → 4 M
+35 / 114
+94 / 2,977
+1,527 / 13,535
+71 / 1,036
+5,310 / 116,590
+25 / 75
+409 / 5,640
+1 / 1
+40 / 80
+0%
+100%
+Share of row total
+0 → 1 M
+0 → 1 R
+1 → 2 M
+1 → 2 R
+2 → 3 M
+2 → 3 R
+3 → 4 M
+3 → 4 R
+0.188 / 1.33 (14.1%)
+0.393 / 0.667 (58.9%)
+0.211 / 1.78 (11.8%)
+0.569 / 0.916 (62.1%)
+0.418 / 1.39 (30.1%)
+0.269 / 0.644 (41.7%)
+0.56 / 0.865 (64.7%)
+0.67 / 0.67 (100.0%)
+A549 → TTK | Conductance profile
+H1+H3 signed mean; request − no change; proteins fixed
+A  Supporting and opposing allocation
+Diamonds: signed net. Dashed line: endpoint difference.
+B  Node representations
+C  Concentration and selected-route coverage
+h(ℓ) = node state; M = messages; R = carried state. Each outline has its own total.
+Smallest 90% set / all positive components
+Selected / full positive conductance
+h(0): encoded input; h(4): decoder input. Accounts are separate; do not add them.
+STRING Functional
+STRING Physical
+STRING Regulatory
+CollecTRI activation
+CollecTRI repression
+Residual · carried state
+Supports
+Opposes
+Figure 4: TTK: signed conductance behind the network. Supporting and opposing allocations
+recover the same mean request-minus-no-change difference (+1.423) at every node state and transi-
+tion, and the final transition splits it between messages (+0.753) and the carried residual (+0.670).
+The panels use the request path with actual proteins fixed and H1/H3 signed scalar means. A gives
+separate node and transition accounts of the same difference. B attributes the same final logit at each
+node state, from encoded input h(0) to decoder input h(4); the nominee-only final column is architec-
+tural, and genes without an expression edit start at zero. C separates component counts from positive
+mass selected by the complete overview (the supplementary output ttk_overview.pdf), with a
+different denominator for each row. Red supports and blue opposes the nominee. Residuals include
+earlier messages; complete layer totals are not added.
+31
+
+
+Preprint
+BUB1B
+BUB3
+CDC20
+KIF2C
+KNL1
+MAD2L1
+MIS18A
+PLK1
+RACGAP1
+TRIP13
+BUB1
+CENPE
+KIF2C
+MAD2L1
+MIS18A
+NDC80
+NEK2
+RACGAP1
+BUB1
+CENPE
+KIF2C
+MIS18BP1
+NDC80
+NEK2
+RACGAP1
+TTK
+MAD1L1
+MAD2L1
+NDC80
+TTK
+TTK
+h(0)
+h(1)
+h(2)
+h(3)
+h(4)
+BIRC5
+BRCA1
+CCNB2
+CDC20
+GAPDH
+KIF14
+MYBL2
+PLK1
+PLK4
+RAD51
+CIT
+E2F4
+FBXO5
+GAPDH
+CIT
+FBXO5
+TBX2
+TP73
+E2F4
+KIF14
+TTK
+h(0)
+h(1)
+h(2)
+h(3)
+h(4)
+A  Supporting transitions: 10 of 107 shared routes
+B  Opposing transitions: 10 of 92 shared routes
+Widths: shared log scale of |mean H1/H3 layer credit|; arrows: computational transport.
+Each selected transition has the panel sign in both fits; dashed links carry residual state.
+Routes organize marginal allocations. Their credits are not multiplied or added across layers.
+Figure 5: Separate supporting and opposing route displays from the same TTK field. Each
+panel retains the ten widest routes under the smaller H1/H3 absolute transition credit, requiring
+every message and residual transition to exceed 10−5 with the panel sign in both fits (107 supporting
+and 92 opposing eligible anchors). Columns preserve computational layers; arrowheads denote
+transport, including reverse channels, rather than biological causation. Colors distinguish STRING
+functional (purple), physical (blue), regulatory (orange), CollecTRI activation (pink), repression
+(green), and residual state (gray dashed). Widths use the same logarithmic scale of absolute mean
+layer credit in both panels. Signs are marginal allocations along the request path, not products of
+edge signs or complete-path causal effects.
+32
+
+
+Preprint
+Table 11: Both amplitudes, with distinct rank definitions. Masked rank removes each competitor’s
+own edit; Common rank uses one fixed query. Scores are raw request/reversal differences from no
+change.
+Case/member
+Scale
+SD
+Masked
+Common
+Request
+Reverse
+TTK H1
+original
+2.000000
+2
+18
++1.517
+−1.834
+TTK H1
+empirical
+0.527130
+14
+19
++0.623
+−0.416
+TTK H3
+original
+2.000000
+3
+17
++1.329
+−1.216
+TTK H3
+empirical
+0.527130
+7
+12
++1.030
+−1.068
+CKS2 H3
+original
+2.000000
+10
+19
++0.768
+−0.378
+CKS2 H3
+empirical
+0.275159
+54
+55
++0.050
+−0.018
+Table 12: Original versus empirical expression fields. Message metrics use the topology-reachable
+field; each four-tuple orders transitions 0 →1 through 3 →4.
+Case/member
+Input overlap
+Message signed overlap
+Message cosine
+TTK H1
+0.860
+0.742, 0.731, 0.565, 0.821
+0.861, 0.936, 0.486, 0.980
+TTK H3
+0.781
+0.561, 0.526, 0.472, 0.559
+0.687, 0.437, -0.172, 0.520
+CKS2 H3
+0.806
+0.793, 0.711, 0.682, 0.765
+0.968, 0.642, 0.780, 0.933
+neous attainability, or specify a clinical target or dose. Both scales were retained; the scaled ranks
+were known before the attribution comparison, rather than choosing an amplitude afterward to res-
+cue a case. The 19-case screen in Appendix K concerns the original two-SD requests, not a repeated
+population screen at empirical amplitudes.
+TTK remains request-positive and reversal-negative in both overlapping training partitions. CKS2
+retains those signs but falls below the original mean 0.5-logit directional threshold. Common-query
+no-change ranks are 381/196 for TTK H1/H3 and 65 for CKS2 H3; reversed common-query ranks
+are 3309/1622/132 originally and 1176/1389/70 empirically. These are not masked nomination
+ranks.
+M.1
+FIELD SIMILARITY AND MULTI-HOP INPUT DEPENDENCE
+For two aligned signed fields v, w, define shared signed mass by separately dividing each by its
+absolute L1 norm and summing min(|vi|/∥v∥1, |wi|/∥w∥1) only where signs agree. This measures
+shape overlap, not a significance test or invariance of the raw magnitudes. Table 12 retains all
+message transitions. TTK H3’s negative 2 →3 cosine rules out describing its internal account as
+unchanged. Conversely, MAD2L1 remains its strongest absolute input-IG marker in both models at
+both amplitudes. The nominee-only final node is architecturally concentrated and is not a stability
+test.
+Absolute input-IG shares outside the complete one-hop incoming prior neighborhood are
+30.2%/28.0% for TTK H1, 26.3%/17.3% for TTK H3, and 58.6%/61.8% for CKS2 H3 (origi-
+nal/empirical). The exported neighbor sets exactly match the complete prior: 92 distinct neighbors
+for TTK and 34 for CKS2. With node-local encoding, normalization within each node, fixed input
+normalizers/proteins, and nominee-local decoding, non-neighbor expression influence requires at
+least two graph-message hops. The denominator is total absolute input IG; these percentages are
+neither fractions of net score, sums of layer credits, nor selected-drawing coverage. They establish
+multi-hop input dependence, not a particular attributed route.
+M.2
+ALL FINITE-MESSAGE OUTCOMES
+Each expression field has its own stratified signed-extreme/control panel, chosen before observing
+suppression effects. The first three transitions each contain 24 messages; final-transition counts are
+18/20 for TTK H1, 16/16 for TTK H3, and 16/21 for CKS2 (original/empirical). Thus total panel
+sizes are 90/92, 88/88, and 88/93. Each intervention removes one typed directed layer-message
+while keeping the original normalization and residual branches. Full scores are recomputed at re-
+quest and no change, with actual proteins fixed. Table 13 distinguishes request-logit drop from
+33
+
+
+Preprint
+Table 13: Expression-path finite suppression: correlations between signed message conductance
+and finite drops. Request is the endpoint-score drop (Actual drop); Response is the request-response
+drop (Gap drop), which subtracts the deletion effect at no change. Both outcomes and all transitions
+are retained.
+Case/member
+Scale
+Outcome
+0 →1
+1 →2
+2 →3
+3 →4
+TTK H1
+original
+Request
+0.328
+0.125
+-0.397
+-0.639
+TTK H1
+original
+Response
+0.551
+0.540
+0.305
+-0.418
+TTK H1
+empirical
+Request
+0.348
+-0.377
+-0.081
+0.774
+TTK H1
+empirical
+Response
+0.810
+0.570
+0.697
+0.358
+TTK H3
+original
+Request
+0.164
+-0.089
+0.025
+-0.168
+TTK H3
+original
+Response
+0.528
+0.329
+0.080
+-0.476
+TTK H3
+empirical
+Request
+0.475
+-0.330
+0.269
+0.471
+TTK H3
+empirical
+Response
+0.507
+0.090
+0.319
+-0.191
+CKS2 H3
+original
+Request
+0.923
+-0.041
+0.083
+0.606
+CKS2 H3
+original
+Response
+0.923
+0.478
+0.418
+0.744
+CKS2 H3
+empirical
+Request
+0.044
+-0.203
+0.643
+0.292
+CKS2 H3
+empirical
+Response
+0.803
+0.445
+0.404
+0.832
+request-response drop. Panels differ across amplitudes and members; the correlations cannot rank
+the amplitudes’ comparative faithfulness. Negative and small values remain visible.
+All six saved tasks completed at 32 quadrature points; saved-array cuts, raw-score parity, and raw-
+IG/initial-node agreement were verified separately from these finite interventions. Numerical com-
+pleteness is not a guarantee of deletion agreement, and positive deletion agreement does not establish
+biological efficacy.
+N
+CKS2 COMPANION ACCOUNT
+N.1
+EXPRESSION-PATH ACCOUNT AT BOTH AMPLITUDES
+The supplementary output cks2_overview.pdf applies the submitted single-model selection
+to every requested edit (157 of 170 reach CKS2; 356 genes, 364 relationships); panel B of the
+supplementary output cks2_network.pdf draws its 15 routes with the largest bottleneck, and
+the supplementary output cks2_profile.pdf gives the signed profile. After three rounds, 12 of
+26 positive nodes carry 90% of positive node conductance; final messages contribute +0.642 and the
+residual +0.127. The strongest final message into CKS2 comes from SKP2 (+0.223), then TP73
+and TP63 (+0.109, +0.067). HS944T/H3 uses the potential-marker melanoma request, its saved
+baseline, and no own CKS2 edit.
+At two SD, SKP2 down contributes −0.329090, while CDT1 down (+0.293241), NR4A3 up
+(+0.265462), and NFKB2 up (+0.177753) support CKS2.
+At 0.275159 SD these become
+−0.054926, +0.010105, +0.034690, and +0.021917, respectively.
+Thus CDT1’s contribution
+shrinks relative to the other leading inputs, and the net response falls from +0.768 to +0.050 despite
+positive response-drop correlations.
+The final SKP2-to-CKS2 STRING regulatory reverse-channel message is positive at both ampli-
+tudes (+0.222538 and +0.025240), despite negative SKP2 input IG. This is not a contradiction: af-
+ter earlier message passing, a sender state contains information from other genes, and its global-field
+message conductance is not a source-specific allocation of that sender’s original edit. The TP73-to-
+CKS2 CollecTRI repression channel is also positive (+0.108613 and +0.009049); its biological-
+prior sign and computational attribution sign answer different questions. At the empirical amplitude
+61.8% of absolute input IG lies outside CKS2’s complete one-hop prior neighborhood. The pos-
+itive finite response-drop correlations in Table 13 concern the fitted response, not its magnitude,
+therapeutic value, or an established route.
+34
+
+
+Preprint
+HS944T/H3 (+0.768)
+IPC298/H1 (+1.386)
+-0.329
++0.293
++0.265
++0.178
++0.049
++0.043
++1.236
++0.254
+-0.028
+-0.018
++0.011
+-0.040
+SKP2 ↓
+CDT1 ↓
+NR4A3 ↑NFKB2 ↑MCM3 ↓CDC25A ↓
+-1
+0
+1
+red: supports CKS2
+blue: opposes
+IG, logit units
+A  Signed expression IG for CKS2: HS944T/H3, IPC298/H1 (2-SD)
+Figure 6: One CKS2 request, two melanoma lines: the same edit can contribute differently.
+Signed expression IG for the six shared edits with the largest |IG| in either line; both requests con-
+tain the same 170 edits and directions. SKP2 down opposes CKS2 in HS944T/H3 but supports it
+in IPC298/H1, whereas CDT1 down supports both. Parentheses give each request response. Red
+supports and blue opposes CKS2. Cell and fitted model change together, so this comparison does
+not isolate a cell-context effect. The corresponding shared-route network is retained in the supple-
+mentary reproduction output cks2_crossline_network.pdf.
+N.2
+CROSS-LINE COMPARISON: HS944T/H3 AND IPC298/H1
+CKS2 has no own edit in the melanoma request and passes the screen in two lines, each with one
+held-out model: HS944T/H3 (rank 10, response +0.768, reversed −0.378) and IPC298/H1 (rank
+148, +1.386, −2.221). Each melanoma line is held out by only one fold, so the two accounts differ
+in line and in model. Both requests contain the same 170 edits in the same directions, so inputs
+are compared edit by edit (Figure 6). Under the pre-declared criteria below, the input account is
+divergent.
+SKP2 down opposes CKS2 in HS944T (−0.329) but is its dominant support in IPC298 (+1.236);
+NR4A3 and NFKB2 up support in HS944T (+0.265, +0.178) but weakly oppose in IPC298
+(−0.028, −0.018). Over all 170 edits, Spearman ρ = −0.003. Two features recur: CDT1 down sup-
+ports CKS2 (+0.293/+0.254), and SKP2 sends the strongest supporting final message into CKS2
+in both lines (+0.223/+0.359). Of the 170 edits, 95 have a route positive in both lines at every
+transition (the supplementary output cks2_crossline_network.pdf displays the top 20).
+The displayed routes carry 49%/83% of HS944T/IPC298 positive final-transition and 15%/19% of
+all positive message conductance. The supplementary network pools positive relationship credit
+over layers, unlike the peak-layer widths in Figure 2. The opposing SKP2 edit thus describes the
+HS944T/H3 computation, not CKS2 in melanoma generally.
+Measured CKS2 knockouts reach the 95.0th and 90.4th percentiles (6 wells each). With one model
+per line, potential-tier markers, and strong sensitivity to request size (Appendix M), this comparison
+shows how recurring relationships can coexist with different input support.
+The all-endpoint screen also passes CKS2 in IPC298 under H1 and TTK in DANG under H2. Before
+computing either field, we fixed the comparison statistics, named checks, and outcome labels. Both
+fields use the same frozen checkpoints, request path, quadrature, and reconciliation as the featured
+cases. Every complete cut recovers the request-minus-no-change difference within 3 × 10−8, and
+initial node conductance matches input IG within 10−16. The screen’s own code recomputes each
+member’s 17,225-candidate table: logits agree within 9×10−14 and the nominee’s own-masked rank
+exactly; 2–7 near-tied paralog candidates per rank column swap order. Node and typed-edge index
+spaces are identical across lines for each nominee, so cross-line min-consensus cores are defined.
+Inputs are compared over edits requested in both cases with the same direction. Material edits have
+|IG| ≥0.01 in both. Labels were fixed in advance. Convergent requires ρ ≥0.5, material sign
+agreement ≥75%, all applicable named checks passing, and at least 10 shared routes. Divergent
+applies when ρ ≤0.2, material agreement is below 60%, most named checks fail, or fewer than 5
+routes are shared. Otherwise the result is partial.
+The 29 shared-positive final relationships carry 70%/85% of each line’s positive final-message con-
+ductance, but their rank agreement is weak (ρ = 0.171). At 0.249 SD in IPC298, CKS2 falls to
+own-masked rank 406 (response +0.258, reversed −0.277); SKP2 down remains its dominant sup-
+port (+0.232). IPC298’s 94-message deletion panel gives correlations 0.44, 0.40, 0.28, 0.46 across
+transitions. These results retain the divergent account and amplitude sensitivity rather than treating
+the two melanoma cases as independent replication.
+35
+
+
+Preprint
+Table 14: Cross-line comparisons on the two-SD request path (pre-declared readings). Final: in-
+coming layer-4 relationships positive in both cases (positive in first/second). Core: routes positive
+in every case at every transition. The A549 H1/H3 row (same line and request) is a scale reference
+only.
+Comparison
+Common edits Material agree
+ρ
+Final Core Reading
+CKS2 HS944T/H3 vs IPC298/H1
+170
+3/10 −0.003 29 (39/39)
+95 divergent
+TTK A549/H1 vs DANG/H2
+15
+5/6
+0.264 60 (79/70)
+10a
+partial
+TTK A549/H3 vs DANG/H2
+15
+5/5
+0.350 42 (59/70)
+10a
+partial
+TTK A549/H1 vs A549/H3
+157
+29/36
+0.411 43 (79/59)
+107 –
+aThree-way core over A549/H1, A549/H3, and DANG/H2.
+O
+MEASURED MARKER AGREEMENT AND THE CROSS-CELL
+MEASURED-SIGNATURE REFERENCE
+For knockout target k, request cell c, and well n in that cell, let Sc \ {k} be the requested markers
+after excluding the target itself. With requested sign ηj ∈{−1, +1}, measure
+Ankc =
+1
+|Sc \ {k}|
+X
+j∈Sc\{k}
+ηj
+vendpoint
+nj
+−¯vplate(n)
+j
+sH1
+j
+.
+(26)
+We average over the target’s wells and rank target means among all measured knockouts in that
+cell, using average tied percentile rank. This is a signed mean displacement, not cosine similar-
+ity, a fraction of markers achieved, or survival benefit. Excluding k prevents its direct depletion
+from supplying measured program agreement. Replicate wells are not independent patients or an
+independent validation dataset. These are existing LINCS responses, assessed separately from the
+constructed model query.
+Original nominees. Measured A549 knockouts of PYGL reach the 70.8th percentile of requested-
+marker agreement (17 wells; mean 0.140252 reference SD), and CCDC86 the 88.5th percentile
+(9 wells; mean 0.243854 reference SD), with the target’s own marker excluded. These measured
+responses are separate from the own-edit dependence of their nominations (Appendix J).
+For TTK in A549 the mean is 0.417864 reference-SD units over requested markers, percentile 98.2
+among 5,115 measured target identities, with 10 wells. For CKS2 in HS944T it is 0.074210, per-
+centile 95.0 among 562 targets, with 6 wells. These means are far below a uniform two-SD shift,
+although the percentiles are high. All TTK wells and five of six CKS2 wells exceed their respective
+cell’s median well agreement. The ranking comparison in Table 16 uses the narrower intersection
+of eligible inverse candidates and available other-cell profiles (4,970 and 544 targets, respectively);
+that intersection is not the percentile denominator.
+The same metric applied to all 19 computational-screen cases (Table 15) gives measured support
+for 10 of the 17 measured cases, including both TTK lines and both CKS2 lines, and no measured
+support for the other 7; GCLC in DANG and CKS1B in IPC298 have no measured knockouts. Nine
+of the ten supported cases have at least three wells (CHEK1 in HS944T has one). Repeated genes
+across lines make these cases dependent, so we report counts rather than a test.
+O.1
+MEASURED KNOCKOUT CORRESPONDENCE FOR TTK
+For the TTK nomination we also ask whether the requested markers that the request-path input
+attribution credits most are those that the measured TTK knockout moves most in the requested
+direction. For each requested marker other than TTK, the model value is the member-averaged two-
+SD input IG and the measured value is the well-mean signed displacement of Equation 26 before
+averaging over markers. Their Spearman correlation is 0.492 in A549 (157 markers, 10 wells), at the
+98.8th percentile of the same correlation computed against each of the 4,654 other A549 knockouts
+with at least three wells; in DANG it is 0.278 (99 markers, 6 wells), at the 88.5th percentile of 520.
+This concerns one nomination and two lines; it is retrospective agreement between attribution and
+measured responses, not intervention efficacy.
+36
+
+
+Preprint
+Table 15: Measured responses of candidates passing the computational screen. Agreement is mean
+other-marker alignment (Equation 26), averaged over the target’s wells in reference-SD units, ex-
+cluding its own marker. The within-cell percentile ranks this mean among all measured knockouts;
+it is not clinical success. Measured-support thresholds were fixed before the original run and are
+separate from the computational screen. All 19 context–gene cases are retained and are not inde-
+pendent: TTK, CKS2, and CAMSAP2 each appear in two lines.
+Cell
+Gene
+Wells
+Agreement
+Percentile
+Measured support (≥75th percentile; 10 cases)
+A549
+TTK
+10
+0.418
+98.2
+A549
+TOP2A
+21
+0.370
+97.0
+A549
+CAMSAP2
+12
+0.369
+97.0
+HS944T
+CHEK1
+1
+0.079
+96.4
+HS944T
+CKS2
+6
+0.074
+95.0
+IPC298
+CKS2
+6
+0.036
+90.4
+HS944T
+CDK2
+9
+0.056
+89.5
+DANG
+TTK
+6
+0.039
+82.1
+A549
+SORL1
+6
+0.177
+78.6
+DANG
+CAMSAP2
+6
+0.031
+76.3
+No measured support (≤50th percentile; 7 cases)
+IPC298
+CBLB
+6
+-0.003
+39.5
+A375
+AVPR2
+5
+-0.005
+32.3
+HS944T
+CDC7
+2
+0.002
+31.7
+YAPC
+CD2
+5
+-0.024
+23.1
+DANG
+TPR
+5
+-0.023
+19.2
+IPC298
+WWTR1
+6
+-0.018
+13.4
+IPC298
+CALCA
+6
+-0.035
+1.3
+Not measured (2 cases)
+DANG
+GCLC
+–
+–
+not measured
+IPC298
+CKS1B
+–
+–
+not measured
+Cross-cell measured-signature reference. We compute the same signed-marker score for each
+target in every other cell, average wells within a cell, then give each other cell equal weight. The
+request cell’s knockout endpoints do not contribute to that prediction. It is not a trained intervention-
+conditioned forward model. The common H1 scale is fixed; this comparison does not reproduce
+every inverse fold’s training-data boundary or tune a forward model. We compare reference scores,
+mean inverse full logits, candidate-specific masked logits, and mean directional scores with the
+request cell’s measured agreement over their common supported targets. Missing measurements are
+not imputed. The reference uses measurements the inverse model never receives and is scored on
+the evaluation criterion itself, so the columns are not a matched model comparison; the illustrated
+cases do not establish ranking-level efficacy.
+P
+REQUEST-PATH POPULATION SUPPRESSION
+Under a fixed request and held-out model, we suppress one typed, directed message at one transition.
+Other message gates, weights, and degree factors remain fixed; downstream states are recomputed.
+Pre-declared protocol. The question, pool, per-run computation, statistics, decision rule, and the
+wording for each possible outcome were frozen and committed before any production run; post-
+hoc diagnostics are labeled as such. The pool comprises every candidate that passes the screen of
+Section 6 without its illustrative mean-directional floor: in every eligible member, own-edit-masked
+rank ≤200, akf > 0, and bkf < 0. This gives 337 nominations and 371 member runs in 12 lines, of
+which 333 nominations and 359 runs lie in the 9 lines held out by at least one model (primary); ES2,
+PC3 and SNU761 are seen in training by every model (4 nominations, secondary). Nominees in a
+line share the same underlying request, with candidate-specific own edits removed. We therefore
+use the line as the unit of aggregation: correlations are averaged over members within a nomination,
+nominations within a line, and lines equally.
+37
+
+
+Preprint
+Table 16: Spearman correlation with measured requested-marker agreement over the common sup-
+ported target set. The reference column is built from the same knockout’s measured responses in
+other lines and scored on this criterion; it is a measured-response reference, not a trained forward
+model, so its column is not a matched comparison with the inverse scores. Exposure refers to the
+inverse model; reference signatures always exclude the request cell. Masked uses each candidate’s
+own-edit-masked inverse score.
+Cell
+Inverse exposure
+Targets
+Reference
+Full logit
+Masked
+Directional
+A549
+held out
+4970
+0.681
+0.042
+0.038
+0.046
+YAPC
+held out
+3356
+0.132
+-0.042
+-0.039
+0.011
+DANG
+held out
+513
+0.488
+0.056
+0.058
+0.069
+HT29
+seen
+4808
+0.173
+-0.163
+-0.163
+0.010
+MCF7
+held out
+3356
+0.242
+0.008
+0.008
+0.037
+HCC1806
+held out
+513
+0.532
+-0.013
+-0.013
+-0.002
+SNU761
+seen
+442
+0.287
+-0.037
+-0.038
+0.112
+U251MG
+held out
+4247
+0.113
+-0.099
+-0.099
+0.051
+PC3
+seen
+4968
+0.169
+0.075
+0.075
+0.051
+A375
+held out
+4970
+0.310
+0.051
+0.052
+0.005
+HS944T
+held out
+544
+0.407
+0.048
+0.041
+0.041
+IPC298
+held out
+513
+0.306
+-0.061
+-0.039
+-0.024
+AGS
+seen
+4145
+0.101
+-0.137
+-0.139
+0.018
+ES2
+seen
+4968
+0.185
+-0.086
+-0.086
+-0.008
+Table 17: Request-path population suppression by held-out line: mean Spearman correlation be-
+tween signed message conductance and response drop. n: nominations. Measured size: the cell-
+specific 90th percentile of observed knockout displacement (0.25–0.53 SD); the pool is fixed by the
+two-SD screen. Permutation null: deletion effects shuffled within each panel, 1,000 times, aggre-
+gated identically.
+Two SD
+Measured size
+Line
+n
+0 →1
+1 →2
+2 →3
+3 →4
+0 →1
+1 →2
+2 →3
+3 →4
+A375
+58
+0.852
+0.663
+0.459
+0.336
+0.872
+0.665
+0.476
+0.361
+A549
+9
+0.734
+0.667
+0.412
+0.177
+0.770
+0.665
+0.491
+0.208
+DANG
+54
+0.882
+0.680
+0.654
+0.491
+0.900
+0.745
+0.673
+0.501
+HCC1806
+57
+0.928
+0.863
+0.596
+0.372
+0.928
+0.872
+0.617
+0.393
+HS944T
+69
+0.905
+0.740
+0.650
+0.531
+0.895
+0.745
+0.641
+0.545
+IPC298
+69
+0.880
+0.722
+0.660
+0.485
+0.899
+0.751
+0.689
+0.528
+MCF7
+8
+0.931
+0.890
+0.577
+0.475
+0.899
+0.898
+0.317
+0.545
+U251MG
+7
+0.923
+0.839
+0.634
+0.521
+0.924
+0.862
+0.670
+0.580
+YAPC
+2
+0.690
+0.560
+0.508
+0.506
+0.744
+0.450
+0.599
+0.286
+Equal-line mean
+333
+0.858
+0.736
+0.572
+0.433
+0.870
+0.739
+0.575
+0.438
+95% bootstrap
+0.78–0.91
+0.64–0.81
+0.50–0.64
+0.35–0.51
+0.81–0.91
+0.62–0.83
+0.48–0.66
+0.32–0.54
+Null 95th pct
+0.028
+0.027
+0.029
+0.034
+0.036
+0.031
+0.036
+0.039
+Message selection and deletion. Each run uses the frozen checkpoints, the request path with the
+nominee’s own edit removed, the default conductance refinement with the reconciliation checks of
+Appendix D, and the canonical panel rule (six largest positive and six most negative messages per
+transition, low-|E| and relation/layer-matched random controls; seed fixed; selection saved before
+deletion). Each deletion removes one typed directed layer-message; request and no-change scores
+are recomputed, and the outcome is the drop in akf. Qualification pilots on TTK and CKS2 repro-
+duced their saved fields, panels, and deletion results within 5.4 × 10−15. All 742 runs (both request
+sizes) succeeded.
+Primary result. The pre-declared primary reading required the equal-line mean to be positive and
+all 9 held-out lines to be positive at a transition; it is met at every transition for both sizes.
+Further pre-declared outputs. Raw message L2 size correlates with the response drop at 0.004–
+0.107 (two SD). One HCC1806 nomination (SLC38A6; response 8.7×10−6) has no message above
+the 10−5 sign cutoff and therefore an empty panel; it and the other undefined panels (at most 9 per
+transition at two SD, 13 at the measured size) are recorded as missing; setting them to zero leaves
+every equal-line mean positive (worst case 0.41 at 3 →4). The seen-cell lines give 0.85 / 0.75 /
+38
+
+
+Preprint
+Table 18: Post-hoc: deletion effect versus conductance for the signed-extreme messages (two SD,
+9 held-out lines). Slope and identity R2 are per-panel medians of drop = b·conductance and of
+agreement with drop = conductance.
+Transition
+Median drop/E
+Slope
+Identity R2
+Within 2×
+Same sign
+0 →1
+0.995
+0.998
+0.963
+90%
+97%
+1 →2
+1.006
+1.009
+0.757
+72%
+90%
+2 →3
+0.990
+0.960
+0.394
+59%
+84%
+3 →4
+1.024
+1.011
+0.165
+39%
+73%
+0.73 / 0.43. The 19 above-floor cases are a reported subset with lower correspondence than the full
+pool. Correlations with request-logit and margin outcomes, which conductance does not allocate,
+are retained in the frozen outputs.
+Post-hoc additivity diagnostic. Among signed extremes in the held-out lines, we compare each
+message’s deletion effect with its own conductance (Table 18). Median drop/conductance ratios
+remain near one while identity agreement declines with depth. These descriptive ratios do not estab-
+lish unbiased centering or identify a cause; this diagnostic was examined after the primary results
+and is not a pre-declared reading.
+Pre-declared non-additivity tests. After the additivity diagnostic, we froze a second protocol and
+a seeded subsample (3 nominations per held-out line, all if fewer: 26 nominations, 37 member
+runs) before running two arms; all 37 runs succeeded, and with both arms switched off the code
+reproduced the main-run deletions within 10−14. Pairwise deletion jointly removes every pair of
+signed-extreme messages within a panel; relative interaction is |Dab −(Da + Db)|/(|Da| + |Db|).
+Its equal-line median rises monotonically, 0.007, 0.026, 0.051, 0.097 from 0 →1 to 3 →4 (pre-
+declared reading: non-additivity grows with depth); at 3 →4, 9% of pairs exceed 0.5, and the
+signed interaction is centered on zero, with super- and sub-additive pairs equally common at every
+transition. Frozen normalization repeats single deletions with each LayerNorm’s mean and variance
+fixed at their intact values. Identity R2 falls at the first three transitions (0.97→0.71, 0.73→0.57,
+0.39→0.34) and rises at 3 →4 (0.14→0.25); the pre-declared rule reads this as a partial contri-
+bution. This arm does not, however, isolate normalization: conductance already integrates each
+LayerNorm’s Jacobian, so drops under frozen statistics need not equal the same conductance, which
+we recognized only after running it. We therefore draw no conclusion about normalization as the
+source of the spread.
+P.1
+SEPARATING PATH ALLOCATION FROM FINITE-DELETION REMAINDERS
+Pairwise deletions show increasing non-additivity with depth, but a bounded follow-up does not
+establish normalization as a general explanation of the disagreement.
+Follow-up designed after the initial results. After recognizing the frozen-statistics arm’s mis-
+match, we froze a repaired implementation and analysis on the same saved two-SD panels: 37
+member tasks, 26 nominations, 9 held-out lines. This is a bounded follow-up, not an independent
+replication or a replacement for the 333-nomination population study. The earlier pairwise measure-
+ments and frozen-statistics outputs above remain unchanged.
+Let ge multiply one typed directed message, with all gates initially one, and write Se(x) =
+∂sk(x; ge)/∂ge|ge=1 for endpoint-local sensitivity. For no-change and request endpoints x0, x1,
+define Ae = Se(x1) −Se(x0), De as the original response drop under full deletion, and Ce as the
+saved request-path message conductance. In plain terms, Ae is the local linear approximation to the
+request-response drop, while De is the drop after completely removing the message. Then, exactly,
+D −C = (A−C)+(D −A),
+(D −C)2 = (A−C)2 +(D −A)2 +2(A−C)(D −A). (27)
+The first term separates path allocation from endpoint sensitivity; the second is the finite-deletion
+remainder. Their signed cross-term can cancel, so squared components are not additive fractions of
+discrepancy explained. Saved conductance retains its original quadrature error.
+Secondary LayerNorm intervention. At each endpoint separately, replace every LayerNorm by its
+full-Jacobian affine tangent at the intact state, LN(u∗)+JLN(u∗)(u−u∗). Unlike freezing only mean
+39
+
+
+Preprint
+Table 19: Bounded follow-up: final-transition normalized finite-deletion remainder, averaged within
+each held-out line. Positive ∆K means a smaller remainder under tangent LayerNorm, not improved
+agreement with conductance. MCF7 has 2 defined nominations of 3; YAPC has 2 of 2; all other lines
+have 3 of 3.
+Line
+K
+KLN
+∆K
+A375
+0.639799
+0.334892
+0.304907
+A549
+0.717889
+0.253772
+0.464117
+DANG
+0.241978
+0.135392
+0.106587
+HCC1806
+0.126292
+0.120693
+0.005599
+HS944T
+0.156073
+0.344205
+-0.188132
+IPC298
+0.197448
+0.104083
+0.093365
+MCF7
+0.088589
+0.082603
+0.005986
+U251MG
+0.427983
+0.420345
+0.007638
+YAPC
+0.574974
+0.403382
+0.171593
+Equal-line mean
+0.352336
+0.244374
+0.107962
+and variance, this preserves the intact score and endpoint sensitivity S, while removing LayerNorm
+curvature for that endpoint’s deletion. These endpoint-local surrogates are not one newly attributed
+request-path model. With tangent deletion DLN, we compare, within each signed-extreme panel,
+Q =
+X
+e
+(D2
+e + A2
+e),
+K =
+P
+e(De −Ae)2
+Q
+,
+KLN =
+P
+e(DLN
+e
+−Ae)2
+Q
+,
+∆K = K −KLN.
+(28)
+The original-model denominator is shared between arms; panels require at least three extremes
+and positive finite Q. Panel values are averaged over members, nominations, then lines equally
+(Table 19). At 3 →4, the remainder decreases in 8 of 9 lines, but increases in HS944T: equal-
+line K changes from 0.352336 to 0.244374, ∆K = 0.107962, with descriptive 95% line-bootstrap
+interval [−0.005949, 0.231621] (10,000 resamples). The frozen reading is Mixed, not a general
+explanation of the depth trend. All 37 tasks succeeded; two MCF7/ABCB9 final panels have fewer
+than three extremes (H1: one; H3: two), so their contrasts are undefined, not failed runs. Every line
+retains a defined contrast.
+Original-conductance agreement is not restored. Using the shared original scale P
+e(D2
+e + C2
+e),
+the final-transition squared discrepancy against C changes only from 0.704446 to 0.690835 on
+the equal-line summary.
+For the existing TTK/A549 cases, the full saved panels retain nega-
+tive correlations: H1 −0.417957 →−0.298246 (18 messages), H3 −0.476471 →−0.497059
+(16 messages). These are descriptive continuity checks, not the signed-extreme primary contrast.
+TTK’s normalized squared discrepancy against original conductance worsens in both models (H1
+1.190312 →1.230727; H3 1.343328 →1.448154), despite smaller finite-deletion remainders; its
+path-allocation term has larger squared magnitude than its remainder. Thus reducing one nonlinear
+contribution can remove cancellation rather than improve total correspondence. The result supports
+a bounded contribution of LayerNorm curvature under this intervention, not normalization as a uni-
+versal cause, biological causality, or better intervention ranking.
+All task inputs, code identities and output receipts were verified; local model-free aggregation re-
+produced the tables. Maximum historical-deletion discrepancy was 8.88 × 10−15, intact-score dis-
+crepancy 1.78 × 10−15, and sensitivity-preservation discrepancy 2.08 × 10−15. These numerical
+checks qualify the intervention, not a new biological mechanism.
+Q
+PROTEIN-PATH POPULATION SUPPRESSION: SCOPE AND DISPOSITIONS
+We now turn from constructed expression requests to observed knockout queries. Across 45,089
+observed queries in 17 lines, protein-path deletion correspondence is also positive on average. Ran-
+domization, rewiring and refits assess this different contrast in Appendix R; early-layer cross-refit
+agreement is weak. These are not request-path independent-seed replications.
+40
+
+
+Preprint
+Table 20: Equal-cell mean observed-query suppression correlations. Actual is the endpoint-score
+drop with actual proteins; Gap subtracts the deletion effect with reference proteins, keeping ex-
+pression fixed (Appendix F). These are within-query selected-message correlations, not a pooled
+correlation over all edges.
+Held replicate
+Unseen cell
+Transition
+Actual
+Gap
+Actual
+Gap
+0 →1
+0.321
+0.237
+0.341
+0.232
+1 →2
+0.141
+0.312
+0.156
+0.331
+2 →3
+0.159
+0.335
+0.186
+0.362
+3 →4
+0.210
+0.382
+0.220
+0.396
+1
+2
+3
+4
+message-passing layer
+(4 = messages into the nominee)
+0.0
+0.2
+0.4
+0.6
+Spearman ρ, conductance vs
+gap drop on deletion
+A   Per-line means by layer
+held-out replicates (6 lines)
+unseen cell lines (11 lines)
+−1.0
+−0.5
+0.0
+0.5
+1.0
+Spearman ρ within one case (layer 4)
+0
+4
+8
+12
+% of cases
+B   Per case, final layer
+held-out replicates: 88% positive,
+median 0.42 (n = 20,056)
+unseen cell lines: 89% positive,
+median 0.42 (n = 24,107)
+Signed conductance vs. finite deletion effect across 45,089 cases
+45,069 completed cases, 17 cell lines; each explains the model's own top prediction
+Figure 7: Population suppression on the protein path. In 45,089 predeclared observed test cases
+(17 lines), each explaining the model’s top prediction, a message sample fixed before deletion is
+deleted one message at a time. A: per-line means (dots) and equal-line means (lines) of the Spear-
+man correlation between signed conductance and gap drop. B: per-case correlations at layer 4;
+undefined cases are excluded. Rank correspondence within the fitted model, not biological causality
+(Appendix Q).
+This population uses the fixed-expression protein-reference path of Section 5, not the expression
+path of Section 5.1. The predeclared cohort comprises 45,089 cell-line by resolved-knockout-target
+combinations across all 17 lines. Each selected observed query explains its top predicted target,
+whether correct or incorrect, using only checkpoint members for which the exact observation lies
+in the outer test set. This is not the constructed-request screen or a validation-split study. Every
+terminal disposition remains in the denominator: 45,069 numerical successes and 20 numerical-
+convergence failures. Within-query/layer Spearman correlations use the selected message panel;
+defined correlations are averaged within cell and cells equally within exposure setting. Undefined
+values are recorded as missing, not zero. Table 20 records the primary rounded summaries; the
+frozen source retains per-case and per-cell distributions, missingness, and correctness/QC strata.
+Figure 7 shows the per-line gap-drop means by layer and the per-case distribution at layer 4. Per-
+line means are positive in every line at every layer. At layer 4, 88% of held-replicate and 89% of
+unseen-line cases have a positive correlation, with median 0.42 in both settings; the 906 cases whose
+layer-4 correlation is undefined are excluded rather than set to zero. With the raw score drop instead
+of the gap drop, correspondence is weaker at layers 2–4 (0.21–0.22 at layer 4) and stronger at layer 1
+(Table 20). This is rank correspondence within the fitted model; it is neither equality of magnitudes
+nor biological causality.
+41
+
+
+Preprint
+Table 21: Predictive competence depends on exposure setting. Tissue-balanced MRR, mean ±
+sample SD over three training seeds after within-seed aggregation over H1/H2/H3. Rotations are
+not independent seeds.
+Model
+Held replicate
+Unseen cell
+Expression-only MLP
+0.0309 ± 0.0011
+0.0357 ± 0.0012
+Protein-informed node-local
+0.1150 ± 0.0014
+0.1499 ± 0.0016
+GNN
+0.1344 ± 0.0010
+0.1433 ± 0.0023
+Terminal case counts are reported from the completed case computations and four per-shard artifact
+checks; the redundant supervisor-wide final scan did not run.
+R
+MATCHED MODELS, NULL CONTROLS, AND INDEPENDENT REFITS
+The matched predictive study contains 27 model/fold/seed records (18 new fits and 9 originals), with
+the same ordered test identities, features, candidates, and fold normalizers. The expression-only
+MLP sees the expression vector but no proteins or graph. The protein-informed node-local model
+retains protein and own-node expression features but has no cross-node messages. Three-seed means
+and sample SDs in Table 21 follow the canonical fold/unit/tissue aggregation before averaging seeds.
+Every node-local fit selected epoch 29 or 30 and its learning-rate trials reached the 30-epoch cap.
+This is a fixed-budget comparison with different information access and parameterization, not proof
+of best-achievable graph-free performance. The historical GNN seed and audited canonical-port
+refits share the scientific recipe; bitwise historical replay was not established.
+The predictive comparisons above do not use attribution. All null-field and refit-field results below
+use the separate fixed-expression protein path, not a new population of expression-path accounts.
+A constructed-query graph-free check confirms that the node-local model’s own-edit-masked pro-
+gram response is zero (as its architecture implies). It reproduces the original self-cue nominations,
+including H1 PYGL rank 4 and CCDC86 rank 2. This property is specific to node-local decoding: a
+global MLP can respond to other genes. In seven tested cell/member contexts, that MLP shares 2–7
+full-request top-50 candidates with the GNN and has response-to-full-logit standard-deviation ratios
+0.017–0.058. Its response ranks can place TTK or TOP2A higher despite small changes. These
+observations do not establish that all graph-free models fail or that inverse nomination requires our
+graph.
+Sensitivity to randomized models and priors. The observed null panel fixes 34 queries, nominees,
+and 42 eligible members, with one trained reference and eight controls at three null seeds: 1,050
+successful jobs. The primary statistic compares signed node fields on topology-defined reachable-
+union support, not conductance with deletion effects. Null seeds are averaged within case, cases
+within cell, then cells equally. One PC3 case lacks sufficient support, leaving 33 defined cases
+spanning all 17 cells; the final nominee-local node correlation is architecturally undefined. Table 22
+reports all eight arms. Rewired edges are not paired row by row; common node identities support
+the graph-null comparison. The decoder-first cascade cannot separately identify message-weight
+dependence. A separate 100-job constructed-null panel covers the original PYGL/CCDC86 request,
+not TTK/CKS2 or the observed population.
+Agreement across training seeds. The refit panel retains the same 34 observed queries, 42 eligible
+members, and original nominees across three training seeds (126 successful attribution jobs). Sup-
+pression messages were selected on the original fit and reused across refits, so cross-seed differences
+are not a clean comparative faithfulness ranking. Table 23 reports full signed message-rank agree-
+ment; weak early-layer agreement persists between the two new fits. All within-fit equal-cell mean
+actual/gap suppression associations are positive, but individual negative cases remain. Full-field
+rank statistics do not establish stability of top-message subnetworks or pathways, and this bounded
+panel does not establish refit stability of the constructed cases.
+42
+
+
+Preprint
+Table 22: Trained-versus-null signed node-field correlation, equal-cell aggregation. Low values
+indicate sensitivity to a null intervention, not poor conductance–suppression correspondence.
+Control
+h(0)
+h(1)
+h(2)
+h(3)
+Reset decoder
+0.0067
+0.0028
+-0.0022
+-0.0040
+Decoder + last layer
+0.0035
+0.0033
+0.0020
+0.0200
+Decoder + last two
+0.0064
+0.0001
+-0.0042
+0.0066
+Decoder + last three
+-0.0081
+-0.0020
+-0.0070
+0.0115
+Decoder + all four
+0.0019
+-0.0002
+0.0012
+0.0450
+Full reinitialization
+-0.0016
+0.0034
+-0.0011
+-0.0063
+Protein permutation
+0.0197
+0.0761
+0.0974
+0.2013
+Typed degree-preserving rewiring
+0.0254
+0.0348
+0.0271
+0.0653
+Table 23: Cross-refit agreement of full signed message rankings, equal-cell mean Spearman corre-
+lation (33 defined cases, 17 cells). This is not top-subnetwork stability.
+Seed pair
+0 →1
+1 →2
+2 →3
+3 →4
+20260903/20260904
+0.018
+0.019
+0.034
+0.168
+20260903/20260905
+0.022
+0.024
+0.052
+0.206
+20260904/20260905
+0.026
+0.024
+0.061
+0.177
+43
+
+
+Preprint
+S
+SUPPORTING AND OPPOSING RELATIONSHIPS ACROSS THE SCREEN
+This descriptive inventory retains all 19 computational-screen cases, including ten meeting the
+measured-support criterion, seven at or below the 50th percentile, and two without measurements. It
+uses saved request-path conductance, with actual proteins fixed and the nominee’s own expression
+edit removed where present. No new model fits or attribution runs were performed for this inventory.
+Every listed message is computational transport from the named partner into the nominee at transi-
+tion 3 →4. Conductance is in nominee-score units: positive supports the request-minus-no-change
+response and negative opposes it. Prior activation/repression labels do not determine attribution
+signs; reverse transport does not reverse biological causality. Values across different nominees are
+not calibrated measures of biological importance.
+Coverage and selection.
+The original 786-message inventory contains four complete fields
+(TTK/A549, TTK/DANG, CKS2/HS944T, CKS2/IPC298) and fifteen saved stratified panels. Ta-
+ble 25 preserves that export and its coverage labels: panel maxima are not full-field maxima, and
+absence is not zero. We subsequently recovered complete saved fields for SORL1/A549, CAM-
+SAP2/A549, TOP2A/A549 and CHEK1/HS944T, without new inference. Together with TTK/A549
+and CKS2/HS944T, these supply six expanded accounts covering ten eligible partition fits. TTK
+is shown in Figure 2; the other five figures follow below. The CAMSAP2/DANG contrast remains
+panel-based. Each figure’s executed request leaves the nominee unchanged, removing its own edit
+where present; TTK/A549 was already unedited in the original request. The examples were selected
+retrospectively for illustration, not as an unbiased estimate of nomination success.
+Reading the figures. Panel A shows node conductance at h(3), before the final message step; it is
+not expression-input IG. Selected partners are ordered by signed mean, with per-fit values and ar-
+rows only for requested edits. Panel B shows selected positive route witnesses and selected opposing
+final messages. Twenty routes is a display budget, not a candidate-rank cutoff. Node fill denotes the
+executed request; relationship colors and glyphs retain the biological prior. Blue ticks mark negative
+final incoming message conductance, with badges for fit-specific opposition. An unticked relation-
+ship need not be positive in every layer or fit. Positive widths use peak positive mean layer credit,
+and opposing overlays use mean absolute final-message credit on the same within-case logarithmic
+scale. Layers are not added into a conserved flow; full selection rules and exact values accompany
+the figures.
+What the distinctions establish.
+The fitted accounts distinguish relationship type, input edit
+from later state, and recurring from fit-dependent contributions. Literature then supplies biologi-
+cal questions to examine, rather than a one-to-one mapping from a database channel to a mecha-
+nism. CD58/CD2 illustrates why these questions remain separate from measured support: in YAPC,
+regulatory credit supports (+0.6522/+0.4967) and physical credit opposes (−0.0288/−0.0541)
+in H1/H3, despite only 23.1st-percentile measured agreement. Cross-cell comparisons change the
+fitted model as well as the cell/request; H1/H3 share a seed. The case captions distinguish the
+computational finding, experimental context and an unresolved biological question.
+Table 24: Opposition in the complete final incoming-message fields. Counts include every typed
+message into the nominee at 3 →4, separately by fit. Negative magnitude share is the sum of
+absolute negative conductance divided by total absolute message conductance. It excludes residual
+state and is not a percentage of the prediction. The selected blue ticks are not a census of this field.
+Case
+Fit
+Negative / all
+Negative magnitude share
+TTK/A549
+H1
+20/99
+13.8%
+TTK/A549
+H3
+40/99
+24.7%
+SORL1/A549
+H1
+12/26
+35.5%
+SORL1/A549
+H3
+18/26
+19.8%
+CKS2/HS944T
+H3
+16/56
+16.3%
+CAMSAP2/A549
+H1
+5/16
+2.1%
+CAMSAP2/A549
+H3
+0/16
+0.0%
+TOP2A/A549
+H1
+34/197
+1.7%
+TOP2A/A549
+H3
+36/197
+6.6%
+CHEK1/HS944T
+H3
+97/233
+13.5%
+44
+
+
+Preprint
+Table 25: Original 786-message inventory: largest available final incoming contribution of each
+sign, by fit. C/P mark complete/panel coverage in that export, before recovery of the expanded case
+fields. Panel maxima are not full-field maxima. SF/SP/SR: STRING functional/physical/regulatory;
+CA/CR: CollecTRI activation/repression; rev: reverse transport. Percentiles and wells concern mea-
+sured other-marker agreement. Exact full records will be released with the code.
+Case / evidence
+Supporting
+Opposing
+TTK / A549
+C; 98.2 pct.; n=10
+H1: MAD1L1 [SR-rev] +0.42
+H3: MAD2L1 [SR-rev] +0.161
+H1: E2F4 [CR] -0.0575
+H3: E2F4 [CR] -0.071
+TOP2A / A549
+P; 97.0 pct.; n=21
+H1: NFYB [CR] +0.766
+H3: NFYB [CR] +0.771
+H1: TP53 [SP] -0.00444
+H3: CDK1 [SR] -0.0533
+CAMSAP2 / A549
+P; 97.0 pct.; n=12
+H1: CKAP2L [SP] +0.831
+H3: CKAP2L [SP] +1.13
+H1: CLASP1 [SF] -0.0093
+H3: none in saved scope
+CHEK1 / HS944T
+P; 96.4 pct.; n=1
+H3: TIMELESS [SR] +1.33
+H3: FOXM1 [CA] -0.0538
+CKS2 / HS944T
+C; 95.0 pct.; n=6
+H3: SKP2 [SR-rev] +0.223
+H3: GMNN [SP] -0.0427
+CKS2 / IPC298
+C; 90.4 pct.; n=6
+H1: SKP2 [SR-rev] +0.359
+H1: SKP1 [SR-rev] -0.056
+CDK2 / HS944T
+P; 89.5 pct.; n=9
+H3: JUND [CR] +0.203
+H3: MCM3 [SR-rev] -0.0906
+TTK / DANG
+C; 82.1 pct.; n=6
+H2: CDCA8 [SR-rev] +0.266
+H2: MAD2L1 [SR-rev] -0.031
+SORL1 / A549
+P; 78.6 pct.; n=6
+H1: APP [SP] +0.0436
+H3: APP [SR-rev] +0.674
+H1: GGA2 [SF] -0.0155
+H3: GGA1 [SP] -0.0416
+CAMSAP2 / DANG
+P; 76.3 pct.; n=6
+H2: CKAP2L [SP] +0.488
+H2: CKAP2 [SF] -0.0301
+Table 26: Final incoming contrasts, continued; definitions and scope as in Table 25.
+Case / evidence
+Supporting
+Opposing
+CBLB / IPC298
+P; 39.5 pct.; n=6
+H1: LCK [SR-rev] +0.0803
+H1: ZAP70 [SP] -0.0348
+AVPR2 / A375
+P; 32.3 pct.; n=5
+H2: AVP [SR] +0.444
+H2: REN [SF] -0.0402
+CDC7 / HS944T
+P; 31.7 pct.; n=2
+H3: CLSPN [SR-rev] +0.184
+H3: CDT1 [SF] -0.0266
+CD2 / YAPC
+P; 23.1 pct.; n=5
+H1: CD58 [SR] +0.652
+H3: CD58 [SR] +0.497
+H1: CD58 [SP] -0.0288
+H3: CD58 [SP] -0.0541
+TPR / DANG
+P; 19.2 pct.; n=5
+H2: MAD2L1 [SP] +0.0473
+H2: CDK1 [SF] -0.0245
+WWTR1 / IPC298
+P; 13.4 pct.; n=6
+H1: ASNS [CR-rev] +0.327
+H1: PPP2R1B [SR] -0.045
+CALCA / IPC298
+P; 1.3 pct.; n=6
+H1: CALCRL [SP] +0.0762
+H1: CALCR [SR-rev] -0.113
+GCLC / DANG
+P; unmeasured
+H2: GCLM [SP] +1.15
+H2: FOSL1 [CR] -0.643
+CKS1B / IPC298
+P; unmeasured
+H1: SKP2 [SR-rev] +0.294
+H1: CKS2 [SP] -0.0369
+45
+
+
+Preprint
+±
+±
+±
+A  Which genes support or oppose SORL1?
+A549 · SORL1
+Node conductance, layer 3 · selected partners from B · ordered by signed mean
+APP
++.038
++.678
+GDNF
++.009
++.041
+CD2AP
+-.007
++.024
+CLU
++.002
++.016
+PICALM
+-8e-4
++.011
+LRPAP1
++.005
+-5e-4
+APOE
++.001
+-.027
+ZCWPW1
+-.007
+-.021
+GGA1
++.002
+-.045
+GGA2
+-.008
+-.046
+H1
+H3
+− opposes
++ supports
+Logit units
+Full-layer sums: H1 +0.335 · H3 +0.951
+B  Relationships supporting or opposing SORL1
+20/81 shared positive routes + final-channel detail · 50 genes; 5 opponents
+STRING functional
+STRING physical
+STRING regulatory
+CollecTRI activation
+CollecTRI repression
+Request:
+↓
+unchanged
+Prior sign: → positive  ⊣ negative  ± mixed
+Blue tick: opposing final message; badge identifies negative fit
+Log scales: node area = positive peak; width = peak layer credit (not flow).
+ACTB
+ADAM17
+APOE
+APP
+BIRC5
+BRCA1
+CASP6
+CD2AP
+CLU
+CTBP2
+DKK1
+DTL
+ELOVL6
+ERO1A
+FADD
+FBXO11
+FOS
+FOXC1
+FOXM1
+GAPDH
+GDNF
+GGA1
+GGA2
+GTSE1
+HSF2
+HSF4
+HTRA2
+IGF2R
+ITGB1
+LRP2
+LRPAP1
+MAD2L1
+MECOM
+MYBL2
+NAE1
+NAXE
+NR1H2
+PAX2
+PICALM
+PKM
+PLIN3
+PPARA
+PPARG
+PSMC5
+RAD51
+RELN
+SMAD3
+SORL1
+WNT11
+ZCWPW1
+H3
+-0.68
+0
+0.68
+Figure 8: SORL1/A549: one partner has more than one contribution. APP physical support
+(+0.0436/+0.0108) coexists with functional opposition (−0.0149/−0.0062) in H1/H3; reverse-
+regulatory support is much larger in H3. Experimental work links SORLA-dependent APP reten-
+tion and processing to GGA/PACS-1 adaptor interactions (Schmidt et al., 2007). This makes APP
+retention and altered adaptor-dependent routing useful biological questions, without equating either
+process with one database channel. Do trafficking changes accompany the requested marker re-
+sponse, or can the two separate? The cited experiments do not establish an A549 cancer mechanism.
+Measured knockout agreement reaches the 78.6th percentile (six wells). The display includes shared
+opposition and the strongest per-fit opponents; badges identify opposition confined to one fit.
+46
+
+
+Preprint
+±
+±
+A  Which genes support or oppose CKS2?
+HS944T · CKS2
+Node conductance, layer 3 · selected partners from B · ordered by signed mean
+SKP2
+↓
++.257
+TP73
++.109
+TP63
++.067
+CDT1
+↓
++.051
+SKP1
++.042
+CKS1B
++.017
+CCNO
+-.008
+CCNE1
+-.014
+SPDYC
+-.026
+GMNN
+-.030
+H3
+− opposes
++ supports
+Logit units
+Full-layer sums: H3 +0.768
+B  Relationships supporting or opposing CKS2
+20/142 positive routes + final-channel detail · 46 genes; 4 opponents
+STRING functional
+STRING physical
+STRING regulatory
+CollecTRI activation
+CollecTRI repression
+Request:
+↑
+↓
+unchanged
+Prior sign: → positive  ⊣ negative  ± mixed
+Blue tick: final message opposing in H3
+Log scales: node area = positive peak; width = peak layer credit (not flow).
+BBC3
+CCNB2
+CCNE1
+CCNO
+CDC20
+CDC25A
+CDK2
+CDT1
+CHEK1
+CKS1B
+CKS2
+CTLA4
+CXCL13
+CXCR3
+DAXX
+DDIT3
+E2F1
+E2F6
+E2F8
+ESPL1
+EXO1
+FBXL12
+FBXO43
+GMNN
+HOXA10
+HOXA11
+ID2
+LDB2
+LIG1
+LMO2
+MCM3
+NFKB2
+NR4A3
+PPP2R1B
+PTTG1
+RUNX1
+SKP1
+SKP2
+SMC1A
+SNAI1
+SPDYC
+TCF3
+TIMELESS
+TP63
+TP73
+ZEB1
+-0.26
+0
+0.26
+Figure 9: CKS2/HS944T: distinguish an input edit from the transported state. In H3, SKP2
+down has negative input IG (−0.3291), but its final reverse-regulatory message supports CKS2
+(+0.2225): its later state carries information from other genes. In a mouse-derived system, CKS2
+protects p27 and restrains cyclin A/CDK2 activity, with a role distinct from CKS1; its loss increases
+replication speed and damage (Frontini et al., 2012). Does the requested marker response accompany
+altered p27/CDK regulation, rather than a uniform reduction in proliferation? The regulatory chan-
+nel does not establish direct SKP2–CKS2 binding. Measured agreement is at the 95.0th percentile
+(six wells). Appendix N.2 retains the IPC298 comparison and Appendix M the weaker response at
+smaller amplitude; this figure shows only H3.
+47
+
+
+Preprint
+A  Which genes support or oppose CAMSAP2?
+A549 · CAMSAP2
+Node conductance, layer 3 · selected partners from B · ordered by signed mean
+CKAP2L
++.870
++1.13
+CKAP2
++.181
++.427
+CEP170B
++.004
++.051
+WDR47
+-.004
++.031
+MAP7D1
+-.003
++.011
+MAPRE2
+-.004
++.011
+CLASP1
+-.009
++.015
+CCNA2
+↓
++.000
++.000
+CENPF
++.000
++.000
+CIT
+↓
++.000
++.000
+H1
+H3
+− opposes
++ supports
+Logit units
+Full-layer sums: H1 +1.135 · H3 +1.924
+B  Relationships supporting or opposing CAMSAP2
+20/96 shared positive routes + final-channel detail · 29 genes; 4 opponents
+STRING functional
+STRING physical
+STRING regulatory
+Request:
+↓
+unchanged
+Prior sign: → positive  ⊣ negative  ± mixed
+Blue tick: opposing final message; badge identifies negative fit
+Log scales: node area = positive peak; width = peak layer credit (not flow).
+CAMSAP2
+CCNA2
+CENPF
+CEP170B
+CIT
+CKAP2
+CKAP2L
+CLASP1
+ESPL1
+FOXM1
+GTSE1
+HMMR
+KIF14
+KIF20A
+KIF23
+KIF2C
+KIF4A
+KIFC1
+MAP7D1
+MAPRE2
+MELK
+MKI67
+NCAPG
+NUSAP1
+PLK4
+PRC1
+TPX2
+UBE2C
+WDR47
+H1
+H1
+H1
+H1
+-1.1
+0
+1.1
+Figure 10:
+CAMSAP2/A549:
+recurring cytoskeletal support, fit-dependent opposition.
+CKAP2L and CKAP2 physical support recurs in H1/H3.
+CLASP1, MAPRE2, WDR47 and
+MAP7D1 oppose in H1 but support in H3; H3 has no negative final incoming message. CAMSAP2
+silencing increases cisplatin sensitivity in A549/H292, and CAMSAP2 expression partially rescues
+miR-145-5p-associated sensitization (Singharajkomron et al., 2026). Those experiments motivate a
+drug-response question, separate from whether cytoskeletal changes accompany the requested ex-
+pression response. They do not establish CKAP2/CKAP2L mediation. A549 knockout agreement
+reaches the 97.0th percentile (12 wells). The physical-support/functional-opposition CKAP2 ex-
+ample in the main text concerns DANG/H2, not this figure; its agreement is 76.3rd percentile (six
+wells), with cell and model changing together.
+48
+
+
+Preprint
+A  Which genes support or oppose TOP2A?
+A549 · TOP2A
+Node conductance, layer 3 · selected partners from B · ordered by signed mean
+NFYB
++.766
++.771
+PRC1
+↓
++.027
++.026
+ECT2
++.030
++.021
+RACGAP1
+↓
++.022
++.026
+GTSE1
+↓
++.015
++.028
+NCAPG
+↓
++.021
++.016
+PIAS4
+-.002
+-2e-4
+CSNK2A1
+-.002
+-5e-4
+PARP1
+-.003
+-.011
+CTCF
+-.004
+-.013
+H1
+H3
+− opposes
++ supports
+Logit units
+Full-layer sums: H1 +2.725 · H3 +3.543
+B  Relationships supporting or opposing TOP2A
+20/139 shared positive routes + final-channel detail · 29 genes; 6 opponents
+STRING functional
+STRING physical
+STRING regulatory
+CollecTRI repression
+Request:
+↓
+unchanged
+Prior sign: → positive  ⊣ negative  ± mixed
+Blue tick: opposing final message; badge identifies negative fit
+Log scales: node area = positive peak; width = peak layer credit (not flow).
+ASF1B
+CDK1
+CSNK2A1
+CTCF
+DTL
+ECT2
+FOXM1
+GINS2
+GTSE1
+HMMR
+KIF18B
+KIF4A
+MELK
+MKI67
+MYBL2
+NCAPG
+NFYB
+NUSAP1
+PARP1
+PIAS4
+PLK4
+PRC1
+RACGAP1
+TK1
+TOP2A
+TP53
+TPX2
+TRIP13
+ZWINT
+H3
+H1
+-0.77
+0
+0.77
+Figure 11: TOP2A/A549: recurring NFYB support and fit-dependent CDK1 credit. NFYB
+repression-prior credit supports both fits (+0.766/+0.771); CDK1 regulatory credit supports H1
+but opposes H3 (+0.103/−0.053).
+Thus prior repression does not determine attribution sign.
+In leukemia and rhabdomyosarcoma models, miR-485-3p-dependent NFYB reduction increased
+TOP2A expression and sensitivity to Top2 inhibitors (Chen et al., 2011). This motivates sepa-
+rating transcriptional regulation of TOP2A abundance from CDK1-associated cell-cycle effects.
+Does either account track the requested marker response after accounting for cell-cycle composi-
+tion? The study does not establish these relationships in A549, and TOP2A depletion differs from
+topoisomerase-poison treatment. Measured knockout agreement reaches the 97.0th percentile (21
+wells). Fit badges distinguish shared from fit-specific opposition.
+49
+
+
+Preprint
+±
+±
+±
+A  Which genes support or oppose CHEK1?
+HS944T · CHEK1
+Node conductance, layer 3 · selected partners from B · ordered by signed mean
+TIMELESS
+↓
++1.32
+CLSPN
++.615
+CDC7
++.184
+NEK11
++.179
+E2F2
++.139
+ATR
++.096
+E2F1
+-.026
+DTL
+-.048
+BLM
+-.049
+FOXM1
+-.057
+H3
+− opposes
++ supports
+Logit units
+Full-layer sums: H3 +4.389
+B  Relationships supporting or opposing CHEK1
+20/151 positive routes + final-channel detail · 41 genes; 4 opponents
+STRING functional
+STRING physical
+STRING regulatory
+CollecTRI activation
+CollecTRI repression
+Request:
+↑
+↓
+unchanged
+Prior sign: → positive  ⊣ negative  ± mixed
+Blue tick: final message opposing in H3
+Log scales: node area = positive peak; width = peak layer credit (not flow).
+ATR
+ATRIP
+BLM
+CBFB
+CDC25A
+CDC7
+CDK2
+CDT1
+CHEK1
+CLSPN
+CTLA4
+DAXX
+DDX11
+DTL
+E2F1
+E2F2
+E2F6
+E2F8
+EXO1
+FOXM1
+GINS1
+JUND
+LIG1
+MAP3K5
+MAU2
+MCM3
+MCM7
+NEK11
+NIPBL
+NR4A3
+POLE
+PPM1D
+RAD54L
+RB1
+RBBP8
+RHOH
+SKP2
+SMC1A
+STAG3
+TIMELESS
+TMEM204
+-1.3
+0
+1.3
+Figure 12: CHEK1/HS944T: checkpoint partners receive different credit.
+TIMELESS and
+CLSPN support H3; FOXM1, BLM, ATRIP and DTL supply selected opposition. Direct final-
+channel detail keeps CLSPN visible even though it is absent from the selected complete positive
+routes. Claspin supports stress-induced CHK1 activation (Chini & Chen, 2003); TIMELESS inter-
+acts with CHK1 and ATR–ATRIP in checkpoint studies (Ünsal-Kaçmaz et al., 2005). Supporting
+TIMELESS and opposing ATRIP therefore distinguish contributions within connected checkpoint
+biology. Do similar checkpoint effects produce different responses among the requested markers?
+These studies do not establish the mechanism in HS944T or validate an opposing sign. Measured
+agreement reaches the 96.4th percentile, but comes from one well and requires replication. This is a
+single-fit account, not a recurrence test.
+50

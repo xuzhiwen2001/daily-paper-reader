@@ -1,0 +1,114 @@
+{
+  "version": 3,
+  "extractor": "arxiv-html",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-001.webp",
+      "caption": "Figure 1: Inverse perturbation prediction and computational inspection. (A) Shared encoders combine protein features and paired expression; typed messages update gene states. (B) A shared decoder scores 17,225 eligible genes. Cross-entropy trains the representations and decoder. The arrows beside the logit bars indicate the direction favored by cross-entropy: increasing the target logit and decreasing the alternatives. Shared-parameter updates need not change every logit in those directions. (C) With weights frozen, a desired endpoint replaces the observed endpoint. Own-edit masking and revers",
+      "page": 0,
+      "index": 1,
+      "width": 1400,
+      "height": 1676,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-002.webp",
+      "caption": "Figure 2: MAD1L1 carries strong support for TTK; E2F4 and CCNB1 contribute opposition. A: one signed strip of node conductance at h ( 3 ) h^{(3)} , before the final message step. Among partners shown in B, excluding TTK, we select the six strongest shared-positive and four strongest shared-negative states, then order them by signed H1/H3 mean. Arrows mark requested expression changes; a blank means no edit. Red supports and blue opposes the request-induced score change. Full-layer sums include all nodes, not just this selection. B: twenty shared positive routes (28 genes, 28 relationships) wit",
+      "page": 0,
+      "index": 2,
+      "width": 1400,
+      "height": 1485,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-003.webp",
+      "caption": "Figure 3: Mean attribution–deletion correspondence is positive in all nine held-out lines and weakens with depth. Both panels use request-response drop: how much deleting one message changes the nomination’s request-minus-no-change score difference. A: per-line Spearman correlation with signed conductance at the two-SD request; parentheses give nominations per line. Blue shows the equal-line mean and 95% bootstrap interval over lines and cases; red shows the shuffled null up to its 95th percentile. B: does signed conductance track request-response drop better than raw message size ( L 2 L_{2} ",
+      "page": 0,
+      "index": 3,
+      "width": 1400,
+      "height": 842,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-004.webp",
+      "caption": "Figure 4: TTK: signed conductance behind the network. Supporting and opposing allocations recover the same mean request-minus-no-change difference ( + 1.423 +1.423 ) at every node state and transition, and the final transition splits it between messages ( + 0.753 +0.753 ) and the carried residual ( + 0.670 +0.670 ). The panels use the request path with actual proteins fixed and H1/H3 signed scalar means. A gives separate node and transition accounts of the same difference. B attributes the same final logit at each node state, from encoded input h ( 0 ) h^{(0)} to decoder input h ( 4 ) h^{(4)} ",
+      "page": 0,
+      "index": 4,
+      "width": 660,
+      "height": 976,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-005.webp",
+      "caption": "Figure 5: Separate supporting and opposing route displays from the same TTK field. Each panel retains the ten widest routes under the smaller H1/H3 absolute transition credit, requiring every message and residual transition to exceed 10 − 5 10^{-5} with the panel sign in both fits (107 supporting and 92 opposing eligible anchors). Columns preserve computational layers; arrowheads denote transport, including reverse channels, rather than biological causation. Colors distinguish STRING functional (purple), physical (blue), regulatory (orange), CollecTRI activation (pink), repression (green), and",
+      "page": 0,
+      "index": 5,
+      "width": 1400,
+      "height": 1833,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-006.webp",
+      "caption": "Figure 6: One CKS2 request, two melanoma lines: the same edit can contribute differently. Signed expression IG for the six shared edits with the largest | | IG | | in either line; both requests contain the same 170 edits and directions. SKP2 down opposes CKS2 in HS944T/H3 but supports it in IPC298/H1, whereas CDT1 down supports both. Parentheses give each request response. Red supports and blue opposes CKS2. Cell and fitted model change together, so this comparison does not isolate a cell-context effect. The corresponding shared-route network is retained in the supplementary reproduction outpu",
+      "page": 0,
+      "index": 6,
+      "width": 660,
+      "height": 612,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-007.webp",
+      "caption": "Figure 7: Population suppression on the protein path. In 45,089 predeclared observed test cases (17 lines), each explaining the model’s top prediction, a message sample fixed before deletion is deleted one message at a time. A: per-line means (dots) and equal-line means (lines) of the Spearman correlation between signed conductance and gap drop. B: per-case correlations at layer 4; undefined cases are excluded. Rank correspondence within the fitted model, not biological causality (Appendix Q ).",
+      "page": 0,
+      "index": 7,
+      "width": 1400,
+      "height": 700,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-008.webp",
+      "caption": "Figure 8: SORL1/A549: one partner has more than one contribution. APP physical support ( + 0.0436 / + 0.0108 +0.0436/{+}0.0108 ) coexists with functional opposition ( − 0.0149 / − 0.0062 -0.0149/{-}0.0062 ) in H1/H3; reverse-regulatory support is much larger in H3. Experimental work links SORLA-dependent APP retention and processing to GGA/PACS-1 adaptor interactions ( Schmidt et al., 2007 ) . This makes APP retention and altered adaptor-dependent routing useful biological questions, without equating either process with one database channel. Do trafficking changes accompany the requested marke",
+      "page": 0,
+      "index": 8,
+      "width": 1400,
+      "height": 1910,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-009.webp",
+      "caption": "Figure 9: CKS2/HS944T: distinguish an input edit from the transported state. In H3, SKP2 down has negative input IG ( − 0.3291 -0.3291 ), but its final reverse-regulatory message supports CKS2 ( + 0.2225 +0.2225 ): its later state carries information from other genes. In a mouse-derived system, CKS2 protects p27 and restrains cyclin A/CDK2 activity, with a role distinct from CKS1; its loss increases replication speed and damage ( Frontini et al., 2012 ) . Does the requested marker response accompany altered p27/CDK regulation, rather than a uniform reduction in proliferation? The regulatory ch",
+      "page": 0,
+      "index": 9,
+      "width": 1400,
+      "height": 1910,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-010.webp",
+      "caption": "Figure 10: CAMSAP2/A549: recurring cytoskeletal support, fit-dependent opposition. CKAP2L and CKAP2 physical support recurs in H1/H3. CLASP1, MAPRE2, WDR47 and MAP7D1 oppose in H1 but support in H3; H3 has no negative final incoming message. CAMSAP2 silencing increases cisplatin sensitivity in A549/H292, and CAMSAP2 expression partially rescues miR-145-5p-associated sensitization ( Singharajkomron et al., 2026 ) . Those experiments motivate a drug-response question, separate from whether cytoskeletal changes accompany the requested expression response. They do not establish CKAP2/CKAP2L mediat",
+      "page": 0,
+      "index": 10,
+      "width": 1400,
+      "height": 1697,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-011.webp",
+      "caption": "Figure 11: TOP2A/A549: recurring NFYB support and fit-dependent CDK1 credit. NFYB repression-prior credit supports both fits ( + 0.766 / + 0.771 +0.766/{+}0.771 ); CDK1 regulatory credit supports H1 but opposes H3 ( + 0.103 / − 0.053 +0.103/{-}0.053 ). Thus prior repression does not determine attribution sign. In leukemia and rhabdomyosarcoma models, miR-485-3p-dependent NFYB reduction increased TOP2A expression and sensitivity to Top2 inhibitors ( Chen et al., 2011 ) . This motivates separating transcriptional regulation of TOP2A abundance from CDK1-associated cell-cycle effects. Does either ",
+      "page": 0,
+      "index": 11,
+      "width": 1400,
+      "height": 1697,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.29055v1/fig-012.webp",
+      "caption": "Figure 12: CHEK1/HS944T: checkpoint partners receive different credit. TIMELESS and CLSPN support H3; FOXM1, BLM, ATRIP and DTL supply selected opposition. Direct final-channel detail keeps CLSPN visible even though it is absent from the selected complete positive routes. Claspin supports stress-induced CHK1 activation ( Chini & Chen, 2003 ) ; TIMELESS interacts with CHK1 and ATR–ATRIP in checkpoint studies ( Ünsal-Kaçmaz et al., 2005 ) . Supporting TIMELESS and opposing ATRIP therefore distinguish contributions within connected checkpoint biology. Do similar checkpoint effects produce differe",
+      "page": 0,
+      "index": 12,
+      "width": 1400,
+      "height": 1910,
+      "label": "Figure"
+    }
+  ]
+}

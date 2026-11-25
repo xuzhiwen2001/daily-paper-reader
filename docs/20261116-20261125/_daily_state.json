@@ -1,0 +1,105 @@
+{
+  "date": "20261116-20261125",
+  "date_label": "2026-11-16 ~ 2026-11-25",
+  "generated_at": "2026-11-25 18:46:10 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2611.31227v1",
+      "route": "20261116-20261125/2611.31227v1-how-far-can-linear-go-bipert-a-unified-framework-for-single-cell-perturbation-modelling",
+      "title": "How Far Can Linear Go? BiPert, a Unified Framework for Single-Cell Perturbation Modelling",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "统一线性框架用于单细胞扰动响应预测与反向识别",
+      "first_seen_at": "2026-11-25 18:46:10 UTC",
+      "updated_at": "2026-11-25 18:46:10 UTC"
+    },
+    {
+      "paper_id": "2611.29055v1",
+      "route": "20261116-20261125/2611.29055v1-hypothesis-generation-and-semantic-attribution-in-inverse-perturbation-modeling",
+      "title": "Hypothesis Generation and Semantic Attribution in Inverse Perturbation Modeling",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "基于LINCS CRISPR图谱的图神经网络逆向扰动建模",
+      "first_seen_at": "2026-11-25 18:46:10 UTC",
+      "updated_at": "2026-11-25 18:46:10 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-22-768440-v1",
+      "route": "20261116-20261125/biorxiv-10-64898-2026-11-22-768440-v1-multi-omics-causal-deep-learning-reveals-regulatory-structure-while-interventions-refine-perturbation-predictions",
+      "title": "Multi-omics causal deep learning reveals regulatory structure while interventions refine perturbation predictions",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 8.0,
+      "evidence": "结合CRISPR干预的因果深度学习改进扰动预测",
+      "first_seen_at": "2026-11-25 18:46:10 UTC",
+      "updated_at": "2026-11-25 18:46:10 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-04-01-714123-v3",
+      "route": "20261116-20261125/biorxiv-10-64898-2026-04-01-714123-v3-cellbench-task-dependent-performance-and-generalization-limits-of-single-cell-foundation-models",
+      "title": "CellBench: task-dependent performance and generalization limits of single-cell foundation models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 7.0,
+      "evidence": "在遗传扰动筛选与响应预测上评测单细胞基础模型",
+      "first_seen_at": "2026-11-25 18:46:10 UTC",
+      "updated_at": "2026-11-25 18:46:10 UTC"
+    },
+    {
+      "paper_id": "2611.30601v2",
+      "route": "20261116-20261125/2611.30601v2-learning-multimodal-representations-from-partially-paired-small-scale-data",
+      "title": "Learning Multimodal Representations from Partially Paired, Small-Scale Data",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "针对部分配对数据的多模态融合，连接形态与分子谱",
+      "first_seen_at": "2026-11-25 18:46:10 UTC",
+      "updated_at": "2026-11-25 18:46:10 UTC"
+    },
+    {
+      "paper_id": "2611.31451v1",
+      "route": "20261116-20261125/2611.31451v1-a-multimodal-foundation-model-for-tissue-proteomics-and-morphology-in-cancer",
+      "title": "A multimodal foundation model for tissue proteomics and morphology in cancer",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "联合学习H&E形态与空间分子数据的多模态基础模型",
+      "first_seen_at": "2026-11-25 18:46:10 UTC",
+      "updated_at": "2026-11-25 18:46:10 UTC"
+    }
+  ]
+}

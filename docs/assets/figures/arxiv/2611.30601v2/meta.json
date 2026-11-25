@@ -1,0 +1,114 @@
+{
+  "version": 3,
+  "extractor": "arxiv-html",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-001.webp",
+      "caption": "Figure 1: CAMEO model. Top left: Cells in a tissue are represented by various modalities, including histology (vision), gene expression vectors (functional biology), and further metadata such as expert annotations that we use for downstream tasks. Top right: The model is first pre-trained on widely available, unpaired, unimodal data from vision (top) and gene expression (bottom) repositories, and then fine-tuned on small-scale paired datasets. Bottom: Unimodal image and gene expression encoders are trained with self-supervised learning to map images to z I z_{I} and gene expression vectors to ",
+      "page": 0,
+      "index": 1,
+      "width": 6860,
+      "height": 2600,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-002.webp",
+      "caption": "Figure 2: Performance comparison by modality and fusion strategy. Left: Encoder combinations used in each fusion method across tissues. Center: Macro F1 scores for unimodal versus multimodal models using 100% paired data. Right: Regression test R 2 R^{2} for cell type composition prediction, showing multimodal models outperform unimodal approaches, with CAMEO achieving the highest performance.",
+      "page": 0,
+      "index": 2,
+      "width": 1400,
+      "height": 862,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-003.webp",
+      "caption": "Figure 2: Performance comparison by modality and fusion strategy. Left: Encoder combinations used in each fusion method across tissues. Center: Macro F1 scores for unimodal versus multimodal models using 100% paired data. Right: Regression test R 2 R^{2} for cell type composition prediction, showing multimodal models outperform unimodal approaches, with CAMEO achieving the highest performance.",
+      "page": 0,
+      "index": 3,
+      "width": 1400,
+      "height": 862,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-004.webp",
+      "caption": "Figure 2: Performance comparison by modality and fusion strategy. Left: Encoder combinations used in each fusion method across tissues. Center: Macro F1 scores for unimodal versus multimodal models using 100% paired data. Right: Regression test R 2 R^{2} for cell type composition prediction, showing multimodal models outperform unimodal approaches, with CAMEO achieving the highest performance.",
+      "page": 0,
+      "index": 4,
+      "width": 1400,
+      "height": 983,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-005.webp",
+      "caption": "Table 2: Niche classification performance under reduced data pairing scenarios using default UNI and scVI encoders.",
+      "page": 0,
+      "index": 5,
+      "width": 1400,
+      "height": 840,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-006.webp",
+      "caption": "Figure 4: Predictiveness of unimodal performance for multimodal success in the Breast dataset. Moderate correlation (Spearman ρ = 0.60 \\rho=0.60 ) and high variance across multimodal models, and substantial rank misalignments (bottom panel). Results for Lung and Thymus are shown in App. Fig. 6 .",
+      "page": 0,
+      "index": 6,
+      "width": 1400,
+      "height": 1991,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-007.webp",
+      "caption": "Figure 5: Lung dataset: Relative change in macro F1 scores compared to 100% pairing (left). Lung shows similar patterns to Breast (Fig. 3 ). Mean and standard deviation of absolute R 2 R^{2} scores for cell type composition prediction (right).",
+      "page": 0,
+      "index": 7,
+      "width": 1400,
+      "height": 840,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-008.webp",
+      "caption": "Figure 5: Lung dataset: Relative change in macro F1 scores compared to 100% pairing (left). Lung shows similar patterns to Breast (Fig. 3 ). Mean and standard deviation of absolute R 2 R^{2} scores for cell type composition prediction (right).",
+      "page": 0,
+      "index": 8,
+      "width": 1400,
+      "height": 840,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-009.webp",
+      "caption": "Figure 6: Predictiveness of unimodal performance for multimodal success in Lung (left) and Thymus (right) datasets. Both tissues show weak correlations ( ρ = 0.37 \\rho=0.37 and ρ = 0.31 \\rho=0.31 , respectively) and significant rank misalignments, further supporting the finding that unimodal performance poorly predicts multimodal success.",
+      "page": 0,
+      "index": 9,
+      "width": 1400,
+      "height": 1991,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-010.webp",
+      "caption": "Figure 6: Predictiveness of unimodal performance for multimodal success in Lung (left) and Thymus (right) datasets. Both tissues show weak correlations ( ρ = 0.37 \\rho=0.37 and ρ = 0.31 \\rho=0.31 , respectively) and significant rank misalignments, further supporting the finding that unimodal performance poorly predicts multimodal success.",
+      "page": 0,
+      "index": 10,
+      "width": 1400,
+      "height": 1991,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-011.webp",
+      "caption": "Figure 7: Metadata overview for the LungPF Xenium cohort ( Vannan et al., 2023 ) , highlighting cell-type distributions, niche-label distributions, and the imbalance of labels across samples. Top left: example histology image with expert-provided niche annotations overlaid; the corresponding niche-label distribution for this sample is shown in the bar chart (sample name boxed for reference). Top right: total cell-type distribution across all 23 samples, showing slight variability in cell-type composition. Bottom: UMAP of patch-level gene expression profiles and overall niche-label distribution",
+      "page": 0,
+      "index": 11,
+      "width": 1739,
+      "height": 1212,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30601v2/fig-012.webp",
+      "caption": "Figure 8: Label distributions in the lung, breast, and thymus cohorts across train, validation, and test splits (patient-stratified). The NOANNOT category is excluded.",
+      "page": 0,
+      "index": 12,
+      "width": 1400,
+      "height": 410,
+      "label": "Figure"
+    }
+  ]
+}

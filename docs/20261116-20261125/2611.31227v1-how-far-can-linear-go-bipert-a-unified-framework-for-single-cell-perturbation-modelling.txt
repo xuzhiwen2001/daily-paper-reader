@@ -1,0 +1,1403 @@
+How Far Can Linear Go? BiPert, a Unified Framework for
+Single-Cell Perturbation Modelling
+Abhishek Sharma1 and Aleksej Zelezniak1,2,3
+1Randall Centre for Cell & Molecular Biophysics, King’s College London, London, UK
+2Department of Life Sciences, Chalmers University of Technology, Gothenburg, Sweden
+3Institute of Biotechnology, Life Sciences Centre, Vilnius University, Vilnius, Lithuania
+abhishek.1.sharma@kcl.ac.uk, aleksej.zelezniak@kcl.ac.uk
+Abstract
+Understanding how genetic perturbations affect cellular behaviour is essential for studying gene func-
+tion and regulatory mechanisms. Large-scale CRISPR screens measure these effects across thousands of
+genes, but cover relatively few cellular contexts. Predicting perturbation responses in unseen cell types
+and identifying perturbed genes from their transcriptional effects therefore remain challenging. Here,
+we show that both tasks can be addressed through a common linear decomposition of transcriptional
+responses into shared and perturbation-specific components. Building on this principle, we introduce
+BiPert, a simple linear framework for both forward perturbation prediction and inverse identification.
+For forward prediction, BiPert outperforms existing methods that use no external biological knowledge
+when predicting gene expression changes in unseen cell lines. Its few-shot extension, BiPert-FS, adapts
+to new cell lines using as few as ten measured perturbations. For inverse identification, BiPert-ID identi-
+fies perturbed genes from single-cell expression profiles, outperforming deep-learning methods in unseen
+cell lines and donors. We further show that perturbations whose effects transfer more consistently across
+cellular contexts are also easier to identify, even after controlling for perturbation effect size. Together,
+these results establish a connection between perturbation transfer and identification, and demonstrate
+that simple linear models provide strong, interpretable baselines for both tasks.
+Keywords: Perturb-seq; genetic perturbation prediction; perturbation identification; linear models; low-rank
+decomposition; transfer across cell lines; interpretable models
+1
+Introduction
+Large-scale perturbation screens now measure how thousands of genetic perturbations change the state of
+a cell1–3. Modelling these changes has two complementary directions. In the forward direction, given the
+effects of a perturbation across previously studied cell lines, we seek to predict its effect in a new cellular
+context4,5. In the inverse direction, given an observed cellular state, we seek to identify the perturbation that
+most likely produced it6,7. The first problem enables the transfer of experimental knowledge to unprofiled
+cell lines, potentially reducing the need for additional perturbation screens. The second enables the interpre-
+tation of previously unexplained cellular states by matching them to known perturbation responses. A key
+observation is that although these tasks have different prediction targets, both require understanding which
+aspects of a perturbation response are shared across cellular contexts and which are context-dependent.
+Many perturbations induce a common cellular response, while retaining perturbation-specific compo-
+nents5,8. Existing approaches exploit aspects of this structure. For example, COMPASS5 decomposes per-
+turbation effects into a cell-line-specific direction and a perturbation-specific residual, enabling transfer to
+1
+arXiv:2611.31227v1  [cs.LG]  23 Nov 2026
+
+
+line 1 line 2 line 3
+new
+line
+?
+?
+perturbation p
+known: effects
+in seen lines
+predict: the ?
+in a new line
+ours: linear
+low-rank operator
+(a) Forward: perturbation transfer
+observed
+new line,
+no labels
+score
+candidate perturbations
+1. p1
+2. p2
+3. true p
+4. p3
+...
+pn
+which perturbation
+caused it?
+ours: match to linear
+prototypes gp
+(b) Inverse: perturbation identification
+Figure 1. One linear decomposition, two directions. Both tasks rest on one decomposition of a perturbation’s effect
+into a part shared across cell lines and a part specific to the perturbation. (a) Forward: predict a perturbation’s effect in
+a new cell line from the lines where it was measured (Sec. 4.1). (b) Inverse: name the perturbation behind an observed
+state in a new line, with no labels from that line (Sec. 4.2).
+unseen cell lines. While COMPASS demonstrates that perturbation effects contain transferable structure, its
+decomposition assumes that cellular context modifies these effects through a single shared direction, with
+the remaining perturbation-specific component invariant across lines. This is a restrictive assumption: dif-
+ferent cellular contexts may modulate distinct components of a perturbation response to different degrees.
+We therefore generalise this decomposition to a low-rank operator, allowing each cell line to apply its own
+linear transformation to a shared perturbation representation.
+Models designed for the forward task do not solve the inverse problem7. For inverse identification6,7,
+we exploit the same decomposition to construct perturbation-specific prototypes from training cell lines. By
+removing shared cellular responses and matching individual cells to these prototypes, we obtain a simple,
+training-free linear method for identifying perturbations in unseen cell lines.
+Importantly, we find that cross-cell-line transferability is not only relevant to predicting perturbation
+effects, but also provides a link between the forward and inverse tasks. A transfer score estimated entirely
+from training cell lines strongly predicts whether a perturbation can be identified in a previously unseen line.
+Conversely, in an independent screen, we show that identifiability within a cell type limits transfer across
+cell types. Together, these results suggest that a common linear structure can support both the transfer of
+perturbation effects and their identification from cellular states.
+Our contributions are threefold:
+1. A two-way link between perturbation transfer and identification. Transferability measured on
+training cell lines alone predicts identification in held-out lines, for both BiPert-ID and the deep net-
+work; conversely, in an independent screen, identifiability within a cell type limits transfer across cell
+types.
+2. Low-rank models for perturbation transfer. We formulate cross-cell-line transfer as structured ma-
+trix completion and introduce a low-rank operator, BiPert, generalising COMPASS, together with a
+few-shot extension, BiPert-FS, for adapting to new cell lines with limited measurements.
+3. Training-free perturbation identification. We extend the shared decomposition to inverse identifi-
+cation and propose a training-free linear prototype model, BiPert-ID, that outperforms the state of the
+art in unseen cell lines.
+2
+
+
+2
+Related work
+Forward: deep models for perturbation effect prediction.
+Most methods for predicting the effect of a
+genetic perturbation are deep networks. CPA encodes cells into a latent space and adds a learned embedding
+per perturbation9; GEARS propagates perturbations over a graph of known gene relations to reach unseen
+genes and combinations10; scGPT, a transformer pre-trained on millions of cells, is fine-tuned to the same
+task11; GenePert regresses effects on gene embeddings derived from language models12; TabICL, a tabular
+foundation model, predicts effects in context from external gene knowledge, six sets of prior gene features
+covering protein sequence, text, morphology, protein interactions and gene dependency13,14; TxPert com-
+bines several biological knowledge graphs to predict effects outside the training distribution15; and State,
+a transformer trained across many cell contexts, targets transfer between them4. Of these, only State and
+TxPert evaluate transfer to cell lines held out from training.
+Linear baselines.
+A growing body of work has questioned the effectiveness of single-cell foundation
+models for predicting perturbation responses. Ahlmann-Eltze, Huber and Anders showed that a linear model
+fitted to the training perturbations can match or outperform deep and foundation models on held-out pertur-
+bation effects16, a finding echoed by broader benchmarks of single-cell foundation models17,18. COMPASS
+extends this linear perspective to cross-cell-line transfer by decomposing the effect of perturbation p in cell
+line ℓinto a cell-line-specific direction and a perturbation representation shared across cell lines (Sec. 4).
+This shared representation enables prediction in unseen cell lines, outperforming GEARS, scGPT and State
+in this setting5. A concurrent evaluation study separates each response into a part shared across contexts
+and a context-specific part, and finds that current predictors recover mainly the former19; it does not pro-
+pose a model or study the inverse task. PerturbMap20 fits linear maps between treatment conditions of a
+single screen to predict held-out perturbations, without holding out cell lines. We build on the COMPASS
+decomposition in two directions: first, by generalising it to a low-rank operator formulation21 that recovers
+COMPASS as a special case and adapts to a new cell line from as few as 10 measurements; and second, by
+extending the framework to the inverse problem of identifying the perturbation from the resulting cellular
+state. Our few-shot model builds on subspace alignment22 and on regularising towards a source model23,24.
+It is similar in spirit to geometric matrix completion, which uses side information25,26.
+Factor models.
+Factor models decompose multiple datasets into shared and dataset-specific latent factors.
+JIVE21 separates joint and individual variation, while MOFA and MOFA+27,28 extend factor analysis to
+multiple omics layers and sample groups. Guided sparse factor analysis similarly models perturbation ef-
+fects through latent factors within a single CRISPR screen29. These methods primarily explain variation in
+observed data, typically requiring additional factors or loadings to be estimated for a new dataset. BiPert-
+FS addresses a different task: predicting unmeasured perturbation responses in a new cell line from only
+a few observations. Rather than decomposing the new line, it keeps the source response programs and av-
+erage effects fixed, and learns only a regularised affine correction (Eq. (7)). The correction is evaluated on
+knockdowns not used for fitting.
+Inverse: inferring the perturbation from cells. In contrast to predicting cellular responses given a
+perturbation, the inverse problem of identifying the perturbation responsible for an observed transcriptional
+state has received comparatively little attention. RNA fingerprinting6 addresses this task by matching indi-
+vidual cells to transcriptional response signatures associated with known perturbations. Footprint methods
+such as PROGENy derive consensus response signatures from many perturbation experiments and score
+new expression profiles against them to infer pathway activity30; BiPert-ID applies the same principle to in-
+dividual gene knockdowns in single cells of an unseen cell line. ExPert7, currently the state of the art, takes a
+learned approach: it trains a neural encoder across multiple perturbation screens and classifies cells by com-
+3
+
+
+paring their representations with learned per-gene prototypes. In ExPert’s held-out-cell-line benchmark7,
+models designed for forward prediction (GEARS, scGPT and GenePert) perform close to chance, showing
+that predicting perturbation effects does not necessarily translate into identifying their causes. However,
+none exploits the line-invariant perturbation representation introduced above.
+3
+Background
+Why perturbation effects decompose.
+Three properties of cellular organisation motivate the models in-
+troduced in Section 4.
+Genes act in functional modules. Proteins operate in complexes and pathways, meaning that perturbing
+different members of the same module can disrupt shared cellular functions. Consistent with this, genome-
+scale perturbation screens show that knockdowns of genes belonging to the same protein complex produce
+strongly correlated transcriptional effects1. This suggests that perturbation effects occupy a low-dimensional
+space of shared cellular programs.
+Distinct perturbations converge on shared response directions. Different knockdowns can engage over-
+lapping cellular programs and consequently produce similar transcriptional responses. Perturbations of core
+growth machinery, for example, induce broad and stereotyped responses, whereas perturbations of more
+specific regulators produce additional gene-dependent effects5. Crucially, the strength with which a pertur-
+bation engages this shared response direction is relatively well conserved across cell lines, more so than
+the gene-specific remainder5. This motivates separating a conserved perturbation component from cell-line-
+dependent effects.
+Cellular context determines how shared programs are expressed. Different cell lines express different
+subsets of genes and have distinct active regulatory networks. Consequently, the same underlying cellu-
+lar program can affect different downstream genes, and with different strengths, depending on the cellular
+context. Perturbation responses are therefore more similar between related cell lines than between unre-
+lated ones2. This motivates modelling cell-line-specific loadings that determine how shared programs are
+translated into gene-expression changes.
+Together, these observations motivate the decomposition used in our models: a shared response whose
+strength depends on the perturbation and the cell line, a conserved perturbation-specific component, and a
+cell-line-specific weighting of shared programs.
+4
+BiPert: Linear Decomposition Model
+We consider two complementary prediction tasks corresponding to the forward and inverse directions of a
+common decomposition. For each task, we provide a background formulation and introduce a linear alterna-
+tive. Experiments, results and ablations follow in Section 5. Both tasks follow a cross-cell-line generalisation
+setting: models are trained on a set of cell lines and evaluated on a previously unseen line. The forward task
+predicts the effect of a perturbation not measured in the target line, whereas the inverse task identifies the
+perturbation from the resulting cellular expression profile (Fig. 1). For each task, we first state the problem
+and the existing approach, then introduce our linear model.
+4.1
+Perturbation Transfer as Structured Matrix Completion
+Motivation.
+Perturbation screens are available for only a limited number of cell lines, while performing
+genome-scale screens across every cell type of interest is impractical. This motivates transferring knowledge
+across cellular contexts: given the effects of a perturbation measured in existing cell lines, predict its effect
+in a new line5.
+4
+
+
+Task.
+Let x ∈RG denote the expression vector of a single cell, whose entries quantify the expression of
+G genes. For cell line ℓ, let X 0
+ℓdenote the set of control cells and Xp,ℓthe set of cells in which gene
+p ∈{1,...,P} has been knocked down. We define the effect of perturbation p in line ℓas the difference
+between the corresponding mean expression profiles:
+yp,ℓ=
+1
+|Xp,ℓ| ∑
+x∈Xp,ℓ
+x −
+1
+|X 0
+ℓ| ∑
+x∈X 0
+ℓ
+x ∈RG.
+(1)
+Effects yp,s are observed for all perturbations in the source lines s ∈S . In a target line ℓ∗/∈S , effects
+are available only for a subset of perturbations O ⊂{1,...,P}. The objective is to predict yp,ℓ∗for every
+unobserved perturbation p /∈O. This can be viewed as matrix completion with vector-valued entries: a
+P×L array, with one row per perturbation, one column for each of the L = |S |+1 cell lines, and an entry
+yp,ℓ∈RG in each cell, whose target column is partially observed.
+COMPASS5 decomposes each perturbation effect into a component along a line-specific unit vector
+uℓ∈RG and a residual gp ∈RG shared across cell lines:
+yp,ℓ≈βp,ℓuℓ+gp,
+βp,ℓ= ⟨yp,ℓ,uℓ⟩.
+(2)
+Here, βp,ℓ∈R is a scalar coefficient and uℓrepresents the dominant shared response of a cell line across
+perturbations, estimated as the normalised mean perturbation effect. Biologically, this captures a common
+stress response associated with processes such as reduced cellular growth and activation of stress-response
+genes. Because this component is shared across perturbations, it does not by itself distinguish which gene
+was perturbed; perturbation-specific information is instead captured by the coefficient βp,ℓand the residual
+gp.
+For a previously unseen line ℓ∗, COMPASS-X estimates uℓ∗from the observed perturbation effects
+{yp,ℓ∗}p∈O. It then predicts unobserved effects ˆyp,ℓ∗∈RG using source-line averages:
+ˆyp,ℓ∗= ¯βp uℓ∗+ ¯gp,
+(3)
+where ¯βp ∈R and ¯gp ∈RG denote the averages of the corresponding quantities across source lines.
+We generalise this decomposition by representing each perturbation effect as the product of a low-
+dimensional code Up ∈Rr, shared across cell lines, and a line-specific loading matrix Vℓ∈RG×r, the joint
+structure of JIVE21:
+yp,ℓ≈VℓUp.
+(4)
+BiPert.
+For a new cell line ℓ∗, we estimate its loading matrix by least squares on the observed perturba-
+tions:
+Vℓ∗= arg min
+V∈RG×r ∑
+p∈O
+∥yp,ℓ∗−VUp∥2
+2.
+(5)
+The shared codes Up are obtained from a rank-r truncated SVD of the P × |S |G matrix whose row p
+stacks the source-line effects yp,s across cell lines. Once Vℓ∗is fitted, effects for unobserved perturbations
+are predicted as ˆyp,ℓ∗= Vℓ∗Up.
+COMPASS-X as a special case.
+COMPASS-X is recovered as a constrained instance of this formulation.
+Suppose the shared residuals admit a low-rank representation ¯gp = Whp, where W ∈RG×r′ and hp ∈Rr′. Its
+prediction can then be written as
+¯βpuℓ∗+ ¯gp =
+
+uℓ∗
+W
+ ¯βp
+hp
+
+.
+(6)
+5
+
+
+1. Prototypes
+one prototype per perturbation p
+training lines
+effect yp,
+shared response
+removed
+average
+prototype gp
+2. Query
+a cell's change from control
+cell x
+ control mean
+change d
+gene p
+control: unperturbed cells
+of the held-out line
+3. Scoring
+two signals for each candidate p
+gp
+d
+cosine similarity
+z[cos(d\p, gp, \p)]
+own-gene drop
+z[
+dp]
++
+gene p
+score sp(x): rank the 1,157 candidates
+Figure 2. BiPert-ID: our training-free linear prototype model. (1) One prototype gp per perturbation is built from
+the training cell lines. (2) A query cell is represented by its change d from control. (3) Each candidate p is scored by
+cosine similarity plus own-gene drop (Eq. 8).
+The stacked loading matrix is in RG×(r′+1) and the stacked code in Rr′+1, so this corresponds to Eq. (4) with
+rank r′ + 1, but imposes the additional constraint that all cell lines share the same loading matrix W, with
+line-specific variation restricted to a single direction uℓ. BiPert removes this restriction, allowing each line
+to assign its own weights to the shared perturbation codes.
+BiPert-FS: our few-shot extension.
+When only a small number of perturbations are observed in the target
+line, fitting the full loading matrix Vℓ∗becomes unreliable. The average response across training cell lines
+provides a strong starting point for predicting a new line. Rather than learning its response from scratch, we
+therefore model the target as a low-dimensional correction to this shared baseline. Specifically, we introduce
+a constrained transfer model that maps the mean source-line effect,
+¯yp = |S |−1 ∑
+s∈S
+yp,s ∈RG,
+to the target line using a low-dimensional basis Φ ∈RG×k, formed from the top singular vectors of the source
+effects22:
+ˆyp,ℓ∗=
+¯yp
+|{z}
+source average
++ Φb
+|{z}
+shift
++ Φ(C −Ik)Φ⊤¯yp
+|
+{z
+}
+rescale and mix programs
+.
+(7)
+Here, Φ has orthonormal columns and Ik denotes the k×k identity matrix. The diagonal entries of C rescale
+individual response programs, while its off-diagonal entries capture interactions between programs; b pro-
+vides an additive shift. Thus, setting C = Ik and b = 0 recovers the source average. We estimate b ∈Rk
+and C ∈Rk×k by ridge regression on the observed pairs (¯yp,yp,ℓ∗), p ∈O, regularising C towards the iden-
+tity23,24 (derivation in Appendix A). This parameterisation learns an affine transformation within the low-
+dimensional subspace while leaving the orthogonal component unchanged. With k = 30, the model has only
+k +k2 = 930 parameters, making it suitable for few-shot transfer.
+4.2
+BiPert-ID: Perturbation Identification from Single Cells
+Motivation.
+The inverse task is to identify the perturbation responsible for an observed cellular state7.
+In applications such as disease analysis, the cell is observed in an altered state, but the perturbation that
+produced it is unknown. Differential expression captures the downstream response but does not directly
+identify its cause. A perturbation atlas provides a reference of cellular responses with known perturbations,
+allowing an unknown state to be matched to its likely cause. Existing approaches construct this reference
+6
+
+
+within individual screens and report limited transferability of perturbation effects across cellular contexts6,7.
+Our decomposition addresses this limitation by explicitly modelling cross-line transfer.
+Task.
+Given the expression vector x ∈RG of a perturbed cell, the goal is to identify the knocked-down
+gene. We use the ExPert benchmark7, which holds out entire cell lines. Models are trained on perturbation
+screens from the remaining lines and evaluated on a held-out line, which makes this a zero-shot cross-domain
+identification task.
+Our training-free linear prototype model (Fig. 2).
+Given a cell from an unseen cell line, the task is to
+identify the gene that was knocked down. Our method requires no training: it constructs perturbation-specific
+reference profiles from the training lines and matches the query cell against them.
+1. Build a prototype for each perturbation. For each knockdown p, measure its effect yp,ℓin each train-
+ing cell line. Subtract the response shared by all knockdowns in that line—the general response to
+perturbation—and average the residuals across lines. The result, gp ∈RG, is a prototype of the gene-
+specific response that transfers across cell lines. It is the same residual used in the forward-transfer
+model.
+2. Represent the query cell. Compare the query cell x with unperturbed control cells from its own line to
+obtain its expression change d ∈RG. As in ExPert, subtract the response shared across all perturbed
+query cells, leaving the change specific to the query.
+3. Score each candidate gene using two signals. First, does the query’s expression change resemble the
+candidate’s prototype? Second, is the candidate gene itself downregulated? We combine these signals
+with equal weight: prototype similarity captures the overall response pattern, while the gene’s own
+expression provides direct evidence of its knockdown. Candidates are ranked by
+sp(x) = z
+
+cos
+ d\p, gp,\p
+
++z[−dp],
+(8)
+where sp(x) ∈R, \p removes gene p from both vectors, dp ∈R is gene p’s own change, and z[·] stan-
+dardises each signal across the 1,157 candidates. Implementation details and a score ablation are given in
+Appendices B and C.
+The two tasks thus use the same decomposition in opposite directions. Transfer goes from a known gene
+to its change in a new line; identification goes from an observed change in a new line to the gene whose
+prototype it matches.
+5
+Experiments and Results
+Every comparison is run on the published method’s own benchmark (COMPASS5 or ExPert7), unless
+marked otherwise. We first show perturbation transfer results, and then perturbation identification.
+Perturbation transfer. We follow COMPASS’s benchmark5, which comprises CRISPR interference
+(CRISPRi)31 screens in four cell lines1,2 and in the Orion pair of cell lines3 (Appendix A). We use the
+2,000 most variable genes and log(1 + x) of counts normalised to 104 per cell. Each cell line is held out
+in turn; 20% of its knockdowns form the test set, over five random splits. De-biased Pearson correlation
+compares predicted and true effects using disjoint halves of control cells, avoiding inflation from shared
+controls.
+Implementation.
+BiPert uses rank 50 (rank ablation in Appendix C). BiPert-FS uses k = 30, with ridge
+regularisation selected using source lines only, treating each in turn as a pseudo-target. BiPert-ID has no free
+parameters. All linear models fit in seconds to minutes on a CPU.
+7
+
+
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+de-biased Pearson Δ, 4 held-out lines
+GEARS (within line)†
+State†
+scGPT (within line)†
+Source average
+Training mean†
+COMPASS-X
+GenePert (within line)†
+COMPASS-N†
+COMPASS-H†
+BiPert (ours)
+0.24
+0.27
+0.32
+0.32
+0.35
+0.38
+0.39
+0.40
+0.41
+0.47
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+de-biased Pearson Δ, Orion pair
+GEARS (within line)†
+Source average
+State†
+scGPT (within line)†
+COMPASS-X
+GenePert (within line)†
+COMPASS-H†
+COMPASS-N†
+BiPert (ours)
+0.05
+0.08
+0.09
+0.11
+0.12
+0.18
+0.19
+0.21
+0.25
+Figure 3. Mean perturbation transfer on COMPASS’s benchmark: four held-out lines (left) and the Orion pair
+(right). †Published values.
+# observed
+10
+25
+50
+100
+Source average
+0.320
+0.320
+0.320
+0.320
+COMPASS-X
+0.322
+0.355
+0.364
+0.370
+BiPert (ours)
+0.332
+0.351
+0.369
+0.395
+BiPert-FS (ours)
+0.355
+0.361
+0.362
+0.366
+Table 1. Few-shot prediction in a new line: de-biased Pearson ∆against the number of knockdowns observed in that
+line, averaged over four held-out lines and 5 splits (s.d. across splits ≈0.012). In this table BiPert uses rank r = 30.
+Results.
+On COMPASS’s benchmark (Fig. 3), BiPert predicts held-out perturbation effects more accu-
+rately than COMPASS-X across the four cell lines (de-biased Pearson: 0.47 vs. 0.38) and more than doubles
+its accuracy on the harder Orion pair (0.25 vs. 0.12). It also outperforms embedding-based regressors such
+as GenePert (0.39 and 0.18) and perturbation-conditioned deep models such as State4. The shared pertur-
+bation code, a central quantity in COMPASS, is also recovered more accurately (0.34 vs. 0.22; Orion: 0.20
+vs. 0.07). With few observed perturbations (Table 1), BiPert-FS leads with 10 observations and matches
+COMPASS-X at 25–50, while BiPert surpasses both at 100.
+Perturbation identification.
+We use ExPert’s full benchmark7: 22 datasets in 12 folds, each holding out
+a cell line, a T-cell donor or a T-cell condition. The 1,157 knockdowns measured in at least seven of ten
+cell contexts serve as candidates. We rebuild every dataset from public cell-level data with ExPert’s quality
+filters and match ExPert’s released dataset statistics exactly. In each fold, BiPert-ID is trained on the same
+datasets as ExPert and tested on the same cells. Following ExPert, scores are pooled (pseudobulk): per-cell
+log-softmax scores are averaged over a knockdown’s test cells before ranking. We report pseudobulk top-10
+recall (true perturbation among the top 10) and mean reciprocal rank (MRR), averaged over knockdowns.
+Results (Table 2).
+ExPert7, the state of the art, is a neural approach: an encoder trained across perturbation
+screens embeds each cell, and candidates are scored by cosine similarity to learned per-gene prototypes.
+We report results in two settings: the four held-out cell lines of the transfer benchmark, then ExPert’s full
+benchmark of 34 held-out views. We use these four lines because they are the lines of the transfer benchmark,
+which lets Section 6 relate both tasks on the same lines and perturbations. Besides, across all ten held-out
+cell lines of the full benchmark, BiPert-ID’s lead over ExPert in top-10 recall is the same as on these four
+8
+
+
+Top-10 recall
+MRR
+GEARS†
+0.01
+0.01
+scGPT†
+0.04
+0.02
+GenePert†
+0.06
+0.03
+Own-gene drop only†
+0.18
+0.16
+RNA fingerprinting†
+0.22
+0.14
+Centroid†
+0.30
+0.20
+ExPert†
+0.540
+0.402
+BiPert-ID (ours)
+0.656
+0.521
+Table 2. Perturbation identification in four
+held-out cell lines (HepG2, Jurkat, K562,
+RPE1), the lines of the transfer benchmark.
+†Values released by ExPert’s authors with their
+benchmark7; means over the four lines.
+Top-10 recall
+MRR
+Held-out view
+n
+ExPert BiPert-ID
+(ours)
+ExPert BiPert-ID
+(ours)
+New cell line
+10
+0.426
+0.539
+0.309
+0.415
+New donor
+12
+0.258
+0.381
+0.182
+0.292
+New condition
+12
+0.752
+0.442
+0.625
+0.340
+All views
+34
+0.482
+0.449
+0.376
+0.345
+Table 3. Full ExPert benchmark (22 datasets, 12 folds, 34 held-
+out views), on ExPert’s exact test cells; pseudobulk top-10 recall
+and MRR, means over views.
+(+0.113 vs. +0.116). On the four held-out cell lines, BiPert-ID outperforms ExPert on every line (Table 2).
+GEARS, scGPT and GenePert are forward models, adapted to identification by ExPert’s authors; they score
+close to chance (top-10 recall 0.01–0.06, against 0.009 for a random ranking). To see why, we reran GenePert
+and added State4 (Appendix D). Both reproduce the knockdowns and cell lines they were trained on but not
+new ones, and with both, the measured effects of the training data identify more knockdowns than the
+model’s predictions under the same scoring.
+Full benchmark (Table 3). We also evaluate ExPert’s complete benchmark: 22 datasets in 12 folds, which
+hold out a cell line, a T-cell donor, or a T-cell condition, scored on ExPert’s exact test cells. Averaged over
+all 34 views, ExPert leads slightly (pseudobulk top-10 recall 0.482 vs. 0.449). The gap comes entirely from
+views where the same donor was seen in training under another condition. On every new-donor view and on
+9 of 10 new cell lines, BiPert-ID leads clearly: when nothing from the test line or donor was seen in training,
+the linear decomposition transfers better than the deep network7.
+Which genes are identified? (Tables 4 and 5)
+An average recall does not show which knockdowns a
+method finds. We therefore ask whether BiPert-ID’s lead is confined to knockdowns with strong effects, and
+whether it comes only from reading genes that ExPert does not see. We measure each knockdown’s effect
+size, how strongly it changes cells in the training cell lines, and divide the knockdowns of each held-out
+line into quarters, from weakest to strongest effect. We then measure how often each method identifies the
+knockdowns of each group (Table 4). Both methods find knockdowns with strong effects far more often than
+subtle ones, and BiPert-ID leads in every group.
+While the simplicity of BiPert-ID allows it to read every gene measured in the query line, ExPert uses
+only a fixed panel of 3,096 genes. Even for knockdowns whose target lies inside that panel, BiPert-ID leads
+ExPert
+BiPert-ID (ours)
+Weakest-effect quarter
+0.21
+0.31
+Second quarter
+0.49
+0.66
+Third quarter
+0.66
+0.77
+Strongest-effect quarter
+0.79
+0.87
+Table 4. Identification by effect size. Pseudobulk top-
+10 recall in the four held-out cell lines.
+Target gene
+ExPert
+BiPert-ID (ours)
+In ExPert’s panel
+0.74
+0.80
+Outside the panel
+0.48
+0.61
+Table 5. Identification by ExPert’s gene panel. Pseu-
+dobulk top-10 recall in the four held-out cell lines.
+9
+
+
+Transfer score (quartile)
+ExPert
+BiPert-ID (ours)
+Lowest
+0.19
+0.26
+Second
+0.39
+0.59
+Third
+0.65
+0.82
+Highest
+0.90
+0.95
+Table 6. Forward transfer predicts inverse identifi-
+cation. Fraction of perturbations correctly identified in
+the held-out line, stratified by within-line quartile of the
+transfer score computed using training cell lines only.
+Identified within
+All TFs
+Strongest 10%
+Both cell types
+25 / 33
+25 / 33
+One cell type
+24 / 80
+21 / 60
+Neither
+8 / 1,720
+5 / 91
+Table 7. Identifiability within a cell type limits trans-
+fer. TFs identified across fibroblasts and RPE-1 cells,
+out of those in each group.
+(Table 5), so its advantage is not explained solely by access to additional genes. BiPert-ID identifies almost
+every knockdown that ExPert identifies (only 6% are found by ExPert alone) and a further 18% that ExPert
+misses.
+6
+A Two-Way Link Between Transfer and Identification
+Transfer predicts identification (Table 6).
+Our decomposition suggests that both tasks depend on the
+same quantity: how well a perturbation’s specific effect gp transfers across cell lines. We test this using
+training cell lines alone. For each perturbation measured in at least two training cell lines, we calculate its
+transfer score as the mean cosine similarity between its specific effect in each line and the average across its
+other lines, leaving each line out in turn. We then assess whether the perturbation is identified in a held-out
+line, defined as ranking among the top 10 of 1,157 candidates using pooled query cells.
+Across 3,340 perturbation–line pairs, perturbations that transfer better are identified more often: for both
+methods, the share identified rises steadily from the lowest to the highest quarter of transfer scores, with
+quarters cut within each held-out line. Stronger effects also transfer more readily (rank correlation 0.54), but
+the link is not explained by effect size alone: at a fixed effect size, perturbations that transfer better are still
+identified more often by both methods (Appendix E). The link holds for ExPert as well, although it does not
+model transfer, suggesting that transferability is a useful inductive bias for identification models in general.
+This association is predictive, not causal.
+Identifiability within a cell type limits transfer (Table 7).
+We test cross-cell-type transfer in an inde-
+pendent screen of CRISPR activation targeting 1,833 transcription factors (TFs) in fibroblasts and RPE-1
+cells32. For each TF, we split its guide RNAs into two disjoint sets and test whether the effect estimated
+from one set identifies the TF (top-1 among 1,833) from the other set. We perform this test within each cell
+type and across cell types, considering transfer successful if either direction (fibroblast to RPE-1 or vice
+versa) succeeds. Cross-cell-type identification closely tracks within-cell-type reproducibility: 25 of 33 TFs
+identified independently in both cell types also transfer across them, compared with only 8 of 1,720 TFs
+identified in neither. This association is not simply driven by effect strength. Even among the 10% of TFs
+with the strongest effects, cross-cell-type identification is much more frequent for TFs identified within both
+cell types (25 of 33) than for those identified in neither (5 of 91). The eight TFs reproducible within both cell
+types but not across them are candidates for cell-type-specific effects. The comparison must use different
+guides on each side; with the same guides, it would overstate cross-cell-type identification about fourfold
+(Appendix F).
+10
+
+
+7
+Limitations and Conclusion
+Limitations. BiPert-ID is outperformed by the deep network ExPert when the training data contain cells of
+the same type as the test, as on views where the same donor was seen in training under another condition
+(Table 3). Methods that draw on external gene knowledge can also edge out BiPert, which uses the gene
+expression only: TabICL14, given six sets of prior gene features, reaches a de-biased Pearson correlation of
+0.48 against 0.47 for BiPert, although BiPert leads on the Orion pair (0.25 vs. 0.24)5.
+BiPert, a closed-form linear decomposition, matches or outperforms state-of-the-art methods on two
+single-cell perturbation tasks when evaluated on held-out cell lines and donors. The learned parameters
+have direct biological interpretations: perturbation codes Up reveal shared response patterns, while cell-line
+loadings Vℓcapture how each context reweights them. Inverse-identification scores further decompose into
+prototype similarity and the knocked-down gene’s own expression drop. Deep models perform better when
+the test context resembles their training data, as ExPert does on same-donor views. Benchmarks should
+therefore report performance on genuinely new contexts separately from performance on closely related
+ones. For generalisation to new contexts, a simple linear model is the baseline to beat.
+Finally, the relationship between the two tasks persists after controlling for perturbation effect size. This
+suggests that the ability to transfer perturbation-specific responses across cellular contexts is closely linked
+to their identifiability from observed cells. Because the transfer score is computed using training cell lines
+alone, it can also provide an advance estimate of which perturbations are likely to be reliably identified in a
+new cell line, independently of the identification method used.
+Data and code availability
+All datasets are public (Replogle et al.1, Nadig et al.2, X-Atlas/Orion3, the ExPert benchmark7 and Southard
+et al.32). The source code to reproduce the results is available at https://github.com/bach-zouk/
+BiPert.
+Acknowledgements
+We thank Leandro Ventimiglia for helpful discussions. This work is supported by Biotechnology and Bio-
+logical Sciences Research Council (BBSRC) grant number BB/Y000730/1. Computational resources were
+provided by Isambard-AI, by King’s Computational Research, Engineering and Technology Environment
+(CREATE) at King’s College London, and by the National Academic Infrastructure for Supercomputing in
+Sweden (NAISS), funded by the Swedish Research Council.
+Use of AI tools
+The research direction, methodology and ideas were set by the authors. Claude Code and ChatGPT were
+used to assist with scientific analysis, literature search, language editing, grammar and improving the clarity
+and conciseness of the manuscript. All scientific ideas, methodology, experiments, analyses, results, and
+conclusions are verified by the authors, who take full responsibility for the submitted content.
+References
+[1] Joseph M. Replogle, Reuben A. Saunders, Angela N. Pogson, Jeffrey A. Hussmann, Alexander Lenail,
+Alina Guna, Lauren Mascibroda, Eric J. Wagner, Karen Adelman, Gila Lithwick-Yanai, Nika Ire-
+11
+
+
+madze, Florian Oberstrass, Doron Lipson, Jessica L. Bonnar, Marco Jost, Thomas M. Norman, and
+Jonathan S. Weissman. Mapping information-rich genotype-phenotype landscapes with genome-scale
+Perturb-seq. Cell, 185(14):2559–2575.e28, 2022. doi: 10.1016/j.cell.2022.05.013.
+[2] Ajay Nadig, Joseph M. Replogle, Angela N. Pogson, Mukundh Murthy, Steven A. McCarroll,
+Jonathan S. Weissman, Elise B. Robinson, and Luke J. O’Connor.
+Transcriptome-wide analysis
+of differential expression in perturbation atlases.
+Nature Genetics, 57(5):1228–1237, 2025.
+doi:
+10.1038/s41588-025-02169-3.
+[3] Ann C. Huang, Tsung-Han S. Hsieh, Jiang Zhu, Jackson Michuda, Ashton Teng, Soohong Kim, Eliza-
+beth M. Rumsey, Sharon K. Lam, Ikenna Anigbogu, Philip Wright, Mohamed Ameen, Kwontae You,
+Christopher J. Graves, Hyunsung John Kim, Adam J. Litterman, Rene V. Sit, Alex Blocker, and Ci Chu.
+X-Atlas/Orion: Genome-wide Perturb-seq datasets via a scalable fix-cryopreserve platform for training
+dose-dependent biological foundation models. bioRxiv, 2025. doi: 10.1101/2025.06.11.659105.
+[4] Abhinav K. Adduri, Dhruv Gautam, et al. Predicting cellular responses to perturbation across diverse
+contexts with State. bioRxiv, 2025.
+[5] Huan Liang and Rohit Singh. COMPASS: Component-wise inference of shared and gene-specific
+perturbation response. bioRxiv, 2026. doi 10.64898/2026.08.03.742643.
+[6] Isabella N. Grabski, Junsuk Lee, John D. Blair, Carol Dalgarno, Isabella Mascio, Alexandra Bradu,
+David A. Knowles, and Rahul Satija. Mapping transcriptional responses to cellular perturbations with
+RNA fingerprinting. Cell, 2026. doi: 10.1016/j.cell.2026.09.017.
+[7] Leon Schwartz, Jacob L. Schlamowitz, Benjamin Kuznets-Speck, Conor W. Johnson, Diptatanu Das,
+Emanuelle I. Grody, Tao Bai, Hanxiao Sun, Irish Senthilkumar, Gillian Primavera, Jaekwon Jung,
+Britta Kuusik, Rogan A. Grant, Enrique Rojas, Abdalla M. Abdrabou, Brandon Peiffer, Zhaoli Sun,
+Anna Mae Diehl, Carsten Marr, Navdeep S. Chandel, Divakar S. Mithal, Samuel E. Weinberg, Mazhar
+Adli, Auinash Kalsotra, Ekta Prashnani, and Yogesh Goyal. ExPert infers causal perturbations from
+cell states across biological and clinical contexts. bioRxiv, 2026. doi: 10.64898/2026.11.02.762549.
+[8] Ramon Viñas Torné, Maciej Wiatrak, Zoe Piran, Shuyang Fan, Liangze Jiang, Sarah A. Teichmann,
+Mor Nitzan, and Maria Brbi´c. Systema: a framework for evaluating genetic perturbation response
+prediction beyond systematic variation. Nature Biotechnology, 44(6):1050–1059, 2025. doi: 10.1038/
+s41587-025-02777-8.
+[9] Mohammad Lotfollahi, Anna Klimovskaia Susmelj, Carlo De Donno, Leon Hetzel, Yuge Ji, Ignacio L.
+Ibarra, Sanjay R. Srivatsan, Mohsen Naghipourfar, Riza M. Daza, Beth Martin, Jay Shendure, Jose L.
+McFaline-Figueroa, Pierre Boyeau, F. Alexander Wolf, Nafissa Yakubova, Stephan Günnemann, Cole
+Trapnell, David Lopez-Paz, and Fabian J. Theis. Predicting cellular responses to complex perturbations
+in high-throughput screens. Molecular Systems Biology, 19(6):e11517, 2023. doi: 10.15252/msb.
+202211517.
+[10] Yusuf Roohani, Kexin Huang, and Jure Leskovec. Predicting transcriptional outcomes of novel multi-
+gene perturbations with GEARS. Nat. Biotechnol., 42:927–935, 2024.
+[11] Haotian Cui, Chloe Wang, Hassaan Maan, Kuan Pang, Fengning Luo, Nan Duan, and Bo Wang.
+scGPT: toward building a foundation model for single-cell multi-omics using generative AI. Nature
+Methods, 21(8):1470–1480, 2024. doi: 10.1038/s41592-024-02201-0.
+12
+
+
+[12] Yiqun T. Chen and James Zou.
+GenePert: Leveraging GenePT embeddings for gene perturbation
+prediction. bioRxiv, 2024. doi: 10.1101/2024.10.27.620513.
+[13] Jingang Qu, David Holzmüller, Gaël Varoquaux, and Marine Le Morvan. TabICLv2: A better, faster,
+scalable, and open tabular foundation model. arXiv preprint arXiv:2602.11139, 2026.
+[14] Giovanni Palla, Alexander Hillsley, Yang-Joon Kim, and Loic A. Royer. Tabular foundation models
+are competitive cellular perturbation predictors across biological scales. bioRxiv, 2026. doi: 10.64898/
+2026.06.28.735106.
+[15] Frederik Wenkel, Wilson Tu, Cassandra Masschelein, Hamed Shirzad, Liam Hodgson, Ihab Bendidi,
+Cian Eastwood, Shawn T. Whitfield, Craig Russell, Yassir El Mesbahi, Jiarui Ding, Marta M. Fay,
+Berton Earnshaw, Emmanuel Noutahi, and Alisandra K. Denton. TxPert: using multiple knowledge
+graphs for prediction of transcriptomic perturbation effects. Nature Biotechnology, 2026. doi: 10.
+1038/s41587-026-03113-4.
+[16] Constantin Ahlmann-Eltze, Wolfgang Huber, and Simon Anders. Deep-learning-based gene perturba-
+tion effect prediction does not yet outperform simple linear baselines. Nature Methods, 22(8):1657–
+1661, 2025. doi: 10.1038/s41592-025-02772-6.
+[17] Gerold Csendes, Gema Sanz, Kristóf Z. Szalay, and Bence Szalai. Benchmarking foundation cell
+models for post-perturbation RNA-seq prediction. BMC Genomics, 26(1):393, 2025. doi: 10.1186/
+s12864-025-11600-2.
+[18] Aaron Wenteler, Martina Occhetta, Nikhil Branson, Victor Curean, Magdalena Huebner, William Dee,
+William Connell, Siu Pui Chung, Alex Hawkins-Hooker, Yasha Ektefaie, César Miguel Valdez Cór-
+dova, and Amaya Gallagher-Syed. PertEval-scFM: Benchmarking single-cell foundation models for
+perturbation effect prediction. bioRxiv, 2025. doi: 10.1101/2024.10.02.616248.
+[19] Yongqi Huang, Hanzhi Wang, Chenyu Li, and Parker Wilson. The recoverable resolution of cellular
+perturbation-response prediction. bioRxiv, 2026. doi: 10.64898/2026.09.30.755756.
+[20] Panpan Cui, Yiqi Liu, and Wenhao Sun. PerturbMap: Cross-context transfer of single-cell perturbation
+responses. arXiv preprint arXiv:2607.28090, 2026. doi: 10.48550/arXiv.2607.28090.
+[21] Eric F. Lock, Katherine A. Hoadley, J. S. Marron, and Andrew B. Nobel. Joint and individual variation
+explained (JIVE) for integrated analysis of multiple data types. The Annals of Applied Statistics, 7(1):
+523–542, 2013. doi: 10.1214/12-AOAS597.
+[22] Basura Fernando, Amaury Habrard, Marc Sebban, and Tinne Tuytelaars. Unsupervised visual domain
+adaptation using subspace alignment. In ICCV, pages 2960–2967, 2013.
+[23] Theodoros Evgeniou and Massimiliano Pontil. Regularized multi-task learning. In KDD, pages 109–
+117, 2004.
+[24] Ilja Kuzborskij and Francesco Orabona. Stability and hypothesis transfer learning. In ICML, pages
+942–950, 2013.
+[25] Amit Boyarski, Sanketh Vedula, and Alex Bronstein. Spectral geometric matrix completion. In Math-
+ematical and Scientific Machine Learning (MSML), 2021. arXiv:1911.07255.
+[26] Abhishek Sharma and Maks Ovsjanikov. Matrix decomposition on graphs: A functional view. In IEEE
+International Conference on Acoustics, Speech and Signal Processing (ICASSP), 2022.
+13
+
+
+[27] Ricard Argelaguet, Britta Velten, Damien Arnol, Sascha Dietrich, Thorsten Zenz, John C. Marioni,
+Florian Buettner, Wolfgang Huber, and Oliver Stegle. Multi-omics factor analysis—a framework for
+unsupervised integration of multi-omics data sets. Molecular Systems Biology, 14(6):e8124, 2018. doi:
+10.15252/msb.20178124.
+[28] Ricard Argelaguet, Damien Arnol, Danila Bredikhin, Yonatan Deloro, Britta Velten, John C. Marioni,
+and Oliver Stegle. MOFA+: a statistical framework for comprehensive integration of multi-modal
+single-cell data. Genome Biology, 21(1):111, 2020. doi: 10.1186/s13059-020-02015-1.
+[29] Yifan Zhou, Kaixuan Luo, Lifan Liang, Mengjie Chen, and Xin He. A new Bayesian factor analysis
+method improves detection of genes and biological processes affected by perturbations in single-cell
+CRISPR screening. Nature Methods, 20(11):1693–1703, 2023. doi: 10.1038/s41592-023-02017-4.
+[30] Michael Schubert, Bertram Klinger, Martina Klünemann, Anja Sieber, Florian Uhlitz, Sascha Sauer,
+Mathew J. Garnett, Nils Blüthgen, and Julio Saez-Rodriguez.
+Perturbation-response genes re-
+veal signaling footprints in cancer gene expression.
+Nature Communications, 9:20, 2018.
+doi:
+10.1038/s41467-017-02391-6.
+[31] Lei S. Qi, Matthew H. Larson, Luke A. Gilbert, Jennifer A. Doudna, Jonathan S. Weissman, Adam P.
+Arkin, and Wendell A. Lim. Repurposing CRISPR as an RNA-guided platform for sequence-specific
+control of gene expression. Cell, 152(5):1173–1183, 2013. doi: 10.1016/j.cell.2013.02.022.
+[32] Kaden M. Southard, Rico C. Ardy, Anran Tang, Deirdre D. O’Sullivan, Eli Metzner, Karthik Guruvayu-
+rappan, and Thomas M. Norman. Comprehensive transcription factor perturbations recapitulate fibrob-
+last transcriptional states. Nature Genetics, 57:2323–2334, 2025. doi: 10.1038/s41588-025-02284-1.
+14
+
+
+Supplementary Material
+The supplement is organised as follows. Appendix A lists the cell lines of the transfer benchmark, derives the
+few-shot fit of BiPert-FS and analyses what each of its parts contributes on real data. Appendix B gives the
+implementation details of BiPert-ID. Appendix C reports the ablations: the rank of BiPert and the score of
+BiPert-ID. Appendix D examines why forward models, used for identification, score low. Appendix E shows
+that the link between transfer and identification holds after controlling for effect size. Appendix F gives the
+identification results of the main text in more detail: the uncertainty of the comparison over ExPert’s full
+benchmark, the results per held-out cell line, and why the cross-cell-type analysis compares different guides.
+A
+BiPert-FS
+Overview.
+Figure S1 illustrates the difference between BiPert-FS and conventional factor models. Meth-
+ods such as JIVE21 and MOFA27,28 jointly decompose multiple datasets into shared and dataset-specific
+factors. Their primary goal is to explain the observed data, and incorporating a new dataset requires estimat-
+ing its factor loadings (Fig. S1, bottom).
+BiPert-FS addresses a different task: predicting unmeasured perturbation responses in a new cell line
+from only a few observed knockdowns. Rather than decomposing the new cell line, it retains the basis Φ
+learned from the source lines and estimates a small correction, parameterised by b and C. The matrix C is
+regularised towards the identity, and the correction is evaluated on knockdowns not used for adaptation.
+program 1
+program 2
+b
+program 1
+program 2
+0.75
+0.40
+−0.30
+1.05
+source program 1
+source program 2
+Factor models
+60,000 numbers (G × r)
+a new loading matrix
+COMPASS-X
+2,000 numbers (one vector uℓ*)
+the knockdown-specific part is copied from the sources
+BiPert-FS
+930 numbers (b and C)
+starts from the source average, fits a small correction
+(a) Source average
+starting point
+(b) BiPert-FS
+shifts by b; C moves
+and mixes both programs
+(c) What mixing means
+each new score combines both
+source scores (z = b + C a)
+new
+score 1
+new
+score 2
+What is estimated for a new line from its few measured knockdowns
+Figure S1. How BiPert-FS adapts to a new cell line. Schematic in two dimensions. (a) Knockdowns (dots) in the
+source average. (b) BiPert-FS fits an affine map zp ≈b +Cap from source-average scores ap to new-line scores zp:
+b shifts all knockdowns together, and C moves both programs. (c) Mixing: each new score combines both source
+scores. The weights on the same program (0.75, 1.05) rescale it; those on the other program (0.40, −0.30) mix the
+two. Bottom: what each method estimates for a new line, for G = 2,000 genes, r = 30 factors and k = 30 programs.
+Benchmark.
+The four cell lines of COMPASS’s benchmark are K562, RPE1, HepG2 and Jurkat1,2, with
+2,052 knockdowns measured in all four. The Orion pair is HCT116 and HEK293T3, with 2,270 knockdowns
+measured in both.
+15
+
+
+Inputs.
+Let S denote the source cell lines, excluding the target line ℓ∗. For each source line s, let Ys be
+its knockdown-by-gene effect matrix. We construct Φ ∈RG×k, with k = 30, from the top k right singular
+vectors of the source matrices, after centring each matrix by gene and stacking them. The columns of Φ are
+orthonormal:
+Φ⊤Φ = Ik.
+For knockdown p, the mean response across source lines is
+¯yp =
+1
+|S | ∑
+s∈S
+yp,s.
+Let O be the set of n knockdowns observed in the target line, with responses yp = yp,ℓ∗.
+Low-dimensional representation.
+Project the source-average and target responses onto Φ:
+ap = Φ⊤¯yp,
+zp = Φ⊤yp.
+Both ap and zp have only k coordinates. Equation (7) of the main text predicts
+ˆyp = ¯yp +Φ
+ b+(C −Ik)ap
+
+.
+Equivalently,
+ˆyp = Φ(b+Cap)+(I −ΦΦ⊤) ¯yp,
+where I is the G×G identity matrix. Thus, BiPert-FS adjusts the source prediction only within the learned
+basis, leaving its orthogonal component unchanged.
+Reduction to k dimensions.
+The prediction error separates into components inside and outside the span
+of Φ:
+yp −ˆyp = Φ(zp −b−Cap)+(I −ΦΦ⊤)(yp −¯yp).
+(S1)
+Because these components are orthogonal,
+∥yp −ˆyp∥2
+2 = ∥zp −b−Cap∥2
+2
++∥(I −ΦΦ⊤)(yp −¯yp)∥2
+2.
+(S2)
+The second term does not depend on b or C. Therefore, minimising the squared prediction error over genes
+reduces to fitting a regression from ap to zp in k dimensions.
+Regularised objective.
+We estimate b and C by minimising
+L (b,C) = ∑
+p∈O
+∥zp −b−Cap∥2
+2 + µ ∥C −Ik∥2
+F.
+(S3)
+The penalty encourages C to remain close to the identity, while the offset b is unpenalised. Pulling C to-
+wards the identity rather than towards zero means that, with little data, the model falls back on the source
+programs instead of discarding them. This is needed because C has k2 = 900 entries, more than the nk = 300
+coordinates observed with 10 knockdowns. The offset has only k entries and its solution, b = ¯z −C ¯a, uses
+the means of zp and ap over all observed knockdowns, so it is well determined even at small n and needs no
+penalty. Writing C = Ik + D, the objective becomes ridge regression of zp −ap on ap, with an unpenalised
+intercept. In other words, the model learns how the target line differs from the source-average response. The
+penalty also keeps the fit well posed when fewer than k +1 = 31 knockdowns are observed.
+16
+
+
+De-biased Pearson
+PDS
+Source avg.
+Shift only
+Shift + diag. C
+Full (b, C)
+Source avg.
+Shift only
+Shift + diag. C
+Full (b, C)
+Mean
+0.320
+0.353
+0.359
+0.366
+0.266
+0.258
+0.241
+0.261
+Table S1. Parts of the few-shot fit (100 observed knockdowns, mean over the four held-out lines and five splits).
+Shift only: C = I. Shift + diag. C: each program rescaled separately, no mixing. Full: Eq. (7), the BiPert-FS row of the
+few-shot table.
+Closed-form solution.
+Define
+X =
+
+
+1
+a⊤
+1
+...
+...
+1
+a⊤
+n
+
+,
+Z =
+
+
+z⊤
+1...
+z⊤
+n
+
+,
+Θ =
+b⊤
+C⊤
+
+.
+Here, X ∈Rn×(k+1), Z ∈Rn×k, and Θ ∈R(k+1)×k. Let
+Λ = diag(0,µIk),
+Θ0 =
+0
+Ik
+
+.
+The objective can then be written as
+L (Θ) = ∥Z −XΘ∥2
+F +tr
+ (Θ−Θ0)⊤Λ(Θ−Θ0)
+
+.
+Setting its gradient to zero gives
+(X⊤X +Λ)Θ = X⊤Z +ΛΘ0,
+and hence
+Θ = (X⊤X +Λ)−1 (X⊤Z +ΛΘ0).
+(S4)
+This gives the few-shot adaptation parameters in closed form, without iterative training.
+Choosing the regularisation strength.
+We parameterise the penalty as
+µ = α n ¯v,
+where ¯v is the mean variance of the source coordinates ap across knockdowns. Scaling by n keeps the penalty
+proportional to the data-fitting term, while ¯v accounts for the scale of the perturbation effects.
+We select α ∈{0.01,0.1,1,10} separately for each observation budget using only the source lines. In
+turn, each source line is treated as a pseudo-target, with the remaining lines used to construct the source
+representation. We retain the value of α that maximises the sum of Pearson correlation and PDS. The held-
+out target line is never used for hyperparameter selection.
+Contribution of each component.
+To determine which parts of Eq. (7) drive performance, we evaluate
+four variants on the same few-shot splits and with the same regularisation selection: the source average
+(b = 0, C = Ik), a shift only (C = Ik), a shift with per-program rescaling (diagonal C), and the full affine fit
+(Table S1).
+Averaged across the four cell lines, the shift accounts for most of the improvement over the source
+average. With 10 observed knockdowns, de-biased Pearson correlation increases from 0.320 to 0.347 with
+the shift alone, compared with 0.355 for the full fit. At 10 knockdowns, the shift alone explains 0.025 of
+17
+
+
+BiPert-FS’s 0.033 advantage over COMPASS-X. At 25 knockdowns, however, the shift alone falls below
+COMPASS-X (0.351 vs. 0.355), and the advantage comes entirely from C.
+The average improvement of the shift is driven by one cell line, RPE1, where it increases Pearson
+correlation from 0.360 to 0.517 at 100 knockdowns but reduces PDS from 0.312 to 0.141. RPE1 is the only
+non-cancer line of the four, which may contribute to this difference; we did not test this. In the other three
+lines, the shift alone does not improve on the source average, and the gain over the shift comes from C
+(0.005–0.026 at 100 knockdowns). Mixing also improves perturbation discrimination: relative to diagonal
+rescaling, it increases PDS in every cell line, by as much as 0.055 in Jurkat at 100 knockdowns.
+The off-diagonal entries of C become reproducible across random selections of observed knockdowns
+only at larger budgets. Their correlations across draws are 0.50–0.68 with 100 knockdowns, compared with
+0.03–0.22 with 10. Thus, with very few observations, C primarily acts as a regularised correction close to the
+identity rather than a reliably estimated program-mixing transformation. With more observed knockdowns,
+C becomes more effective: its gain in Pearson correlation over the shift alone rises from 0.007 at 10 knock-
+downs to 0.012 at 100 on average, and from 0.012 to 0.026 in Jurkat, the line with the largest gain at 100
+knockdowns.
+B
+BiPert-ID: Implementation Details
+This section gives the implementation details of BiPert-ID, described in Section 4.2.
+Prototypes.
+For each training cell line, perturbation effects yp,ℓare standardised gene-wise (divided by a
+robust per-gene spread over perturbations). The shared response is removed by projecting out the direction
+of the mean effect across knockdowns, and each residual is normalised to unit length. The prototype gp is
+the average of these residuals over the training cell lines that measure p.
+Similarity-weighted average.
+Training lines are not equally relevant to a held-out line: a held-out T-
+cell sample resembles the other T-cell contexts more than, for example, K562. We therefore weight each
+training cell line ℓby how similar its unperturbed state is to that of the held-out line ℓ∗. Let cℓ,cℓ∗∈RG
+be the mean expression of their control cells (log(1 + x) of counts normalised to 104 per cell). After cen-
+tring each gene across {cℓ∗} ∪{cℓ}, we compute ρℓ= cos(cℓ,cℓ∗), standardise these across the training
+cell lines, ˜ρℓ= (ρℓ−¯ρ)/sd(ρ), and set wℓ= e ˜ρℓ/∑ℓ′ e ˜ρℓ′. The prototype becomes the weighted average
+gp = ∑ℓ∋p wℓ˜gp,ℓ
+
+∑ℓ∋p wℓ, where ˜gp,ℓis the residual above and the sums run over the training cell lines that
+measure p. Only the held-out line’s unlabelled control cells are used, the same cells that already serve as
+the query reference, so the method stays zero-shot. The rule has no tuned parameters (softmax temperature
+fixed at 1 in standardised units). Compared with an unweighted average over training lines, this weighting
+raises pseudobulk top-10 recall by 0.014 on the four held-out cell lines and by 0.025 over all 34 views. The
+rule, including the criterion for adopting it only if the 95% confidence interval of its gain over all 34 views
+lay entirely above zero, was specified before evaluation.
+Query.
+A query cell’s change d is computed relative to the mean of the held-out line’s control cells and
+divided by the per-gene spread of those control cells. Following ExPert, the shared response is removed by
+projecting out the direction of the mean change across all query cells of that line.
+Scores.
+The candidate’s own gene is removed from both vectors before the cosine. Both terms of Eq. (8) in
+the main text are standardised across the 1,157 candidates and added with equal weight; there are no tuned
+parameters. For a group of cells from the same knockdown, per-cell log-softmax scores are averaged before
+ranking (ExPert’s pseudobulk evaluation).
+18
+
+
+C
+Ablations
+BiPert: rank.
+Accuracy increases from 0.43 at rank 10 to a plateau of 0.47 at ranks 50–100, before declin-
+ing slightly to 0.44 at rank 300. The perturbation discrimination score (PDS) increases steadily with rank,
+from 0.15 at rank 10 to 0.25 at rank 300, matching COMPASS-X only at ranks 200–300. Thus, rank controls
+a trade-off between prediction accuracy and perturbation discrimination: at rank 50, the PDS of BiPert is
+lower than that of COMPASS-X (0.21 vs. 0.25). We also tested whether BiPert benefits from first separating
+components shared across all cell lines from cell-line-specific ones, as JIVE does21. It does not: replacing
+the plain SVD with JIVE changes accuracy by at most 0.004 and PDS by at most 0.010 across ranks. BiPert
+therefore needs no such split; the improvement comes from the low-rank structure itself.
+BiPert-ID: score.
+We ablate the scoring rule (Eq. (8)) to assess the individual importance of the cosine
+term and the own-gene drop term. Both are needed: either one alone identifies far fewer perturbations than
+the two combined (Fig. S2). Reading the own-gene drop from every gene measured in the query line, rather
+than only from genes shared by all training cell lines, adds a further gain.
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+pseudobulk top-10 recall, 4 held-out lines
+Cosine term only
+Own-gene drop only*
+Both terms*
+BiPert-ID (both terms, all genes)
+0.374
+0.399
+0.599
+0.656
+Figure S2. BiPert-ID ablation. Mean over the four held-out lines of Table 2, on ExPert’s test cells. ∗Own-gene drop
+read only from genes measured in every training cell line.
+D
+Why Forward Models Identify Poorly
+Having described how BiPert-ID identifies knockdowns, we now ask why models built for the forward task
+perform so poorly on the same task (Table 2). A forward model can be used for identification by predicting
+one expression profile per candidate knockdown and matching each test cell to these profiles; the forward-
+model scores in that table were released by ExPert’s authors7. We reran GenePert12 on the four held-out
+cell lines to see why it scores low, and added State4, a forward model built to predict effects in an unseen
+cell line. For each model we ask two questions: does the predicted profile of a knockdown agree with its
+measured effect once the mean effect of all knockdowns is removed, and do measured effects, put through
+the same scoring, identify more knockdowns than the predictions? Figure S3 gives the numbers.
+GenePert
+fits a ridge regression from a gene’s text embedding to the effect of knocking it down. For
+knockdowns included in the fit, its profile is a smoothed copy of the measured effect (agreement 0.82), and
+matching against these profiles identifies 36% of the knockdowns of a held-out line, against 42% for the
+measured effects themselves. For knockdowns left out of the fit (five-fold), the agreement falls to 0.10 and
+identification to 8%. ExPert’s authors report 6% for GenePert; their adapter, as we read it, uses the fitted
+profiles, so we could not reproduce that value with our re-implementation (one model per training context).
+State
+is trained on three cell lines and predicts each knockdown in the fourth from that line’s control cells.
+In the lines it was trained on, its predictions agree with the measured effects (0.62). In the held-out line the
+19
+
+
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+GenePert
+State
+0.82
+0.10
+0.62
+0.28
+(a) Agreement with the measured effect
+seen in training
+not seen
+0.0
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+GenePert
+State
+0.42
+0.08
+0.27
+0.12
+in the fit: 0.36
+(b) Identification: top-10 recall
+measured effects, same scoring
+model predictions
+Figure S3. What forward models predict, and how well it identifies knockdowns. (a) Correlation between the
+predicted and the measured effect of a knockdown, after removing the mean effect of all knockdowns, for GenePert
+and State. “Seen” and “not seen” refer to knockdowns for GenePert and to cell lines for State. (b) Pseudobulk top-10
+recall among 1,157 candidates on the four held-out lines, for the model’s predicted profiles and for measured effects
+from its training data under the same scoring. For GenePert the bar shows knockdowns left out of the fit, and the tick
+those included in it. State is our own adaptation, with the authors’ public zero-shot models (embedding input), and
+is not part of ExPert’s benchmark. The models use different training data and gene sets; compare bars only within a
+model.
+agreement is 0.28, no higher than that of the plain average of the measured effects in the three training lines
+(0.28), and the predicted profiles identify fewer than half as many knockdowns as that average (0.12 against
+0.27). State encodes a knockdown as a label, so it has profiles for about 920 of the 1,157 candidates.
+Summary.
+GenePert and State carry knockdown-specific signal for the knockdowns and cell lines they
+were trained on, and lose it for new ones. With both models, measured effects identify more knockdowns
+than the model’s predictions under the same scoring. Identification in a new cell line therefore rests on the
+measured effects of the candidate knockdowns, which BiPert-ID uses directly as prototypes.
+E
+Transfer Predicts Identification After Controlling for Effect Size
+Motivation.
+Section 6 and Table 6 show that perturbations with higher transfer scores are more likely to
+be identified in a held-out cell line. However, perturbations with larger effects may be easier to identify and
+may also transfer more consistently. Indeed, transfer score and effect size have a rank correlation of 0.54.
+We therefore test whether transfer predicts identification independently of effect size.
+Setup.
+We analyse 3,340 perturbation–line pairs. For each pair, the outcome is y = 1 if the perturbation
+is identified among the top 10 of 1,157 candidates in the held-out line (pooled across cells), and y = 0
+otherwise. We use two predictors, both computed exclusively from training cell lines: the transfer score t
+(defined in the main text) and effect size e, measured as the logarithm of the norm of the perturbation’s mean
+effect. Both predictors are standardised to zero mean and unit variance.
+We fit a logistic regression,
+log P(y = 1)
+P(y = 0) = βt t +βe e+γℓ,
+where γℓis a separate intercept for each held-out line, accounting for differences in identification difficulty.
+The coefficient βt measures the association between transfer and identification after controlling for effect
+size and cell line, and βe is the corresponding coefficient for effect size. A one-standard-deviation increase
+20
+
+
+Odds of identification per +1 SD of
+Model fit (pseudo-R2)
+Pairs
+Method
+transfer score [95% CI]
+effect size
+without →with transfer
+All (3,340)
+ExPert
+×4.4 [3.8,5.1]
+×1.7
+0.16 →0.29
+BiPert-ID
+×5.2 [4.4,6.2]
+×1.9
+0.17 →0.30
+Largest-effect half (1,671)
+ExPert
+×4.5 [3.7,5.4]
+×1.2
+0.03 →0.21
+BiPert-ID
+×4.1 [3.3,5.1]
+×1.4
+0.04 →0.19
+Table S2. Transfer predicts identification at fixed effect size. Logistic regression of whether a knockdown is identi-
+fied in the held-out line (top 10 of 1,157, pooled across cells), with one intercept per line. Each multiplier is the change
+in the odds of identification for a one-standard-deviation increase in that predictor, holding the other fixed; ×1 means
+no effect. Both predictors use training cell lines only.
+in transfer score multiplies the odds of identification by exp(βt). If the observed association were explained
+entirely by effect size, βt would be close to zero.
+Results.
+Table S2 reports the fitted odds multipliers, exp(β). Transfer remains a strong predictor for both
+methods, with 95% confidence intervals for its odds multiplier well above 1. A one-standard-deviation in-
+crease in transfer score multiplies the odds of identification by approximately 4.4 for ExPert and 5.2 for
+BiPert-ID, compared with 1.7 and 1.9 for the same increase in effect size.
+Adding transfer score to a model containing only effect size and cell-line intercepts increases McFad-
+den’s pseudo-R2 from 0.16 to 0.29 for ExPert and from 0.17 to 0.30 for BiPert-ID.
+As an additional check, we repeat the analysis using only the half of perturbation–line pairs with the
+largest effects within each cell line. Transfer remains strongly associated with identification (odds multiplied
+by 4.5 for ExPert and 4.1 for BiPert-ID), while effect size matters much less (×1.2 and ×1.4). In this half,
+effect size and cell line alone explain little (pseudo-R2 0.03 and 0.04), and adding transfer raises this to 0.21
+and 0.19.
+Together, these results show that transfer predicts identification beyond what can be explained by
+perturbation effect size alone.
+F
+Identification Results in Detail
+Full ExPert benchmark: uncertainty of the results.
+Across all 34 held-out views of ExPert’s full bench-
+mark (Table 3 and Section 5), ExPert achieves a mean pseudobulk top-10 recall of 0.482, compared with
+0.449 for BiPert-ID, a difference of −0.033 (BiPert-ID minus ExPert).
+To quantify uncertainty, we use a paired bootstrap over knockdowns. Within each view, we resample
+knockdowns with replacement and compute both methods’ top-10 recall on the same resampled set. We
+then average the differences across the 34 views, giving each view equal weight, as in ExPert’s headline
+metric.
+Over 2,000 bootstrap resamples, the 95% confidence interval for the mean difference is [−0.040,−0.026].
+The interval excludes zero, indicating a small but real overall advantage for ExPert on the full benchmark.
+However, this advantage comes entirely from views in which the same donor appears in training under
+another condition. BiPert-ID performs better on every new-donor view and on 9 of the 10 new-cell-line
+views, as discussed in the main text. The corresponding intervals lie above zero for new cell lines and new
+donors, and below zero for same-donor views.
+Identification per held-out cell line.
+Table S3 reports the per-cell-line results underlying the averages in
+Table 2 of the main text (Section 5), evaluated on ExPert’s test cells. BiPert-ID outperforms ExPert on every
+21
+
+
+Top-10 recall
+MRR
+HepG2
+Jurkat
+K562
+RPE1
+HepG2
+Jurkat
+K562
+RPE1
+GenePert†
+0.049
+0.063
+0.059
+0.084
+0.030
+0.031
+0.034
+0.040
+Own-gene drop only†
+0.189
+0.177
+0.189
+0.171
+0.166
+0.155
+0.169
+0.143
+RNA fingerprinting†
+0.249
+0.203
+0.156
+0.254
+0.166
+0.135
+0.109
+0.164
+Centroid†
+0.329
+0.314
+0.311
+0.255
+0.221
+0.210
+0.216
+0.166
+ExPert†
+0.597
+0.503
+0.471
+0.589
+0.457
+0.376
+0.340
+0.434
+BiPert-ID (ours)
+0.688
+0.652
+0.647
+0.637
+0.561
+0.515
+0.520
+0.485
+Table S3. Perturbation identification per held-out cell line. †Values released by ExPert’s authors with their bench-
+mark7.
+held-out cell line under both evaluation metrics. For K562, we use ExPert’s essential-gene screen.
+Identifiability and transfer: why different guides are needed.
+In the CRISPR activation screen of
+Southard et al.32, each transcription factor (TF) is targeted by multiple guide RNAs. Individual guides
+can also produce effects unrelated to their intended TF. Consequently, comparing the same guide across cell
+types may overestimate how well a TF’s response transfers.
+Across 1,833 TFs, the mean correlation between responses to the same guide in fibroblasts and RPE-1
+cells is 0.060–0.065. This exceeds the correlation between different guides targeting the same TF within one
+cell type (0.035–0.039).
+The difference also affects identification. Using the same guide across cell types identifies 153–160 TFs
+correctly (top-1 among 1,833 candidates), compared with only 36–46 when different guides are used. Thus,
+reusing guides inflates apparent cross-cell-type identification by approximately fourfold.
+To avoid this confound, the analysis in Section 6 and Table 7 divides each TF’s guides into two disjoint
+sets and always compares responses obtained using different sets across cell types.
+22

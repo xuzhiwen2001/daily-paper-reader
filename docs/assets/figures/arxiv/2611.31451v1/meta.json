@@ -1,0 +1,114 @@
+{
+  "version": 3,
+  "extractor": "arxiv-html",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-001.webp",
+      "caption": "Figure 1 : Overview of the VirTues-M2 platform. a , Training data composition. Top: Hibou H&E foundation model initialization pretraining data. Bottom: continual pretraining data showing multiplex (mx) with paired H&E tissues and curated H&E crops, with counts of tissues, crops, and cells. b , For continual pretraining, multiplex data distribution across technologies and registration status are shown as stacked bars. Bottom bars shows paired H&E data with registration status as well as the additional 3 million curated crops as a fading bar. c , H&E curation pipeline. From left to right: crops ",
+      "page": 0,
+      "index": 1,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-002.webp",
+      "caption": "Figure 2 : VirTues-M2 embeddings enable accurate clinical predictions and capture complementary tissue features across modalities. a , Clinical prediction evaluation framework. After embedding each crop, crop-level tasks use a linear classifier on single embeddings and ROI-or tissue-level tasks aggregate embeddings via ABMIL. b , Macro-averaged F1 scores for colorectal cancer (CRC) tissue classification across H&E FMs on the Zhu et al. Super cohort. Models are grouped by amount of parameters, highlighting that UNI2-H (681 million parameters) is more than double in size than the other models. c",
+      "page": 0,
+      "index": 2,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-003.webp",
+      "caption": "Figure 3 : Multimodal VirTues-M2 enables accurate cell instance segmentation and phenotyping in one end-to-end pipeline. a , Comparison of conventional segmentation pipelines versus end-to-end VirTues-M2 approach with frozen encoder and trainable multitask decoder. b–d , Benchmarking of multi-modal panoptic segmentation (H&E, multiplex (mx), and multimodal embeddings): b , cell phenotyping performance across seven cell types; c , cell instance segmentation performance (F1-score) at varying IoU matching thresholds; d , qualitative comparison showing that H&E provides accurate instance boundarie",
+      "page": 0,
+      "index": 3,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-004.webp",
+      "caption": "Figure 4 : VirTues-M2 enables accurate virtual staining from multiplex and H&E inputs, outperforming supervised approaches in cross-cohort generalization. a , Evaluation framework comparing frozen encoder-based prediction (VirTues-M2, UNI), in which only the decoder is trained on the task (snowflake symbol), against fully supervised models trained from scratch (HEX, ROSIE, HistoPlexer) and VirTues, whose encoder and decoder were jointly pretrained by masked autoencoding (MAE) on multiplex virtual staining (flame symbol). b , Virtual staining from complementary multiplex markers demonstrates hi",
+      "page": 0,
+      "index": 4,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-005.webp",
+      "caption": "Figure 5 : Active marker selection with VirTues-M2 and MAVIS reduces required marker panels by half while maintaining full performance a , MAVIS pipeline leveraging multimodal VirTues-M2 embeddings to iteratively select optimal markers starting from an initial H&E image for cell phenotyping. b , MAVIS with VirTues-M2 achieves equivalent performance to the full marker panel with only eight selected markers, outperforming random and importance-based selection strategies. c , Marker-wise improvement in cell macro-F1 for panoptic segmentation when each marker is added to the H&E baseline, ranked b",
+      "page": 0,
+      "index": 5,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-006.webp",
+      "caption": "Figure 6 : Automated biomarker discovery using VirTues-M2 identifies multimodal risk signatures that transfer to held-out test set and validation cohort. a , Annotation-free biomarker discovery pipeline using VirTues-M2 embeddings for signature detection via cross-patient cell clustering. The most predictive FM-based signatures, i.e. cross-patient cell clusters, for patient stratification in high and low survival are then selected as low-risk (LRS) and high-risk (HRS) signatures and evaluated on a held-out test set as well as a second NSCLC cohort. b , Kaplan-Meier survival curves comparing pa",
+      "page": 0,
+      "index": 6,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-007.webp",
+      "caption": "Figure S1 : Schematic of the VirTues-M2 tokenizers. a , as ESM-2 33 embeddings are being used as an inductive bias, the tokenizer is not limited to any set of proteins used during training time and thus can easily be extended as well as completely zero-shot new channels during inference time. b , schematic of the VirTues-M2 H&E tokenizer using a traditional RGB as in Dosovitskiy et al. Super .",
+      "page": 0,
+      "index": 7,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-008.webp",
+      "caption": "Figure S2 : Unimodal and multimodal training pipeline. Training architecture for unimodal ( a ) and multimodal ( b ) inputs. Both configurations use a teacher-student framework with shared VirTues-M2 encoders, computing DINO loss on [CLS] tokens and iBOT losses on masked patch tokens ( ℒ iBOT MX \\mathcal{L}_{\\texttt{iBOT}}^{\\texttt{MX}} , ℒ iBOT HE \\mathcal{L}_{\\texttt{iBOT}}^{\\texttt{HE}} ). Multimodal inputs incorporate modality-specific tokenization and positional encodings, enabling joint representation learning across channels.",
+      "page": 0,
+      "index": 8,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-009.webp",
+      "caption": "Figure S3 : Performance on all H&E evaluation datasets. Macro-averaged F1 scores for all 9 ( a - f ) H&E datasets based on 5-fold cross validation.",
+      "page": 0,
+      "index": 9,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-010.webp",
+      "caption": "Figure S4 : VirTues-M2 scaling ablation across model and data size, data settings and progression during pretraining. Relative macro average f1 gain shown for a different dataset corpus sizes, b , varying H&E-to-multiplex sampling ratios, c , four different data pairing settings, d , different model backbone sizes, e , progressive pretraining steps. f , PCAs visualization of patch-level token representations at different pretraining steps showing the progression of modality representations.",
+      "page": 0,
+      "index": 10,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-011.webp",
+      "caption": "Figure S5 : Further exemplary unsupervised clustering maps based on H&E, multiplex and multimodal embeddings of VirTues-M2.",
+      "page": 0,
+      "index": 11,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.31451v1/fig-012.webp",
+      "caption": "Figure S6 : VirTues-M2 integration into CellViT for panoptic segmentation. Panoptic segmentation module for cell instance segmentation and cell classification based on a mixture of the CellViT 52 and InstanSeg 53 segmentation architectures. Figure inspired by Hörst et al. Super .",
+      "page": 0,
+      "index": 12,
+      "width": 1440,
+      "height": 2037,
+      "label": "Figure"
+    }
+  ]
+}
