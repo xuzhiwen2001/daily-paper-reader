@@ -1,0 +1,1888 @@
+Title: XenoType: Decoding cellular identity in breast cancer histology through molecular supervision
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.11.24.768971v1.full.pdf
+
+Number of Pages: 45
+
+Markdown Content:
+XenoType: Decoding cellular identity in breast cancer 1
+
+# histology through molecular supervision 2
+
+Duarte F. Forjaz 1,2,3,* , Diogo Fróis Vieira 1,2,4,5,* , Vasco Queiroga 1,2,* , Marvin Willig 1,2,4,* ,3
+
+Saurabh Joshi 1,2 , Ashley L. Kiemen 1,2,6,7,8 , André Forjaz 1,2 , Denis Wirtz 1,2,6,7,9, † , Pei-4
+
+Hsun Wu 1,2,† 
+
+5 
+
+> 1
+
+Department of Chemical & Biomolecular Engineering, Johns Hopkins University, Baltimore, MD 6 
+
+> 2
+
+The Johns Hopkins Institute for NanoBioTechnology, Johns Hopkins University, Baltimore, MD 7 
+
+> 3
+
+Department of Electrical and Computer Engineering, Instituto Superior Técnico, Av.  Rovisco Pais 1, 1049 -001 Lisboa, Portugal 8 
+
+> 4
+
+Department of Bioengineering, Instituto Superior Técnico, Av.  Rovisco Pais 1, 1049 -001 Lisboa, Portugal 9 
+
+> 5
+
+Institute for Systems and Robotics (ISR), LARSyS , Instituto Superior Técnico, Av. Rovisco Pais 1, 1049 -001 Lisboa, Portugal 10  
+
+> 6
+
+Department of Pathology, The Sol Goldman Pancreatic Cancer Research Center, Johns Hopkins School of Medicine, Baltimore, 11  MD 12  
+
+> 7
+
+Department of Oncology, Sidney Kimmel Comprehensive Cancer Center, Johns Hopkins University, Baltimore, MD, USA 13  
+
+> 8
+
+Department of Functional Anatomy and Evolution, Johns Hopkins School of Medicine, Baltimore, MD 14  
+
+> 9
+
+Department of Biomedical Engineering, Johns Hopkins University, Baltimore, MD 15 
+
+* These authors contributed equally. 16 
+
+† Send correspondence to: 17 
+
+Denis Wirtz, Ph.D. 18 
+
+3400 N Charles St, 19 
+
+Croft Hall 130, 20 
+
+Baltimore MD, 21218 21 
+
+wirtz@jhu.edu 22 
+
+-23 
+
+Pei-Hsun Wu, Ph.D. 24 
+
+3400 N Charles St, 25 
+
+Croft Hall 130, 26 
+
+Baltimore MD, 21218 27 
+
+pwu@jhu.edu 28 
+
+29 
+
+.CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint Abstract 30 
+
+Characterizing the cellular composition of the tumor microenvironment from histological images 31 
+
+is fundamental to understanding cancer biology and informing treatment decisions. Deep 32 
+
+learning has enabled automated nuclear detection and classification from hematoxylin and eosin 33 
+
+(H&E) images, yet cell classifiers remain largely confined to broad morphological categories 34 
+
+owing to a reliance on manual annotations. Recent efforts have used spatial molecular 35 
+
+measurements to supervise histological classification, but these approaches often require 36 
+
+separate tissue sections or produce altered H&E staining, and the resulting cell-type annotations 37 
+
+depend on subjective choices such as marker selection and clustering parameters. Here we 38 
+
+develop XenoType, a framework that classifies cells into seven molecularly informed categories 39 
+
+directly from routine histology, trained using paired same-section Xenium spatial transcriptomics. 40 
+
+Cell-type annotations are reconciled from four single-cell RNA-sequencing references, reducing 41 
+
+dependence on marker choices. Across eight held-out breast tissue sections, XenoType 42 
+
+outperformed commonly used CellViT++ retrained on the same molecular annotations under 43 
+
+both four-class (macro-F1: 0.703 vs. 0.569) and seven-class (macro-F1: 0.571 vs. 0.403) 44 
+
+taxonomies, with the largest gains for myoepithelial (F1: 0.175 to 0.572) and endothelial cells 45 
+
+(F1: 0.395 to 0.682). Molecular measurements are required only during training; at inference, 46 
+
+XenoType uses the H&E image alone. Model-reference agreement increased consistently with 47 
+
+annotation confidence, and XenoType generalized to an independently profiled breast tissue 48 
+
+section from a different spatial transcriptomics platform, supporting scalable cell-type mapping 49 
+
+from routine histology without per-specimen molecular profiling. 50 
+
+51 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Introduction 52 
+
+Breast cancer comprises heterogeneous populations of malignant and nonmalignant cells 53 
+
+whose composition and spatial organization influence disease progression, immune evasion and 54 
+
+clinical outcome 1–4 . Hematoxylin and eosin (H&E) staining provides a detailed view of tissue 55 
+
+architecture and remains central to histopathological assessment 5,6 . However, morphologically 56 
+
+similar cells may exhibit distinct molecular identities, limiting the cellular resolution achievable 57 
+
+through conventional histological examination 7. Resolving these populations and their spatial 58 
+
+relationships directly from H&E images would enable more detailed characterization of tumor 59 
+
+heterogeneity across routinely collected tissue specimens and the large collections already 60 
+
+available in clinical archives 8–11 .61 
+
+Deep learning has enabled automated nuclear detection and classification in histological images, 62 
+
+with recent foundation models providing transferable representations of tissue morphology 12–14 .63 
+
+Nevertheless, cell classifiers remain constrained by training data: existing annotated datasets 64 
+
+rely predominantly on manual labels, which are labor-intensive, subject to observer variability, 65 
+
+and generally restricted to broad morphological categories, including the human breast 15,16 .66 
+
+Spatial transcriptomics offers an alternative source of supervision by measuring gene expression 67 
+
+while preserving the spatial organization at cellular or tissue resolution 2,17–21 . Recent studies 68 
+
+have begun to address these limitations by leveraging molecular measurements as supervision 69 
+
+for histological analysis 18,22 . Li et al. used co-registered multiplex immunofluorescence to 70 
+
+generate protein-based cell annotations for training H&E classifiers 22 , while STHELAR 71 
+
+established a multi-tissue resource linking spatial transcriptomic measurements with histological 72 
+
+images 18 . Other frameworks have extended this direction toward predicting spatially resolved 73 
+
+gene expression and cell identities directly from H&E 23–25 .74 
+
+Although these approaches demonstrate the potential of molecularly supervised classification, 75 
+
+important gaps remain. Many spatial molecular assays, such as multiplex immunofluorescence, 76 
+
+either require a separate tissue section or alter the H&E stain, since staining is typically 77 
+
+performed after molecular profiling rounds 26,27 . In addition, cell-type assignments in spatial 78 
+
+transcriptomics datasets are typically assigned by clustering expression profiles and manually 79 
+
+inspecting marker genes for each cluster - a process that is subjective, difficult to reproduce and 80 
+
+sensitive to the choice of markers and resolution parameters 28,29 . Automated reference-based 81 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+methods can reduce this subjectivity by transferring labels from annotated single-cell datasets. 82 
+
+However, the resulting assignments depend on references that differ in cellular composition and 83 
+
+annotation granularity, and systematic strategies to reconcile predictions across references and 84 
+
+to characterize annotation concordance remain limited 30,31 . At the model level, leading 85 
+
+frameworks for cell analysis derive classification features from their segmentation backbone, 86 
+
+coupling the two tasks and restricting the independent selection of representations best suited 87 
+
+for distinguishing finer cellular populations 12–14,32 . Together, these constraints have kept 88 
+
+histological cell classification largely confined to broad morphological categories and motivate a 89 
+
+framework that combines molecularly informed annotations with flexible histological feature 90 
+
+extraction 15,16,22 .91 
+
+Here, we introduce XenoType, a framework for training cell classifiers on H&E images using 92 
+
+annotations derived from paired Xenium spatial transcriptomics, where H&E staining is 93 
+
+performed on the same tissue section as molecular profiling. We reconcile cell-type predictions 94 
+
+from four single-cell RNA-sequencing references into seven categories and transfer the resulting 95 
+
+labels to nuclei detected in H&E. XenoType separates nuclear segmentation from feature 96 
+
+extraction, allowing a pathology foundation model to supply cell representations while retaining 97 
+
+the same segmentation model. XenoType achieved higher agreement with molecular reference 98 
+
+annotations than CellViT++ retrained on the same labels across eight held-out Xenium breast 99 
+
+tissue sections and an additional section profiled using ATERA. At inference, XenoType requires 100 
+
+only the H&E image, supporting scalable cell-type mapping across tissue collections without 101 
+
+molecular profiling of each specimen. 102 
+
+103 
+
+Results 104 
+
+Spatial transcriptomics enables molecular supervision of histological cell classification 105 
+
+We developed XenoType to classify individual cells in images of standard hematoxylin and eosin 106 
+
+(H&E)-stained tissue sections using molecularly informed training annotations ( Fig. 1 ). The 107 
+
+study used paired Xenium spatial transcriptomic and histological data from the same tissue 108 
+
+section of 12 publicly available human breast tissue specimens, linking gene expression profiles 109 
+
+to tissue morphology at single-cell resolution. Using four independent single-cell RNA-110 
+
+sequencing references (Yan, Wu, Dong, and Chen) 2,33–35 , we assigned Xenium cells to seven 111 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+categories: tumor, epithelial, myoepithelial, endothelial, myeloid, lymphocyte, and stromal cells. 112 
+
+We transferred these labels to nuclei detected in the corresponding H&E images, establishing a 113 
+
+training resource that associates histological morphology with molecularly inferred cell identities. 114 
+
+Four tissue sections were selected for model development to capture diverse histological 115 
+
+appearances and cellular populations, while the remaining eight were reserved for independent 116 
+
+evaluation under four- class (PanNuke-aligned) and seven-class classification schemes 15 .117 
+
+118 
+
+Multi-reference annotation defines seven molecularly informed cell categories 119 
+
+Spatial transcript density and cell-level gene expression profiles summarize the molecular data 120 
+
+used for annotation ( Fig. 2A ). The four reference datasets 2,33–35 differed in cellular composition 121 
+
+and class representation, as illustrated by their respective embeddings ( Fig. 2B ). We used 122 
+
+SingleR 36 to annotate each Xenium cell independently against each reference, then mapped the 123 
+
+reference-specific predictions to the seven shared categories. 124 
+
+We reconciled the four SingleR predictions by voting and resolved ties using the mean SingleR 125 
+
+score and a predefined reference order. Given only one reference (Wu 2) had normal epithelial 126 
+
+and myoepithelial cells, this reference ’s assignment of these classes superseded other 127 
+
+references ’ votes. For each cell, we recorded how many references supported the final 128 
+
+assignment. The 4,000-cell sample illustrates these patterns across the seven categories ( Fig. 129 
+
+2C ). Because reference datasets differed in the categories they contained, limited support for 130 
+
+epithelial and myoepithelial labels partly reflects reference coverage. The Wu dataset was the 131 
+
+only reference with labels that mapped to the epithelial and myoepithelial categories. 132 
+
+Assignments to either category could therefore receive support from at most one of the four 133 
+
+references. The spatial maps show the distribution of assigned categories and their supporting 134 
+
+reference counts ( Fig. 2H,I ). 135 
+
+Across the 12 sections, 3,316,221 Xenium cells met the minimum thresholds of 10 transcripts 136 
+
+and five detected genes per cell and were assigned molecular labels. Of these, 2,466,189 137 
+
+(74.4%) were successfully matched to H&E nuclear instances (Fig. 2D-G ). Incomplete 138 
+
+correspondence between the two sets of cellular instances may reflect differences in 139 
+
+segmentation, spatial registration, and the constraints imposed by one-to-one matching. 140 
+
+141 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+XenoType combines nuclear segmentation with independent histological representations 142 
+
+XenoType separates nuclear segmentation from the image representations used for 143 
+
+classification ( Fig. 1D ). A state-of-the-art cell segmentation model (CellViT-SAM-H 13 ) identifies 144 
+
+nuclear instances, while an independently selected pathology foundation model extracts spatial 145 
+
+image features. Crop selection and coordinate transformations associate each nuclear bounding 146 
+
+box with the corresponding feature-token grid, and overlapping tokens are averaged to obtain a 147 
+
+cell-level embedding. A classification head assigns a category to each cell based on its 148 
+
+embedding to generate spatial classification maps. 149 
+
+A preliminary model configuration search evaluated combinations of 10 feature-extraction 150 
+
+configurations, four classification heads, and three loss functions, yielding results for 95 of 120 151 
+
+possible combinations ( Supplementary Figs. S1 and S2 ). The combination of H-Optimus-1 37 152 
+
+with a multilayer perceptron and cross-entropy loss achieved the highest reported validation 153 
+
+micro-F1 of 0.785, compared with 0.713 for the native CellViT-SAM-H configuration using the 154 
+
+same head and loss. These experiments used earlier annotations supplied with the 10x dataset 155 
+
+and preceded construction of the final four-reference annotation resource. The selected H-156 
+
+Optimus-1-MLP configuration was subsequently trained using the final molecularly inferred 157 
+
+labels and evaluated on the eight held-out sections under the four- and seven-class taxonomies. 158 
+
+159 
+
+XenoType improves four-class agreement with molecular reference annotations 160 
+
+We evaluated the classification across eight held-out breast tissue sections using four PanNuke-161 
+
+aligned categories: neoplastic, epithelial, connective, and inflammatory cells. We tuned the 162 
+
+retrained CellViT++ classification head using the same hyperparameter optimization protocol as 163 
+
+for XenoType. XenoType achieved a mean macro-F1 of 0.703 ± 0.091 and micro-F1 of 0.792 ±164 
+
+0.072, compared with 0.569 ± 0.047 and 0.682 ± 0.075 for CellViT++ retrained on the molecular 165 
+
+annotations, and 0.455 ± 0.058 and 0.607 ± 0.116 for default CellViT++, respectively ( Fig. 3C ). 166 
+
+Values represent the mean ± sample standard deviation across sections. Both retrained models 167 
+
+achieved higher mean scores than default CellViT++, with XenoType achieving the highest mean 168 
+
+performance under both averaging conventions ( Supplementary Fig. S3 ). For XenoType 169 
+
+versus retrained CellViT++, the unadjusted P value was 0.00781 for both macro-F1 and micro-170 
+
+F1. 171 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+XenoType achieved the highest mean class-specific F1 across all four categories ( Fig. 3C ). The 172 
+
+largest increase over retrained CellViT++ occurred in the epithelial group, from 0.225 ± 0.213 to 173 
+
+0.447 ± 0.237, although this group remained the lowest-scoring category and showed substantial 174 
+
+variation across sections. Mean F1 scores for neoplastic, connective, and inflammatory cells 175 
+
+reached 0.830, 0.810, and 0.725, respectively. 176 
+
+Pooled confusion matrices summarize classification disagreements across the eight sections 177 
+
+(Fig. 3D ), whereas whole-slide maps and enlarged regions illustrate the spatial distribution of 178 
+
+predictions in one section ( Fig. 3A ). Together, these results show improved agreement with 179 
+
+molecular reference annotations under the four-class taxonomy, while identifying epithelial 180 
+
+classification as a persistent limitation. 181 
+
+182 
+
+XenoType improves seven-class agreement across held-out breast sections 183 
+
+We evaluated classification across the same eight held-out sections using seven molecularly 184 
+
+informed categories. XenoType achieved a mean macro-F1 of 0.571 ± 0.058 and micro-F1 of 185 
+
+0.708 ± 0.064, compared with 0.403 ± 0.037 and 0.575 ± 0.063, respectively, for CellViT++ 186 
+
+retrained on the same molecular annotations ( Fig. 4C ). Values represent the mean ± sample 187 
+
+standard deviation across sections. XenoType achieved higher macro-F1 and micro-F1 than the 188 
+
+retrained comparator on all eight sections ( Supplementary Fig. S3 ). For XenoType versus 189 
+
+retrained CellViT++, the unadjusted P-value was 0.00781 for both macro-F1 and micro-F1. 190 
+
+Mean F1 was higher for XenoType across all seven categories ( Fig. 4D ). The largest increases 191 
+
+occurred for myoepithelial cells, from 0.175 to 0.572, and endothelial cells, from 0.395 to 0.682. 192 
+
+Epithelial cells remained the lowest-scoring category, with mean F1 increasing from 0.142 ±193 
+
+0.174 to 0.168 ± 0.198. 194 
+
+The pooled confusion matrices showed persistent disagreements involving epithelial and tumor 195 
+
+cells, endothelial and stromal cells, and myeloid cells and lymphocytes ( Fig. 4E ). Whole-slide 196 
+
+maps and enlargements illustrate the spatial distribution of reference annotations and 197 
+
+predictions in one section ( Fig. 4A ). 198 
+
+199 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Classification agreement increases with annotation confidence and extends to ATERA-200 
+
+profiled breast tissue 201 
+
+Aggregate F1 scores weight all molecular reference annotations equally, regardless of the 202 
+
+confidence with which they were assigned and, therefore, the reliability of the underlying label in 203 
+
+the molecular reference annotations we construct. To investigate whether annotation confidence 204 
+
+influences apparent model performance, we stratified results across the eight held-out sections 205 
+
+by three proxies of annotation quality: the mean SingleR confidence score of the winning 206 
+
+category across the four references used, the per-cell transcript count, and the number of 207 
+
+uniquely detected genes ( Fig. 5A ). Micro-F1 increased consistently with all three measures, 208 
+
+rising from approximately 0.40 at the lowest SingleR confidence scores to above 0.90 at the 209 
+
+highest, with concordant trends for transcript counts and gene counts. The consistency of these 210 
+
+relationships across three independent axes suggests that a substantial portion of model-211 
+
+reference disagreements concentrate on cells whose molecular annotations are themselves 212 
+
+least certain. The relationship between annotation quality and classification accuracy varied 213 
+
+across cell types ( Supplementary Fig. S7 ). 214 
+
+Tumor, endothelial, and stromal cells showed strong positive trends across all three axes, with 215 
+
+F1 exceeding 0.90 at the highest confidence scores, suggesting that low accuracy at the bottom 216 
+
+of each axis may partly reflect uncertainty in molecular reference annotations rather than model 217 
+
+failure. Lymphocyte and myeloid accuracy improved with annotation confidence but plateaued 218 
+
+or declined at high transcript counts, consistent with atypical cell states or segmentation artifacts. 219 
+
+Epithelial and myoepithelial cells showed inverted-U or declining patterns, indicating that the 220 
+
+boundary between these populations and tumor cells remains ambiguous even for cells with the 221 
+
+richest molecular profiles, which is consistent with the biological continuum between them and 222 
+
+the reliance of both labels on a single reference. 223 
+
+To assess whether XenoType 's performance generalizes beyond the development cohort, we 224 
+
+evaluated both XenoType and the retrained CellViT++ on an independent ATERA slide ( Fig. 5B ). 225 
+
+ATERA is a whole-transcriptome, in situ spatial transcriptomics platform developed by 10x 226 
+
+Genomics 38 . Cell-type annotations supplied with the dataset were harmonized into the seven 227 
+
+cellular categories and used as molecular reference annotations. XenoType achieved a micro-228 
+
+F1 of 0.80 and macro-F1 of 0.59 on ATERA, compared with 0.59 and 0.38 for retrained CellViT++ 229 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+(Fig. 5D ). The largest class-specific gains were observed for endothelial and myoepithelial cells, 230 
+
+consistent with the held-out evaluation. Epithelial cells remained the lowest-scoring category. 231 
+
+Similar improvements held under the four-class taxonomy ( Supplementary Fig. S6 ). Whole-232 
+
+slide spatial maps illustrated that XenoType predictions recapitulated tissue architecture more 233 
+
+faithfully than retrained CellViT++ at both regional and cellular resolution ( Fig. 5B,C ). 234 
+
+235 
+
+Discussion 236 
+
+Accurate identification of cellular populations in histological images is essential for characterizing 237 
+
+the composition and spatial organization of the tumor microenvironment 3,39 . Deep learning and 238 
+
+recent pathology foundation models have driven substantial progress in automated nuclear 239 
+
+detection and classification 12,40 , yet cell classifiers remain constrained by training data that rely 240 
+
+on labor-intensive manual labels, subject to observer variability and generally limited to broad 241 
+
+categories such as neoplastic, epithelial, connective, and inflammatory cells 15,16 . Recent 242 
+
+advances in imaging-based spatial transcriptomics and multiplex immunofluorescence now 243 
+
+resolve molecular identities at single-cell resolution within intact tissue, creating new 244 
+
+opportunities to supervise histological cell classification without manual labels 22,41,42 . Initial 245 
+
+studies have demonstrated this approach using multiplex immunofluorescence-derived labels, 246 
+
+while Xenium-based efforts such as STHELAR, STimage, and SHEST, have linked 247 
+
+transcriptomic cell identities with corresponding H&E images for dataset construction and 248 
+
+classifier development 18,23,24 . However, important limitations persist. Many spatial molecular 249 
+
+assays either require a separate tissue section or alter the H&E stain itself, since H&E is typically 250 
+
+performed after the molecular profiling rounds, producing images that differ from routine 251 
+
+histological preparations and complicating the direct transfer of molecularly derived annotations 252 
+
+to standard clinical-grade H&E. At the same time, leading deep learning models for histological 253 
+
+image analysis have been developed primarily for nuclear segmentation and derive their 254 
+
+classification features from the same segmentation backbone, limiting the independent selection 255 
+
+of representations best suited for distinguishing finer cellular populations 12,13,32 . These 256 
+
+constraints have kept histological cell classification largely confined to broad morphological 257 
+
+categories. 258 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Here, we developed XenoType, a framework to classify cells in routine H&E images using 259 
+
+training annotations derived from same-section Xenium spatial transcriptomics. Cell-type labels 260 
+
+were reconciled from four independent scRNA-seq references using SingleR, consistent with a 261 
+
+previous benchmark identifying it as the best-performing method among five evaluated 262 
+
+approaches on Xenium data 28 . Decoupling feature extraction from segmentation allowed the 263 
+
+independent selection of a pathology foundation model for cell-level representations, addressing 264 
+
+a limitation of segmentation-centric architectures. XenoType outperformed CellViT++ retrained 265 
+
+on the same labels under both the four-class and seven-class taxonomies, demonstrating that 266 
+
+molecularly supervised classification can extend beyond conventional broad categories to finer 267 
+
+cellular populations. XenoType ’s improved performance over retrained CellViT++ on the ATERA 268 
+
+section, using cell-type annotations generated independently of our multi-reference annotation 269 
+
+procedure, suggests that its performance gains are not specific to the annotation strategy used 270 
+
+for training. Because molecular measurements are required only during dataset construction, 271 
+
+inference uses the H&E image alone, supporting scalable cell-type mapping without per-272 
+
+specimen molecular profiling. The same-section spatial transcriptomics design reduces 273 
+
+registration uncertainties and staining artifacts inherent to serial-section or post-IF H&E 274 
+
+workflows, enabling direct annotation transfer to standard-quality histological images. 275 
+
+Several limitations should be noted. First, epithelial cells remained the worst performing category, 276 
+
+and per-class analysis confirmed that accuracy did not improve with increasing transcriptomic 277 
+
+depth ( Supplementary Fig. S7 ), suggesting that uncertainty in the reference annotations may 278 
+
+contribute to the observed classification errors. The ∼280-gene Xenium panel may be insufficient 279 
+
+to resolve epithelial from tumor cells - a distinction that also depends on copy number alterations 280 
+
+and somatic mutations not captured by targeted expression panels 43 . Furthermore, off-target 281 
+
+probe binding has been documented in current Xenium breast cancer gene panels, potentially 282 
+
+introducing additional uncertainty into transcriptomics-derived cell annotations 44 . In addition, 283 
+
+only one reference (Wu et al. 2) contained epithelial and myoepithelial categories, leaving these 284 
+
+labels without the multi-reference support available for other populations 2,45 , consistent with the 285 
+
+trends observed for both classes ( Supplementary Fig. S7 ). More broadly, model-reference 286 
+
+agreement increased consistently with annotation confidence, although class-specific trends 287 
+
+varied ( Supplementary Fig. S7 ), indicating that aggregate F1 scores partly reflect ground-truth 288 
+
+uncertainty rather than model limitations alone. Second, the development and held-out 289 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+evaluation data originated from a single public collection. Although evaluation sections came 290 
+
+from different patients than the development sections, shared sample preparation, staining, and 291 
+
+imaging conditions limit the independence of the comparison. The ATERA slide, profiled on a 292 
+
+different spatial transcriptomic platform, provides an initial out-of-distribution test, but multi-293 
+
+institutional evaluation with diverse tissue preparation and staining protocols remains needed .294 
+
+Finally, XenoType and retrained CellViT++ differ simultaneously in feature extractor and tiling 295 
+
+strategy, so the observed improvements cannot be attributed to any single component without 296 
+
+controlled ablation experiments 13 .297 
+
+A number of directions could extend this work. Although the ATERA section provides initial cross-298 
+
+platform evidence, evaluation on external cohorts from independent institutions remains needed 299 
+
+to establish generalizability. Extending the framework to other tissue types - such as colorectal, 300 
+
+lung, or pancreatic cancers - would test whether molecularly supervised classification transfers 301 
+
+across different tumor microenvironments, while larger training datasets aggregating multiple 302 
+
+spatial transcriptomics platforms could improve robustness. A key goal is to develop even finer 303 
+
+cell categories, such as cancer molecular subtypes or functional immune states. The annotation-304 
+
+confidence analysis ( Fig. 5A ) indicates that richer molecular profiles are associated with greater 305 
+
+model-reference agreement, suggesting broader gene panels, integration of copy number 306 
+
+variation and mutational information, and independent protein validation will be essential for this 307 
+
+goal. Finally, coupling spatially resolved cell-type predictions with clinical metadata could link 308 
+
+cellular composition to patient survival and treatment response, moving from methodological 309 
+
+validation toward biological and clinical discovery. 310 
+
+In summary, XenoType demonstrates that spatial transcriptomics-derived annotations can 311 
+
+supervise histological classifiers capable of distinguishing molecularly informed cellular 312 
+
+populations beyond conventional morphological categories. Model-reference agreement was 313 
+
+correlated with annotation confidence, indicating that aggregate F1 scores partly reflect ground-314 
+
+truth uncertainty, and initial out-of-distribution evaluation supported cross-platform 315 
+
+generalization. Although broader validation remains necessary, these findings support the 316 
+
+potential of molecularly supervised learning to extend the cellular resolution of conventional 317 
+
+histology and provide a foundation for investigating tissue heterogeneity at scale. 318 
+
+319 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+References 320 
+
+1. De Visser, K. E. & Joyce, J. A. The evolving tumor microenvironment: From cancer initiation 321 
+
+to metastatic outgrowth. Cancer Cell 41 , 374– 403 (2023). 322 
+
+2. Wu, S. Z. et al. A single-cell and spatially resolved atlas of human breast cancers. Nat Genet 323 
+
+53 , 1334– 1347 (2021). 324 
+
+3. Danenberg, E. et al. Breast tumor microenvironment structures are associated with genomic 325 
+
+features and clinical outcome. Nat Genet 54 , 660– 669 (2022). 326 
+
+4. Kiemen, A. L. et al. CODA: quantitative 3D reconstruction of large tissues at cellular 327 
+
+resolution. Nat Methods 19 , 1490– 1499 (2022). 328 
+
+5. Rakha, E. A., Tse, G. M. & Quinn, C. M. An update on the pathological classification of breast 329 
+
+cancer. Histopathology 82 , 5– 16 (2023). 330 
+
+6. Wu, P.-H. et al. Single-cell morphology encodes metastatic potential. Sci Adv 6, eaaw6938 331 
+
+(2020). 332 
+
+7. Kos, Z., Nielsen, T. O. & Laenkholm, A.-V. Breast Cancer Histopathology in the Age of 333 
+
+Molecular Oncology. Cold Spring Harb Perspect Med 14 , a041647 (2024). 334 
+
+8. Tafavvoghi, M., Bongo, L. A., Shvetsov, N., Busund, L.-T. R. & Møllersen, K. Publicly 335 
+
+available datasets of breast histopathology H&E whole-slide images: A scoping review. 336 
+
+Journal of Pathology Informatics 15 , 100363 (2024). 337 
+
+9. Weitz, P. et al. A Multi-Stain Breast Cancer Histological Whole-Slide-Image Data Set from 338 
+
+Routine Diagnostics. Sci Data 10 , 562 (2023). 339 
+
+10. Forjaz, A. et al. Three-dimensional assessments are necessary to determine the true, 340 
+
+spatially resolved composition of tissues. Cell Rep Methods 5, 101075 (2025). 341 
+
+11. Caire, R. et al. A 3D morphogenetic blueprint for metastatic outgrowth in breast cancer. Cell 342 
+
+189 , 3701-3718.e30 (2026). 343 
+
+12. Graham, S. et al. Hover-Net: Simultaneous segmentation and classification of nuclei in multi-344 
+
+tissue histology images. Medical Image Analysis 58 , 101563 (2019). 345 
+
+13. Hö rst, F. et al. CellViT++: Energy-efficient and adaptive cell segmentation and classification 346 
+
+using foundation models. Computer Methods and Programs in Biomedicine 277 , 109206 347 
+
+(2026). 348 
+
+14. Hö rst, F. et al. CellViT: Vision Transformers for precise cell segmentation and classification. 349 
+
+Medical Image Analysis 94 , 103143 (2024). 350 
+
+15. Gamper, J., Alemi Koohbanani, N., Benet, K., Khuram, A. & Rajpoot, N. PanNuke: An Open 351 
+
+Pan-Cancer Histology Dataset for Nuclei Instance Segmentation and Classification. in Digital 352 
+
+Pathology (eds Reyes-Aldasoro, C. C., Janowczyk, A., Veta, M., Bankhead, P. &353 
+
+Sirinukunwattana, K.) vol. 11435 11– 19 (Springer International Publishing, Cham, 2019). 354 
+
+16. Amgad, M. et al. NuCLS: A scalable crowdsourcing approach and dataset for nucleus 355 
+
+classification and segmentation in breast cancer. GigaScience 11 , giac037 (2022). 356 
+
+17. Kumar, T. et al. A spatially resolved single-cell genomic atlas of the adult human breast. 357 
+
+Nature 620 , 181– 191 (2023). 358 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+18. Giraud-Sauveur, F. et al. STHELAR, a multi-tissue dataset linking spatial transcriptomics and 359 
+
+histology for cell type annotation. Sci Data 13 , 665 (2026). 360 
+
+19. Janesick, A. et al. High resolution mapping of the tumor microenvironment using integrated 361 
+
+single-cell, spatial and in situ analysis. Nat Commun 14 , 8353 (2023). 362 
+
+20. Deshpande, A. et al. Uncovering the spatial landscape of molecular interactions within the 363 
+
+tumor microenvironment through latent spaces. Cell Syst 14 , 285-301.e4 (2023). 364 
+
+21. Lyman, M. R. et al. Spatial proteomics and transcriptomics reveal early immune cell 365 
+
+organization in pancreatic intraepithelial neoplasia. JCI Insight 10 , e191595. 366 
+
+22. Li, Z. et al. Automated cell annotation and classification on histopathology for spatial 367 
+
+biomarker discovery. Nat Commun 16 , 6240 (2025). 368 
+
+23. Tan, X. et al. Robust and interpretable prediction of gene markers and cell types from spatial 369 
+
+transcriptomics data. Nat Commun 17 , 1781 (2026). 370 
+
+24. Jeong, H., Oh, J., Lee, D., Kang, J. H. & Choi, Y.-L. SHEST: single-cell-level artificial 371 
+
+intelligence from haematoxylin and eosin morphology for cell-type prediction and spatial 372 
+
+transcriptomics reconstruction. Briefings in Bioinformatics 27 , bbag037 (2026). 373 
+
+25. Fu, X. et al. Spatial gene expression at single-cell resolution from histology using deep 374 
+
+learning with GHIST. Nat Methods 22 , 1900– 1910 (2025). 375 
+
+26. Lin, J.-R. et al. High-plex immunofluorescence imaging and traditional histology of the same 376 
+
+tissue section for discovering image-based biomarkers. Nat Cancer 4, 1036– 1052 (2023). 377 
+
+27. Wang, C. et al. Towards H&E Referenced Multiplex Immunofluorescence Interpretation: 378 
+
+Spatial Co-localization, Cell Feature Validation, and Virtual H&E Generation. Preprint at 379 
+
+https://doi.org/10.21203/rs.3.rs-5619126/v1 (2025). 380 
+
+28. Cheng, J., Jin, X., Smyth, G. K. & Chen, Y. Benchmarking cell type annotation methods for 381 
+
+10x Xenium spatial transcriptomics data. BMC Bioinformatics 26 , 22 (2025). 382 
+
+29. Shi, X. et al. Probabilistic cell/domain-type assignment of spatial transcriptomics data with 383 
+
+SpatialAnno. Nucleic Acids Res 51 , e115 (2023). 384 
+
+30. Bi, H. et al. Binary-SPA: a reference-free method for cell annotation in high-resolution spatial 385 
+
+transcriptomics. Nucleic Acids Res 54 , gkag812 (2026). 386 
+
+31. Zhou, X. M. et al. Benchmarking cell type annotation in spatial transcriptomics: resolving 387 
+
+cellular hierarchies, biological fidelity, and dynamic cell states. Preprint at 388 
+
+https://doi.org/10.21203/rs.3.rs-10731867/v1 (2026). 389 
+
+32. Baumann, E. et al. HoVer-NeXt: A Fast Nuclei Segmentation and Classification Pipeline for 390 
+
+Next Generation Histopathology. in Proceedings of the 7th International Conference on 391 
+
+Medical Imaging with Deep Learning vol. 250 61– 86 (PMLR, 2024). 392 
+
+33. Chen, A., Kroehling, L., Ennis, C. S., Denis, G. V. & Monti, S. A highly resolved integrated 393 
+
+single-cell atlas of human breast cancers. NAR Genomics and Bioinformatics 8, lqaf217 394 
+
+(2026). 395 
+
+34. Dong, Y. et al. Transcriptome analysis of archived tumors by Visium, GeoMx DSP, and 396 
+
+Chromium reveals patient heterogeneity. Nat Commun 16 , 4400 (2025). 397 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+35. Yan, Y. et al. Ecotypes of triple-negative breast cancer in response to chemotherapy. Nature 398 
+
+654 , 1088– 1097 (2026). 399 
+
+36. Aran, D. et al. Reference-based analysis of lung single-cell sequencing reveals a transitional 400 
+
+profibrotic macrophage. Nat Immunol 20 , 163– 172 (2019). 401 
+
+37. bioptimus/H-optimus-1 · Hugging Face. https://huggingface.co/bioptimus/H-optimus-1 402 
+
+(2025). 403 
+
+38. Atera: High Throughput. Whole Transcriptome. Single Cell Sensitivity. 10x Genomics 404 
+
+https://www.10xgenomics.com/platforms/atera. 405 
+
+39. Forjaz, A. et al. Integration of nuclear morphology and 3D imaging to profile cellular 406 
+
+neighborhoods. Preprint at https://doi.org/10.1101/2025.03.31.646356 (2025). 407 
+
+40. Pati, P. et al. Accelerating histopathology workflows with generative AI-based virtually 408 
+
+multiplexed tumour profiling. Nat Mach Intell 6, 1077– 1093 (2024). 409 
+
+41. Janesick, A., Kravitz, S. N., Stauffer, W., Valencia, M. & Taylor, S. E. B. Biomarker 410 
+
+Quantification in Breast Cancer using Xenium In Situ. 2025.12.08.692193 Preprint at 411 
+
+https://doi.org/10.64898/2025.12.08.692193 (2025). 412 
+
+42. Wu, F. et al. iCLAP: an innovative method for integrable co-detection of low-abundance 413 
+
+antigens with high-plex immunostaining. Nat Commun 17 , 3104 (2026). 414 
+
+43. Lin, Y. et al. Normal Breast Tissues Harbor Rare Populations of Aneuploid Epithelial Cells. 415 
+
+Nature 636 , 663– 670 (2024). 416 
+
+44. Hallinan, C., Ji, H. J., Tsou, E., Salzberg, S. L. & Fan, J. Evidence of off-target probe binding 417 
+
+affecting 10x Genomics Xenium gene panels compromise accuracy of spatial transcriptomic 418 
+
+profiling. eLife 14 , RP107070 (2026). 419 
+
+45. Abdelaal, T. et al. A comparison of automatic cell identification methods for single-cell RNA 420 
+
+sequencing data. Genome Biol 20 , 194 (2019). 421 
+
+46. 10x Genomics. Xenium v1 Human Breast FFPE with Biomarkers & Housekeeping Genes 422 
+
+Custom Panel. 10x Genomics https://www.10xgenomics.com/datasets/xenium-ffpe-human-423 
+
+breast-biomarkers (2025). 424 
+
+47. Preview Data: Atera In Situ Gene Expression, FFPE Human Breast Cancer. 10x Genomics 425 
+
+https://www.10xgenomics.com/datasets/atera-wta-ffpe-human-breast-cancer. 426 
+
+48. Scalbert, M. et al. Abstract LB174: H-optimus-1: A foundation model for computational 427 
+
+histopathology. Cancer Research 86 , LB174 (2026). 428 
+
+49. Biewald, L. Experiment Tracking with Weights and Biases. https://www.wandb.com/ (2020). 429 
+
+430 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Methods 431 
+
+Data acquisition and image preprocessing 432 
+
+We used the publicly available Xenium v1 Human Breast FFPE with Biomarkers &433 
+
+Housekeeping Genes Custom Panel dataset generated by 10x Genomics 46 . The collection 434 
+
+comprises 12 human breast tissue sections from 12 donors, including eight ductal carcinoma in 435 
+
+situ (DCIS) specimens, three invasive ductal carcinomas (IDC), and one normal breast specimen. 436 
+
+Tissue sections were profiled using Xenium In Situ with a custom 280-gene panel and 437 
+
+subsequently stained and imaged with H&E, providing paired spatial transcriptomic and 438 
+
+histological data. Publicly available cell-level expression matrices, transcript coordinates, 439 
+
+nuclear boundaries, and H&E whole-slide images were used for downstream analysis. 440 
+
+Specimen characteristics and acquisition procedures are described in the original dataset 441 
+
+publication 19 .442 
+
+Spatial correspondence between Xenium measurements and H&E images was established 443 
+
+through manual landmark-based registration using Xenium Explorer (10x Genomics). 444 
+
+Corresponding anatomical landmarks were identified in the Xenium DAPI and H&E images, from 445 
+
+which slide-specific similarity transformations were estimated by least-squares fitting. The 446 
+
+resulting 3 x 3 affine transformation matrices were exported and used, together with the 447 
+
+corresponding image pixel resolutions, to map cell and nuclear coordinates between the two 448 
+
+imaging modalities. Four tissue sections were selected for model development, while the 449 
+
+remaining eight sections were reserved for independent evaluation and excluded from training, 450 
+
+validation, and hyperparameter selection. Section identifiers, specimen characteristics, and 451 
+
+experimental allocation are provided in Supplementary Table S1 .452 
+
+For external evaluation, we used a publicly available FFPE breast cancer section profiled using 453 
+
+the preproduction ATERA Whole Transcriptome Assay (10x Genomics) 47 . The specimen 454 
+
+comprised ductal carcinoma in situ (ER+/PR+/HER2-), with spatial expression measurements 455 
+
+targeting 18,028 genes and corresponding H&E imaging. The section was not used for model 456 
+
+development or hyperparameter selection. 457 
+
+Single-cell reference preparation 458 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Four breast cancer single-cell RNA-sequencing (scRNA-seq) reference datasets (Wu 2, Chen 33 ,459 
+
+Dong 34 , and Yan 35 ) were used for molecular cell-type annotation. Cell identities were obtained 460 
+
+from the original annotations provided with each reference dataset and harmonized into seven 461 
+
+cellular categories: tumor, epithelial, myoepithelial, endothelial, myeloid, lymphocyte, and 462 
+
+stromal cells. Reference accessions, original cell-type annotations, and their correspondence to 463 
+
+the harmonized categories are provided in Supplementary Table S2 .464 
+
+Reference cells were retained if they contained at least 200 detected genes and 500 counts, 465 
+
+with mitochondrial counts comprising no more than 20% of the total. Cells with missing or 466 
+
+uninformative annotations were excluded. Expression data were normalized using log-467 
+
+normalization (scale factor = 10,000), and each reference was restricted to genes shared with 468 
+
+the Xenium panel. Reference sampling was capped at 15,000 cells per label. Principal 469 
+
+component analysis and UMAP were used to visualize reference structure. 470 
+
+471 
+
+Xenium cell annotation and reference agreement 472 
+
+We retained Xenium cells with at least 10 transcripts and 5 detected genes. We annotated each 473 
+
+eligible expression profile independently against the four single-cell RNA-sequencing references 474 
+
+using SingleR 36 . We mapped the reference-specific predictions to the seven-category taxonomy 475 
+
+and combined them by voting. We resolved ties using the mean SingleR score for each tied 476 
+
+category, followed by the predefined reference priority order (Yan, Wu, Dong, and Chen) if a tie 477 
+
+remained. When the Wu reference assigned a cell to the epithelial or myoepithelial category, we 478 
+
+used that assignment as the final label. 479 
+
+We counted the number of references that supported each final assignment and classified the 480 
+
+agreement into high (four reference agreement), medium (three reference agreement), and low 481 
+
+(fewer than three reference agreement). Because each reference could support only the 482 
+
+categories represented in its mapped labels, the maximum possible agreement varied by 483 
+
+category. Supplementary Table S2 lists the categories available in each reference. 484 
+
+485 
+
+Nuclear segmentation and annotation transfer 486 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Nuclear instances were detected in H&E whole-slide images using the pretrained CellViT-SAM-487 
+
+H-x40-AMP model 13 . To associate histologically detected nuclei with molecularly annotated 488 
+
+Xenium cells, spatial correspondence was established using slide-specific affine transformation 489 
+
+matrices. Nuclear coordinates were transformed into the Xenium coordinate system for nearest-490 
+
+centroid matching, while the resulting annotations were retained in the H&E coordinate system. 491 
+
+Each detected nucleus was matched to its nearest Xenium cell using a k-dimensional tree, with 492 
+
+a maximum matching distance of 15 μm. When multiple detected nuclei were associated with 493 
+
+the same Xenium cell, only the closest match was retained. A 10-μm margin around the Xenium 494 
+
+field of view was applied during spatial eligibility filtering. Successfully matched H&E nuclei 495 
+
+inherited the corresponding Xenium cell identifiers and molecularly inferred cell-type labels, 496 
+
+while the original segmentation was preserved for subsequent classifier training and evaluation. 497 
+
+498 
+
+Tile extraction and dataset curation 499 
+
+Candidate image tiles measuring 1,024 x 1,024 pixels were extracted at a stride of 256 pixels. 500 
+
+Tiles containing fewer than 10 annotated cells or more than 30% whitespace were excluded, 501 
+
+with whitespace filtering performed using an intensity threshold of 220 ( Supplementary Fig. S4 ). 502 
+
+An additional nuclear area filter was configured to identify unusually large instances using a 503 
+
+threshold of three standard deviations above the mean. Candidate selection incorporated 504 
+
+Shannon entropy calculated from the proportions of annotated cell categories, favoring tiles 505 
+
+containing diverse cellular populations. 506 
+
+A greedy selection procedure was used to construct spatially nonoverlapping tile subsets, with 507 
+
+an eight-pixel separation buffer. The resulting dataset comprised 372 training tiles and 66 508 
+
+validation tiles, containing 122,398 and 19,935 annotated cells, respectively, according to the 509 
+
+dataset creation report. Sampling targets of approximately 21,000 training cells and 4,300 510 
+
+validation cells per category guided tile selection, although the final class distributions remained 511 
+
+unequal. All seven categories were represented in both partitions. Training and validation tiles 512 
+
+originated from the same four specimens but occupied nonoverlapping image regions. The final 513 
+
+class distributions and slide-level allocations are reported in Supplementary Table S3 .514 
+
+515 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+XenoType architecture and cellular feature assignment 516 
+
+XenoType decouples nuclear segmentation from histological feature extraction by combining 517 
+
+CellViT-SAM-H-derived nuclear instances with representations generated by an independently 518 
+
+selected pathology foundation model. The selected configuration used H-Optimus-1 as a frozen 519 
+
+feature extractor and a multilayer perceptron (MLP) for seven-class cell classification 48 .520 
+
+For H-Optimus-1 feature extraction, CellViT-normalized H&E images were restored to RGB 521 
+
+intensity values and resampled to 0.5 μm/pixel using bilinear interpolation. The rescaled images 522 
+
+were divided into overlapping 224 by 224-pixel crops, with crop positions distributed uniformly 523 
+
+to ensure complete image coverage without padding and a maximum stride of 112 pixels and H-524 
+
+Optimus-1 was applied independently to each crop. Auxiliary transformer tokens were excluded, 525 
+
+and the remaining spatial tokens were organized into a 16 x 16 grid of 1,536-dimensional 526 
+
+representations. 527 
+
+To associate these representations with individual nuclei, CellViT-SAM-H bounding boxes and 528 
+
+centroids were transformed into the rescaled image coordinate system. Each nucleus was 529 
+
+preferentially assigned to a 224 x 224-pixel H&E crop (112 x 112 μm at 0.5 μm/pixel) that fully 530 
+
+contained its bounding box. If multiple crops qualified, we selected the one with the greatest 531 
+
+minimum distance between the bounding box and the crop edges. When no crop fully contained 532 
+
+the bounding box, the crop containing the nuclear centroid with the greatest boundary margin 533 
+
+was selected. The bounding box was subsequently mapped onto the spatial token grid, and the 534 
+
+embeddings of all tokens whose image patches intersected the bounding box were averaged to 535 
+
+generate a single 1,536-dimensional embedding per nucleus. Cell ordering was preserved 536 
+
+throughout feature extraction to maintain correspondence with the original nuclear detections. 537 
+
+The resulting embeddings were passed to an MLP comprising a 64-unit hidden layer, rectified 538 
+
+linear activation, dropout, and a seven-class output layer. Predicted cell identities were 539 
+
+associated with their corresponding nuclear instances to generate spatially resolved 540 
+
+classification maps. 541 
+
+542 
+
+Model training and configuration selection 543 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+To select the architecture described above, we first compared combinations of 10 feature-544 
+
+extraction configurations , four classification heads, and three loss functions, completing 95 of 545 
+
+the 120 possible combinations ( Supplementary Figs. S1 and S2 ). This preliminary search used 546 
+
+the original Xenium cell-type annotations harmonized into the seven-category taxonomy 547 
+
+(Supplementary Fig. S5 ). H-Optimus-1 with an MLP head and cross-entropy loss achieved the 548 
+
+highest validation micro-F1 (0.785) among the evaluated combinations and was selected for 549 
+
+subsequent training. Hyperparameter optimization and experiment tracking were performed 550 
+
+using Weights & Biases 49 .551 
+
+We then trained the selected H-Optimus-1-MLP configuration on the final SingleR-derived labels 552 
+
+for seven-class classification using cross-entropy loss and AdamW optimizer. The classifier used 553 
+
+a 64-unit hidden layer with a dropout probability of 0.4544. Training was configured for a 554 
+
+maximum of 100 epochs, with a batch size of 256, learning rate of 3.012 × 10 ⁻⁴, weight decay 555 
+
+of 0.0253, and AdamW momentum parameters β₁ = 0.9 and β₂ = 0.999. Cosine learning-rate 556 
+
+scheduling, mixed-precision computation, and early stopping with a patience of five validation 557 
+
+epochs were applied. A random seed of 15 was used, and class-weighted sampling was disabled. 558 
+
+Histological feature vectors were cached, and the classification head was optimized using the 559 
+
+resulting cell-level embeddings. 560 
+
+The checkpoint with the highest validation micro-F1 score was retained for evaluation. The best 561 
+
+checkpoint was obtained at epoch 19, with a validation F1 of 0.7545, and training stopped after 562 
+
+epoch 24. 563 
+
+564 
+
+Model evaluation 565 
+
+XenoType was compared with default CellViT++ and a CellViT++ classifier retrained using 566 
+
+Xenium-derived molecular annotations. Classification was evaluated using four broad cellular 567 
+
+categories and the seven molecularly informed categories. For the four-class evaluation, tumor 568 
+
+cells were assigned to the neoplastic category, epithelial and myoepithelial cells to epithelial, 569 
+
+endothelial and stromal cells to connective, and myeloid cells and lymphocytes to inflammatory. 570 
+
+For each of the eight held-out sections, we matched predicted nuclei to H&E nuclear instances 571 
+
+carrying transferred molecular annotations. We identified candidate pairs with centroid distances 572 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+of at most 15 pixels in the H&E coordinate system and accepted pairs in ascending order of 573 
+
+distance, allowing each instance to be matched at most once. We performed matching 574 
+
+separately for each model and computed classification scores on its matched pairs. In the four-575 
+
+class evaluation, we excluded pairs with predictions labeled Dead (from CellViT++) after 576 
+
+matching. 577 
+
+We computed micro-F1, macro-F1, and class-specific F1 for each section using the TorchMetrics 578 
+
+multiclass F1 implementation. We report the unweighted mean and sample standard deviation 579 
+
+of the section-level scores and pooled matched-cell counts across sections before calculating 580 
+
+row-normalized percentages. 581 
+
+We compared models using exact, two-sided Wilcoxon signed-rank tests on F1 scores paired 582 
+
+by tissue section (eight sections). The four-class analysis included all three model pairs, and the 583 
+
+seven-class analysis compared XenoType with retrained CellViT++. For each model pair, we 584 
+
+tested micro-F1, macro-F1, and class-specific F1. We excluded zero paired differences, 585 
+
+assigned average ranks to tied absolute differences, and enumerated all sign assignments to 586 
+
+calculate exact P values. We report unadjusted P values and interpret the comparisons as 587 
+
+exploratory. 588 
+
+To assess cross-platform generalization, the models were additionally evaluated on the ATERA 589 
+
+breast cancer section without further training. Cell-type annotations provided by 10x Genomics 590 
+
+were harmonized into the seven cellular categories and transferred to H&E nuclear instances. 591 
+
+XenoType and retrained CellViT++ were evaluated under both the four- and seven-class 592 
+
+taxonomies, with default CellViT++ additionally included in the four-class comparison. 593 
+
+Classification performance was quantified using the same centroid-matching procedure and F1 594 
+
+metrics described above. 595 
+
+596 
+
+Annotation-confidence analysis 597 
+
+To examine the relationship between annotation confidence and classification performance, we 598 
+
+stratified matched cells from the eight held-out sections by three proxies of annotation quality: 599 
+
+the mean SingleR confidence score of the winning category across the four references, the per-600 
+
+cell Xenium transcript count, and the number of uniquely detected genes. Per-cell transcript 601 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+counts and gene counts were obtained from the Xenium cell-level expression data. For each 602 
+
+axis, values were clipped to the 1st-99th percentile range and evaluated at 50 evenly spaced 603 
+
+thresholds using a sliding window with a half-width of 5% of the clipped range. Windows 604 
+
+containing fewer than 1,000 cells were excluded. Micro-F1 and macro-F1 were computed within 605 
+
+each window, and uncertainty was estimated by bootstrap resampling (50 iterations, seed = 42). 606 
+
+The background distribution of each variable was estimated using Gaussian kernel density 607 
+
+estimation. The analysis was performed on all seven classes. For the per-class analysis 608 
+
+(Supplementary Fig. S7 ), class-specific F1 score was computed using the same sliding-window 609 
+
+procedure with a minimum of 200 cells per window, and bootstrap standard deviations were 610 
+
+used to generate ±1 SD bands. 611 
+
+612 
+
+Software and data availability 613 
+
+Spatial transcriptomic processing, reference-based annotation, and histological image analysis 614 
+
+were implemented using R and Python. SingleR was used for reference-based cell annotation, 615 
+
+while PyTorch-based implementations of CellViT-SAM-H, H-Optimus-1, and the classification 616 
+
+heads were used for histological inference and model training. Training configurations, metrics, 617 
+
+and experiment metadata were recorded using Weights & Biases. 618 
+
+The Xenium v1 Human Breast FFPE with Biomarkers & Housekeeping Genes Custom Panel 619 
+
+dataset 46 and the ATERA In Situ Gene Expression FFPE Human Breast Cancer preview 620 
+
+dataset 38 , together with their paired H&E images, are publicly available from 10x Genomics. The 621 
+
+XenoType implementation, trained checkpoints, derived molecular annotations, and processed 622 
+
+histological datasets are available upon request. 623 
+
+624 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Figures 625 
+
+626 
+
+Figure 1. XenoType infers cell classification from standard H&E images. (A) Paired 627 
+
+hematoxylin and eosin (H&E) imaging, immunofluorescence imaging, and Xenium spatial 628 
+
+transcriptomic profiling are performed on the same human breast tissue section. (B) Xenium 629 
+
+cells are independently annotated using four single-cell RNA-sequencing (scRNA-seq) 630 
+
+reference datasets. Reference predictions are harmonized into seven cellular categories and 631 
+
+reconciled through voting and class-specific annotation rules. (C) A parallel coordinates plot (top) 632 
+
+summarizes the configuration search across feature extractors, classifier heads, and training 633 
+
+hyperparameters, with lines colored by validation F1 score. Representative tissue regions 634 
+
+(bottom) compare molecular reference annotations and XenoType predictions at overview and 635 
+
+enlarged scales. (D) XenoType separates nuclear segmentation from foundation-model feature 636 
+
+extraction for histological cell classification. H&E tiles are processed through parallel nuclear 637 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+segmentation (CellViT-SAM-H) and feature-extraction (H-Optimus-1) branches. Cellular feature 638 
+
+assignment associates these representations with individual segmented nuclei to generate cell-639 
+
+level embeddings. A classification head predicts cellular identities from the resulting features, 640 
+
+which are combined with nuclear instance masks to generate spatially resolved classification 641 
+
+maps. Gray and turquoise indicate reused and modified components, respectively. Output colors 642 
+
+identify the seven molecularly informed cell categories. 643 
+
+644 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+645 
+
+Figure 2. Multi-reference transcriptomic annotation defines seven cell categories and 646 
+
+reveals differences in reference agreement. (A) Spatial transcript density overlaid on a 647 
+
+representative breast tissue H&E section. Color scale indicates transcripts per 100 μm2 . (B) 648 
+
+Uniform manifold approximation and projection (UMAP) embeddings of the four single-cell RNA-649 
+
+sequencing (scRNA-seq) reference datasets (Yan, Wu, Dong, and Chen), colored by 650 
+
+harmonized cell category. (C) Reference-specific cell-type predictions, final reconciled labels, 651 
+
+and supporting-reference counts for 4,000 cells sampled across the seven categories. Epithelial 652 
+
+and myoepithelial assignments incorporate a class-specific rule based on the Wu reference 653 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+where applicable. (D) Spatial correspondence between Xenium annotations, CellViT-SAM-H 654 
+
+nuclear segmentation, and the underlying H&E image in a representative tissue region. (E) 655 
+
+Region shown in D with Xenium boundaries and cell classifications overlaid on H&E. (F) 656 
+
+Enlarged region (dashed box in E) illustrating individual nuclear morphology at cellular scale. (G) 657 
+
+Further enlargement of box in F showing incorrectly segmented Xenium boundaries (top left), 658 
+
+correct SAM-H segmentation (top right), corresponding H&E region (bottom left), and SAM -H 659 
+
+segmentation with classification transferred from Xenium overlaid on H&E (bottom right). (H) 660 
+
+Spatial distribution of the seven annotated cell populations in a representative breast tissue 661 
+
+section (left) and an enlarged region (right). (I) Corresponding spatial maps of reference 662 
+
+agreement, categorized as high (4/4 supporting references), medium (3/4), or low (≤2 /4). 663 
+
+Reference agreement describes concordance among computational annotations rather than 664 
+
+independently validated cell-type accuracy. 665 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+666 
+
+.CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint Figure 3. XenoType improves four-class agreement with molecular reference annotations 667 
+
+across eight held-out breast tissue sections. (A) Whole-slide H&E image, molecular 668 
+
+reference annotations, reference annotations overlaid on H&E, and predictions from default 669 
+
+CellViT++, retrained CellViT++, and XenoType for an illustrative section (top row). Successive 670 
+
+enlargements of the indicated region compare annotations and predictions at intermediate 671 
+
+(middle row) and cellular (bottom row) scales across four PanNuke-aligned categories: 672 
+
+neoplastic, epithelial, connective, and inflammatory cells. (B) Micro- and macro-averaged F1 673 
+
+scores across eight sections. ( C) Class-specific F1 scores across the same sections. Bars 674 
+
+indicate means, and points represent individual sections (n = 8). Brackets show unadjusted P 675 
+
+values from exact, two-sided Wilcoxon signed-rank tests on scores paired by section (n = 8). (D) 676 
+
+Confusion matrices pooled across the eight sections for default CellViT++, retrained CellViT++, 677 
+
+and XenoType, from left to right. Rows indicate molecular reference categories and columns 678 
+
+indicate predicted categories. Entries show cell counts, shading indicates row-normalized 679 
+
+percentages, and marginal values report class-specific recall and precision. 680 
+
+681 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+682 
+
+Figure 4. XenoType improves seven-class agreement with molecular reference 683 
+
+annotations across eight held-out breast tissue sections. (A) Molecular reference 684 
+
+.CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint annotations and predictions from retrained CellViT++ and XenoType for an illustrative section 685 
+
+(top row). An enlarged region (bottom row) compares the H&E image, molecular reference 686 
+
+annotations, reference annotations overlaid on H&E, and model predictions across seven 687 
+
+molecularly informed categories. (B) Further enlargement of the indicated region, showing 688 
+
+molecular reference annotations, retrained CellViT++ predictions, and XenoType predictions as 689 
+
+nuclear contours overlaid on H&E (left) and without the underlying image (right). Colors identify 690 
+
+tumor, epithelial, myoepithelial, endothelial, myeloid, lymphocyte, and stromal cells. (C) Micro-691 
+
+and macro-averaged F1 scores for retrained CellViT++ and XenoType across eight sections. (D) 692 
+
+Class-specific F1 scores across the same sections. In (C) and (D), points represent individual 693 
+
+sections (n = 8), lines connect scores from the same section across models, and brackets show 694 
+
+unadjusted P values from exact, two-sided Wilcoxon signed-rank tests on scores paired by 695 
+
+section. (E) Confusion matrices pooled across the eight sections for retrained CellViT++ (left) 696 
+
+and XenoType (right). Rows indicate molecular reference categories and columns indicate 697 
+
+predicted categories. Entries show cell counts, shading indicates row-normalized percentages, 698 
+
+and marginal values report class-specific recall and precision. 699 
+
+700 
+
+701 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+702 
+
+.CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint Figure 5. XenoType agreement with molecular references increases with annotation 703 
+
+confidence and generalizes to out-of-distribution data. (A) Micro-F1 (blue curves) as a 704 
+
+function of mean SingleR confidence, Xenium transcript count per cell, and number of detected 705 
+
+genes per cell across the eight held-out breast tissue sections. Gray shading shows the 706 
+
+distribution of each variable. (B) Whole-slide H&E image of the ATERA section. Dashed boxes 707 
+
+mark the three regions shown in (C), ordered from top to bottom. (C) ATERA-derived molecular 708 
+
+reference annotations (left), predictions from retrained CellViT++ (middle), and XenoType 709 
+
+predictions (right), overlaid on the corresponding H&E regions. Colors denote the seven cell 710 
+
+categories, and insets magnify the boxed subregions. Scale bars are 500 μm for the whole slide, 711 
+
+100 μm for the regional views, and 50 μm for the insets. (D) Micro-F1, macro-F1, and class-712 
+
+specific F1 scores on ATERA. XenoType achieved higher micro-F1 (0.80 vs. 0.59) and macro-713 
+
+F1 (0.59 vs. 0.38), with the largest gains for endothelial and myoepithelial cells. 714 
+
+715 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Supplementary Figures 716 
+
+717 
+
+Supplementary Fig. S1. Preliminary configuration search for feature extractor, classifier 718 
+
+head, and loss function selection. (A) Overview of the configuration search pipeline. (1) 719 
+
+Training and validation data were constructed by registering original Xenium cell-type 720 
+
+annotations to CellViT-SAM-H nuclear instances to produce labeled nuclei. (2) The configuration 721 
+
+space comprised 10 feature-extraction backbones (3 native CellViT++ and 7 XenoType-722 
+
+compatible pathology foundation models), 4 classification heads (LinearProbe, MLP, ResidualSE, 723 
+
+and Ultimate), and 3 loss functions (cross-entropy, weighted cross-entropy, and focal), yielding 724 
+
+120 possible combinations. Cell-level feature vectors were cached once per backbone. (3) For 725 
+
+each combination, a hyperparameter sweep was conducted using Weights & Biases, with 726 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+classifier heads trained on the cached features. The best eligible checkpoint was selected by 727 
+
+seven-class validation micro-F1. This search used annotations supplied with the 10x dataset 728 
+
+and preceded construction of the final four-reference annotation resource. 729 
+
+730 
+
+Supplementary Fig. S2. Validation performance in the preliminary configuration search. 731 
+
+(A) Seven-class validation micro-F1 for 95 reported combinations of feature extractor, classifier 732 
+
+head, and loss function. Gray cells indicate combinations with no reported result. (B) 733 
+
+Comparison of the ten feature-extraction configurations using a multilayer perceptron and cross-734 
+
+entropy loss. The search used the earlier annotations supplied with the 10x dataset. 735 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+736 
+
+Supplementary Fig. S3. Paired model performance across eight held-out breast tissue 737 
+
+sections. (A,B) Four-class macro-F1 and micro-F1 for default CellViT++, retrained CellViT++, 738 
+
+and XenoType . (C,D) Seven-class macro-F1 and micro-F1 for retrained CellViT++ and 739 
+
+XenoType. Each point represents one section, and lines connect scores from the same section 740 
+
+across model s. 741 
+
+742 
+
+743 
+
+744 
+
+745 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+746 
+
+Supplementary Fig. S4. Tile extraction and whitespace filtering for a representative 747 
+
+development section. (A) Candidate tiles overlaid on the H&E whole-slide image. Green and 748 
+
+red borders indicate retained and excluded tiles, respectively. Tiles were excluded if they 749 
+
+contained fewer than 10 annotated cells or more than 30% whitespace. (B) Binary tissue mask 750 
+
+used for whitespace detection, generated using an intensity threshold of 220. White and black 751 
+
+regions indicate tissue and background, respectively. 752 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+753 
+
+Supplementary Fig. S5. Original Xenium cell-type annotations and harmonized categories 754 
+
+across 12 breast tissue sections. (A) Presence of fine-grained cell-type labels supplied with 755 
+
+the 10x Genomics Xenium dataset across 12 tissue sections (four slides, three sections each). 756 
+
+Labels are grouped by their corresponding harmonized category (left brackets). Dots indicate 757 
+
+that a given label was assigned to cells in that section; colors correspond to the harmonized 758 
+
+category. Necrotic cells (bottom) were excluded from downstream analysis. (B) Harmonized 759 
+
+seven-category representation across the same sections, after collapsing the fine-grained labels 760 
+
+shown in (A) .761 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+762 
+
+Supplementary Fig. S6. XenoType achieves higher F1 scores than both CellViT++ 763 
+
+baselines across all four broad cell categories on ATERA. (A) Whole-slide H&E image and 764 
+
+.CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint cell-type maps for the out-of-distribution ATERA breast tissue section. The top row shows the 765 
+
+H&E image, ATERA-derived molecular reference annotations, and predictions from retrained 766 
+
+CellViT++ and XenoType under the seven-class taxonomy. The bottom row shows the molecular 767 
+
+reference annotations and predictions from PanNuke-trained CellViT++, retrained CellViT++, 768 
+
+and XenoType mapped to four broad categories. Scale bars, 1 mm. (B) Micro-F1, macro-F1, 769 
+
+and class-specific F1 scores against the molecular reference annotations under the four-class 770 
+
+taxonomy. 771 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+772 
+
+.CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint Supplementary Fig. S7. XenoType ’s agreement with molecular reference annotations 773 
+
+generally increases with SingleR confidence, while trends with transcript and gene 774 
+
+counts vary by cell type. Class-specific F1 scores across the eight held-out breast tissue 775 
+
+sections are shown as a function of mean SingleR confidence (left), Xenium transcript count per 776 
+
+cell (middle), and number of detected genes per cell (right). Colored curves show F1 scores, 777 
+
+and gray shading shows the distribution of each variable within the corresponding molecular 778 
+
+reference category. Row labels give the number of matched nuclei per reference category. 779 
+
+780 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Supplementary Tables 781 
+
+782 
+
+Table S1. Breast tissue specimens and study allocation. Related to Figure 1. 783 
+
+(A) 10X Genomics Xenium breast tissue sections 784 
+
+Section  Diagnosis  Allocation  Xenium cells with reconciled labels  H&E nuclei with transferred labels 
+
+S1-Top  IDC  Evaluation  201,423  132,596 
+
+S1-Mid  DCIS  Development  358,011  250,934 
+
+S1-Bot  DCIS  Evaluation  253,029  182,631 
+
+S2-Top  Normal  Development  279,734  228,291 
+
+S2-Mid  DCIS  Evaluation  348,804  282,581 
+
+S2-Bot  DCIS  Evaluation  336,019  257,392 
+
+S3-Top  CCH/DCIS  Evaluation  300,296  228,658 
+
+S3-Mid  DCIS  Development  371,809  277,809 
+
+S3-Bot  DCIS  Evaluation  148,878  105,203 
+
+S4-Top  IDC  Evaluation  187,107  134,274 
+
+S4-Mid  IDC  Evaluation  330,169  245,893 
+
+S4-Bot  DCIS  Development  200,942  139,927 
+
+(B) ATERA breast tissue section 785 
+
+Characteristic  Description 
+
+Spatial transcriptomic platform  ATERA Whole Transcriptome Assay (10x Genomics) 
+
+Tissue preparation  FFPE 
+
+Diagnosis  Ductal carcinoma in situ (DCIS) 
+
+Receptor status  ER+/PR+/HER2− 
+
+Number of targeted genes  18,028 
+
+Allocation  External evaluation 
+
+Cell-type annotation source  10x Genomics 
+
+Molecularly annotated cells  168,326 
+
+H&E nuclei with transferred labels  115,904 
+
+The ATERA specimen was used exclusively for external evaluation and was not included in model training, validation, or 786  hyperparameter selection. Cell-type annotations provided by 10x Genomics were harmonized into the seven cellular categories 787  and transferred to H&E nuclear instances. 788 
+
+FFPE, formalin-fixed paraffin-embedded; DCIS, ductal carcinoma in situ; ER, estrogen receptor; PR, progesterone receptor; 789  HER2, human epidermal growth factor receptor 2. 790 
+
+791 
+
+792 
+
+Xenium counts are from the final SingleR voting exports. H&E counts are from the whole-section label-transfer exports. Each 793  H&E label was verified against the reconciled Xenium annotation for the corresponding cell ID. 794 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Specimen diagnoses are from the 10x Genomics Xenium dataset. 795 
+
+Development sections contributed the following training and validation tile counts, respectively. S1-Mid, 59/10, S2-Top, 147/27, 796  S3-Mid, 135/24, S4-Bot, 31/5. 797 
+
+CCH, columnar cell hyperplasia. DCIS, ductal carcinoma in situ. IDC, invasive ductal carcinoma. 798 
+
+Table S2. Single-cell references and cell-type harmonization. Related to Figure 2. 799 
+
+(A) Publications and data records 800 
+
+Reference  Paper and public data records  Label field  Before QC  After QC 
+
+Wu et al . (2021)  Nature Genetics GSE176078 · SCP1039  celltype_minor  100,064  98,418 
+
+Dong et al . (2025) 
+
+Nature Communications E-MTAB-14560 · E-MTAB-14566 CELLxGENE collection 
+
+Level2  10,689  8,853 
+
+Chen et al . (2026)  NAR Genomics and Bioinformatics CELLxGENE atlas  cell_type  621,200  579,434 
+
+Yan et al . (2026)  Nature PRJNA1041570 · CELLxGENE collection  cell_type  427,823  411,684 
+
+Counts are from the reference quality-control reports and precede per-label capping. 801 
+
+.CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint Table S2. Continued 802 
+
+(B) Original labels and harmonized categories 803 
+
+Reference  Harmonized category  Original labels in the harmonization code 
+
+Wu et al . (2021)  Tumor  Cancer Basal SC • Cancer Cycling • Cancer Her2 SC • Cancer LumA SC • Cancer 
+
+LumB SC 
+
+Wu et al . (2021)  Epithelial  Luminal Progenitors • Mature Luminal 
+
+Wu et al . (2021)  Myoepithelial  Myoepithelial 
+
+Wu et al. (2021)  Endothelial  Endothelial ACKR1 • Endothelial CXCL12 • Endothelial Lymphatic LYVE1 • 
+
+Endothelial RGS5 
+
+Wu et al. (2021)  Myeloid  Cycling_Myeloid • DCs • Macrophage • Monocyte 
+
+Wu et al . (2021)  Lymphocytes  B cells Memory • B cells Naive • Cycling T -cells • NK cells • NKT cells • Plasmablasts • T cells CD4+ • T cells CD8+ 
+
+Wu et al . (2021)  Stromal  CAFs MSC iCAF-like • CAFs myCAF -like • Cycling PVL • PVL Differentiated • PVL 
+
+Immature 
+
+Dong et al . (2025)  Tumor  Tumor • Tu_B1 • Tu_B3 • Tu_B4 
+
+Dong et al. (2025)  Endothelial  Vessel 
+
+Dong et al. (2025)  Myeloid  Mast_cell • Myeloid 
+
+Dong et al . (2025)  Lymphocytes  B • T_NK 
+
+Dong et al. (2025)  Stromal  Fibro_muscle 
+
+Chen et al . (2026)  Tumor  malignant cell 
+
+Chen et al . (2026)  Endothelial  capillary endothelial cell • endothelial cell • endothelial cell of artery • endothelial cell of vascular tree • vein endothelial cell 
+
+Chen et al . (2026)  Myeloid  conventional dendritic cell • cycling macrophage • macrophage • mast cell • myeloid dendritic cell • plasmacytoid dendritic cell 
+
+Chen et al . (2026)  Lymphocytes 
+
+CD4-positive helper T cell • CD4 -positive, CD25-positive, CCR4-positive, alpha-beta 
+
+regulatory T cell • CD8 -positive, alpha-beta regulatory T cell • IgG plasma cell • T follicular helper cell • cycling T cell • effector memory CD4 -positive, alpha-beta T cell 
+
+• effector memory CD8 -positive, alpha-beta T cell • exhausted T cell • memory B cell • naive T cell • natural killer cell 
+
+Chen et al . (2026)  Stromal  cycling stromal cell • fibroblast • myofibroblast cell • pericyte • vascular associated 
+
+smooth muscle cell 
+
+Yan et al . (2026)  Tumor  abnormal cell 
+
+Yan et al. (2026)  Endothelial  endothelial cell 
+
+Yan et al. (2026)  Myeloid  myeloid leukocyte 
+
+Yan et al. (2026)  Lymphocytes  T cell • lymphocyte of B lineage 
+
+Yan et al. (2026)  Stromal  fibroblast • perivascular cell 
+
+Original reference labels are reproduced verbatim. Only the Wu reference supplied labels that mapped to the epithelial and 804  myoepithelial categories. 805 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Table S3. Cell-class distributions in development and evaluation data. Related to Figures 3 and 4. 806 
+
+(A) Development tiles 807 
+
+Partition  Tiles  Tumor  Epi.  Myoepi.  Endo.  Myeloid  Lymph.  Stromal  Total 
+
+Training  372  33,424  20,134  10,032  10,652  11,327  11,515  25,314  122,398 
+
+Validation  66  4,486  3,838  1,667  1,796  1,749  1,799  4,600  19,935 
+
+Nucleus counts were pooled across tiles in the final training and validation splits. 808 
+
+(B) Held-out evaluation nuclei 809 
+
+Section  Tumor  Epi.  Myoepi.  Endo.  Myeloid  Lymph.  Stromal  Total 
+
+S1-Top  47,002  9,647  5,425  14,717  12,403  15,743  27,659  132,596 
+
+S1-Bot  86,009  4,213  9,641  14,436  11,072  17,618  39,642  182,631 
+
+S2-Mid  72,120  3,962  2,854  16,354  56,054  104,574  26,663  282,581 
+
+S2-Bot  46,829  684  6,875  32,570  51,565  69,743  49,126  257,392 
+
+S3-Top  45,351  68,772  43,740  16,284  6,409  4,619  43,483  228,658 
+
+S3-Bot  36,082  13,567  305  3,645  7,443  6,669  37,492  105,203 
+
+S4-Top  47,572  6,133  12,532  14,051  9,561  14,606  29,819  134,274 
+
+S4-Mid  139,949  30,398  6,560  17,011  9,040  7,899  35,036  245,893 
+
+All  520,914  137,376  87,932  129,068  163,547  241,471  288,920  1,569,228 
+
+Held-out counts describe H&E nuclei with transferred annotations before model-specific evaluation matching. Epi., epithelial. 810  Myoepi., myoepithelial. Endo., endothelial. Lymph., lymphocyte. 811 
+
+812 
+
+> .CC-BY 4.0 International license available under a (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made The copyright holder for this preprint this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.24.768971 doi: bioRxiv preprint
+
+Acknowledgements 813 
+
+This work was supported by the following sources: U54CA268083, UG3CA275681, all from the 814 
+
+NIH; the Break Through Cancer Data Science TeamLab; and the Johns Hopkins University and 815 
+
+Instituto Superior Técnico student exchange program (HOPTEC and FLAD). D.F.V. 816 
+
+acknowledges financial support from the FCT PhD Studentship 2024.00637.BD. 817 
+
+818 
+
+Author contributions 819 
+
+All authors conceived and designed the study. D.F.F., D.F.V., V.Q. and M.W. developed the 820 
+
+methodology and implemented the computational framework. D.F.F., D.F.V., M.W. and V.Q. 821 
+
+performed the experiments, processed the data and conducted the formal analyses. D.F.F., 822 
+
+D.F.V., M.W., V.Q. and S.J. contributed to data acquisition, annotation and curation. D.F.F., D.F.V., 823 
+
+V.Q., M.W., A.F. and A.K. interpreted the results. D.F.F., D.F.V., and V.Q. prepared the figures 824 
+
+and wrote the original draft of the manuscript. A.K., A.F., P.W. and D.W. supervised the study, 825 
+
+provided resources and acquired funding. All authors contributed to reviewing and editing the 826 
+
+manuscript and approved the final version. 827 
+
+Additional information 828 
+
+The authors declare no competing interests. 829

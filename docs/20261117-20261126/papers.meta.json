@@ -1,0 +1,69 @@
+{
+  "label": "2026-11-17 ~ 2026-11-26",
+  "date": "2026-11-17 ~ 2026-11-26",
+  "generated_at": "2026-11-26T18:42:47",
+  "count": 4,
+  "papers": [
+    {
+      "paper_id": "20261117-20261126/biorxiv-10-64898-2026-11-16-767041-v3-cell-state-conditioning-predicts-the-expression-response-to-an-unseen-stimulus-but-not-stimulus-dependent-genetic-effects",
+      "section": "deep",
+      "title_en": "Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects",
+      "authors": "He, H., Sun, J., Xu, J., Abudureyimu, M., Yang, Y., Huang, Y., Wang, Z., Xia, Q., Wang, S.",
+      "date": "2026-11-25",
+      "pdf": "https://www.biorxiv.org/content/10.64898/2026.11.16.767041v3.full.pdf",
+      "score": "9.0",
+      "evidence": "通过细胞状态条件化预测未见刺激的表达响应",
+      "tldr": "二代序列模型可将单细胞快照作为细胞状态条件输入，但该条件能否携带真实实验扰动尚未被检验。作者以干扰素-β刺激与未刺激的单核细胞为条件，检验预测表达响应是否与实测一致，并考察能否识别刺激特异eQTL。预测与实测响应在119个基因上Spearman ρ=0.616，删除全部靶基因后仍有0.607；但刺激特异的遗传效应缺乏可靠证据。结论是条件传递的是细胞状态而非扰动机制，表达层面可迁移、变异效应层面不可迁移。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "Background: Second-generation sequence models can be conditioned on a cell state supplied as a single-cell snapshot rather than selected from a fixed catalogue, but whether that conditioning carries an experimentally applied perturbation has not been tested. Results: We conditioned such a model on interferon-{beta}-stimulated and unstimulated monocytes from a published experiment, using cells disjoint from those providing the measurement, and asked whether the predicted expression response tracks the measured one and whether the same conditioning identifies expression QTL specific to the stimulated state. Predicted and measured responses agree at Spearman {rho} = 0.616 across 119 genes (95% CI 0.486 to 0.716), and at 0.607 after all 119 target genes are deleted from the conditioning input; across fifteen conditions the model's response scales with how much each condition's biology genuinely overlaps the target response (slope 0.73, Pearson 0.92), and a near-neighbour monocyte subset receives 0.295 against a measured overlap of 0.336. For stimulation-specific genetic effects we find no reliable evidence: the pre-specified primary arm moves from p = 0.0019 to 0.443 once both conditions must carry a measurable predicted effect, and the separation localises to the resting-condition baseline. Neither model generation's catalogue contains a perturbed sample, 0 of 4,430 tracks and 0 of 2,799 conditions, although both carry activation-state labels, so the gap is experimental perturbation rather than cell state. Two incidental findings apply beyond this model: credible-set membership mislabels over half of putatively condition-specific loci, and gating a ratio statistic on its larger term manufactures signal. Conclusions: Conditioning therefore conveys the state but not the mechanism: transfer between states is supported at the level of expression and unsupported at the level of variant effect, and an evaluation that separates the two is needed before either is claimed.",
+      "source": "biorxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "20261117-20261126/biorxiv-10-64898-2026-11-23-768493-v1-simplep2g-importance-of-image-encoders-for-gene-expression-prediction-from-pathology-images",
+      "section": "deep",
+      "title_en": "SimpleP2G: Importance of Image Encoders for Gene Expression Prediction from Pathology Images",
+      "authors": "Wang, J., Zhang, J., Hsieh, C.-Y., Gu, C., Heng, P.-A.",
+      "date": "2026-11-25",
+      "pdf": "https://www.biorxiv.org/content/10.64898/2026.11.23.768493v1.full.pdf",
+      "score": "9.0",
+      "evidence": "利用冻结图像编码器从病理图像直接预测基因表达",
+      "tldr": "病理图像到基因表达预测（P2G）中，图像编码器、预测头和空间上下文常被同时改动，导致性能差异难以归因。作者在5个HEST-1K数据集、两个200基因面板和每数据集3张留出切片上做配对输入控制，并把图像输入统一替换为Virchow2。提出直接对冻结嵌入做基因查询解码的SimpleP2G，以及加入空间位置邻域嵌入的SimpleP2G-cross。结果显示Virchow2在39/40组方法-数据集-面板比较中提升PCC-200，SimpleP2G在共享特征下单patch平均PCC-200于5个数据集均最高，说明应先改进图像表示，再增加预测头复杂度。",
+      "tags": "query:spatial-gene",
+      "abstract_en": "Pathology-image-to-gene-expression (P2G) studies often change the prediction head, image encoder, and spatial context together, making performance differences difficult to attribute. We examine these factors through paired image-input controls and explicit input regimes. Our main comparison covers five HEST-1K datasets, two 200-gene panels, and three selected held-out slides per dataset, using validation-selected checkpoints. Across all five datasets, replacing conventional image inputs with Virchow2 improves mean PCC-200 in 39 of 40 method--dataset--panel comparisons, while one comparison decreases. We introduce SimpleP2G, a direct gene-query decoder over frozen embeddings, and SimpleP2G-cross, which adds spatially positioned neighboring embeddings. With shared Virchow2 features, SimpleP2G has the highest single-patch mean PCC-200 on all five datasets under both panels; the cross-patch variant leads on four of five datasets under each panel. Decoder and context ablations show that greater depth and broader context do not consistently improve prediction. Together, these results suggest improving image representations before adding prediction-head complexity: a direct decoder over frozen pathology embeddings already provides a strong baseline. We hope our reimplemented image-encoder-upgraded baselines and SimpleP2G models serve as transparent, reproducible, and strong controls for future P2G research.",
+      "source": "biorxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "20261117-20261126/biorxiv-10-64898-2026-11-24-768971-v1-xenotype-decoding-cellular-identity-in-breast-cancer-histology-through-molecular-supervision",
+      "section": "quick",
+      "title_en": "XenoType: Decoding cellular identity in breast cancer histology through molecular supervision",
+      "authors": "Forjaz, D. F., Vieira, D. F., Queiroga, V., Willig, M. L., Joshi, S., Kiemen, A. L., Forjaz, A., Wirtz, D., Wu, P.-H.",
+      "date": "2026-11-25",
+      "pdf": "https://www.biorxiv.org/content/10.64898/2026.11.24.768971v1.full.pdf",
+      "score": "7.0",
+      "evidence": "利用空间分子测量监督组织学图像的细胞分类",
+      "tldr": "从H&E图像解析肿瘤微环境细胞组成意义重大，但现有分类器依赖人工标注且类别粗略。XenoType以同切片Xenium空间转录组作分子监督，并融合四个单细胞RNA参考确定七类细胞注释，推理时仅需H&E图像。在八个留出乳腺切片上，其七分类macro-F1为0.571，高于重训CellViT++的0.403，肌上皮与内皮细胞提升显著。该工作降低逐样本分子检测依赖，推动常规组织学的可扩展细胞分型。",
+      "tags": "query:spatial-gene",
+      "abstract_en": "Characterizing the cellular composition of the tumor microenvironment from histological images is fundamental to understanding cancer biology and informing treatment decisions. Deep learning has enabled automated nuclear detection and classification from hematoxylin and eosin (H&E) images, yet cell classifiers remain largely confined to broad morphological categories owing to a reliance on manual annotations. Recent efforts have used spatial molecular measurements to supervise histological classification, but these approaches often require separate tissue sections or produce altered H&E staining, and the resulting cell-type annotations depend on subjective choices such as marker selection and clustering parameters. Here we develop XenoType, a framework that classifies cells into seven molecularly informed categories directly from routine histology, trained using paired same-section Xenium spatial transcriptomics. Cell-type annotations are reconciled from four single-cell RNA-sequencing references, reducing dependence on marker choices. Across eight held-out breast tissue sections, XenoType outperformed commonly used CellViT++ retrained on the same molecular annotations under both four-class (macro-F1: 0.703 vs. 0.569) and seven-class (macro-F1: 0.571 vs. 0.403) taxonomies, with the largest gains for myoepithelial (F1: 0.175 to 0.572) and endothelial cells (F1: 0.395 to 0.682). Molecular measurements are required only during training; at inference, XenoType uses the H&E image alone. Model-reference agreement increased consistently with annotation confidence, and XenoType generalized to an independently profiled breast tissue section from a different spatial transcriptomics platform, supporting scalable cell-type mapping from routine histology without per-specimen molecular profiling.",
+      "source": "biorxiv",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "paper_id": "20261117-20261126/2611.30955v1-lecellmodel-interpretable-density-estimation-over-the-gene-expression-manifold",
+      "section": "quick",
+      "title_en": "LeCellModel: Interpretable Density Estimation over the Gene Expression Manifold",
+      "authors": "Gil Karin, Artemii Bakulin, Nir Yosef",
+      "date": "2026-11-23",
+      "pdf": "https://arxiv.org/pdf/2611.30955v1",
+      "score": "6.0",
+      "evidence": "在单细胞基因表达流形上做可解释密度估计以支持扰动打分",
+      "tldr": "单细胞表示学习常以细胞类型、谱系等身份信息为评价目标，却较少检验其对基因表达流形上细胞状态分布的建模是否忠实。LeCellModel基于LeJEPA的SIGReg高斯潜空间，将编码器Jacobian对数体积JEPA-SCORE解释为相对典型性分数。该方法在scIB基准提升表示质量，并用于细胞因子刺激下的稀有状态检测与通路响应幅度追踪。作者还实现JEPA-SCORE的基因级归因，复现肺纤维化相关巨噬细胞程序并发现CD177+活化调节性T细胞亚群。",
+      "tags": "query:virtual-cell",
+      "abstract_en": "Representation learning for single-cell RNA-seq has been evaluated by the identities representations capture -- cell types, lineages, perturbations -- rather than how faithfully they model the distribution of cell states on the gene expression manifold. As a result, density estimation, rare-state detection, perturbation scoring, and gene-level attribution are bolted onto frozen embeddings as separate models, disconnected from the geometry of the data. We argue that modeling the distribution of cell states should be the primary objective, and that representation quality follows from it. Building on LeJEPA, whose SIGReg objective enforces a provably optimal isotropic Gaussian latent, we introduce LeCellModel, which reads the encoder's Jacobian log-volume (JEPA-SCORE) under this Gaussian latent as a relative typicality score. Across several datasets, LeCellModel outperforms established methods on the scIB benchmark for representation quality. Furthermore, we show that LeCellModel enables detection of rare expression states using JEPA-SCORE as a typicality measure, applying it to a controlled cytokine panel, where it identifies stimulated cells across minority fractions and tracks pathway-response magnitude. We introduce gene-level interpretability of the typicality score -- to our knowledge, the first method for analyzing JEPA-SCORE in feature space. Leveraging this framework, LeCellModel recapitulates the known association of a profibrotic macrophage program with idiopathic pulmonary fibrosis, and discovers a CD177+ activated regulatory T cell subpopulation previously described only in tumor contexts. Both findings emerge directly from the geometry of the learned embedding, without relying on supervised annotations.",
+      "source": "arxiv",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "errors": []
+}

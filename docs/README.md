@@ -48,17 +48,17 @@
 <section class="dpr-home-dashboard-card dpr-home-report-card">
   <div class="dpr-home-dashboard-header">
     <div>
-      <span class="dpr-home-dashboard-kicker">2026-11-16 ~ 2026-11-25</span>
+      <span class="dpr-home-dashboard-kicker">2026-11-17 ~ 2026-11-26</span>
       <h3 class="dpr-home-dashboard-title">今日汇总</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">共 6 篇</strong>
+    <strong class="dpr-home-dashboard-count">共 4 篇</strong>
   </div>
   <dl class="dpr-home-dashboard-stats">
     <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>1 次</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>3</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>3</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>2</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>2</dd></div>
   </dl>
-  <p class="dpr-home-dashboard-body">最近更新：2026-11-25 18:46:10 UTC<br>状态：成功</p>
+  <p class="dpr-home-dashboard-body">最近更新：2026-11-26 18:42:46 UTC<br>状态：成功</p>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-brief-card">
   <div class="dpr-home-dashboard-header">
@@ -69,9 +69,7 @@
     <strong class="dpr-home-dashboard-count">AI</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p>2026年11月16日至25日共筛选6篇论文，其中精读3篇、速读3篇，重点关注单细胞扰动建模与单细胞基础模型的评测。</p>
-<p>最值得看的是《How Far Can Linear Go?》（9.0分），它用BiPert统一框架探讨线性方法的边界；《Hypothesis Generation and Semantic Attribution in Inverse Perturbation Modeling》（8.0分）则指向逆向扰动建模中的假设生成与语义归因。</p>
-<p>普通读者可以先看9分那篇，了解线性方法能走多远，再用7分的CellBench对照基础模型的任务依赖与泛化限制。</p>
+<p>2026-11-17至26共筛读4篇，精读2篇均获9.0高分，聚焦基因表达预测与细胞状态建模。最值得看的是《Cell-state conditioning》揭示的“刺激响应可预测、遗传效应难预测”边界，以及《SimpleP2G》强调的病理图像编码器对基因表达预测的关键作用。普通读者可先看这两篇精读摘要，再按兴趣速读乳腺癌细胞身份解码与表达流形密度估计两篇。</p>
   </div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-deep-card">
@@ -80,12 +78,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">精读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">3 篇</strong>
+    <strong class="dpr-home-dashboard-count">2 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="How Far Can Linear Go? BiPert, a Unified Framework for Single-Cell Perturbation Modelling">How Far Can Linear Go? BiPert, a Unified Framework for Single-Cell Perturbation Modelling</span></li><li><span class="dpr-home-dashboard-paper-title" title="Hypothesis Generation and Semantic Attribution in Inverse Perturbation Modeling">Hypothesis Generation and Semantic Attribution in Inverse Perturbation Modeling</span></li><li><span class="dpr-home-dashboard-paper-title" title="Multi-omics causal deep learning reveals regulatory structure while interventions refine perturbation predictions">Multi-omics causal deep learning reveals regulatory structure while interventions refine perturbation predictions</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects">Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects</span></li><li><span class="dpr-home-dashboard-paper-title" title="SimpleP2G: Importance of Image Encoders for Gene Expression Prediction from Pathology Images">SimpleP2G: Importance of Image Encoders for Gene Expression Prediction from Pathology Images</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">virtual-cell <strong>3</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-skim-card">
   <div class="dpr-home-dashboard-header">
@@ -93,12 +91,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">速读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">3 篇</strong>
+    <strong class="dpr-home-dashboard-count">2 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="CellBench: task-dependent performance and generalization limits of single-cell foundation models">CellBench: task-dependent performance and generalization limits of single-cell foundation models</span></li><li><span class="dpr-home-dashboard-paper-title" title="Learning Multimodal Representations from Partially Paired, Small-Scale Data">Learning Multimodal Representations from Partially Paired, Small-Scale Data</span></li><li><span class="dpr-home-dashboard-paper-title" title="A multimodal foundation model for tissue proteomics and morphology in cancer">A multimodal foundation model for tissue proteomics and morphology in cancer</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="XenoType: Decoding cellular identity in breast cancer histology through molecular supervision">XenoType: Decoding cellular identity in breast cancer histology through molecular supervision</span></li><li><span class="dpr-home-dashboard-paper-title" title="LeCellModel: Interpretable Density Estimation over the Gene Expression Manifold">LeCellModel: Interpretable Density Estimation over the Gene Expression Manifold</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>2</strong></span><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
 </section>
 </div>
 

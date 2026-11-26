@@ -1,0 +1,265 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-11-26T18:41:05.654666+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 2,
+    "deep_divecandidates": 3,
+    "deep_cap": 7,
+    "deep_selected": 3,
+    "quick_candidates": 3,
+    "quick_skim_target": 12,
+    "quick_selected": 3
+  },
+  "deep_dive": [
+    {
+      "id": "biorxiv-10-64898-2026-11-16-767041-v3",
+      "source": "biorxiv",
+      "title": "Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects",
+      "abstract": "Background: Second-generation sequence models can be conditioned on a cell state supplied as a single-cell snapshot rather than selected from a fixed catalogue, but whether that conditioning carries an experimentally applied perturbation has not been tested. Results: We conditioned such a model on interferon-{beta}-stimulated and unstimulated monocytes from a published experiment, using cells disjoint from those providing the measurement, and asked whether the predicted expression response tracks the measured one and whether the same conditioning identifies expression QTL specific to the stimulated state. Predicted and measured responses agree at Spearman {rho} = 0.616 across 119 genes (95% CI 0.486 to 0.716), and at 0.607 after all 119 target genes are deleted from the conditioning input; across fifteen conditions the model's response scales with how much each condition's biology genuinely overlaps the target response (slope 0.73, Pearson 0.92), and a near-neighbour monocyte subset receives 0.295 against a measured overlap of 0.336. For stimulation-specific genetic effects we find no reliable evidence: the pre-specified primary arm moves from p = 0.0019 to 0.443 once both conditions must carry a measurable predicted effect, and the separation localises to the resting-condition baseline. Neither model generation's catalogue contains a perturbed sample, 0 of 4,430 tracks and 0 of 2,799 conditions, although both carry activation-state labels, so the gap is experimental perturbation rather than cell state. Two incidental findings apply beyond this model: credible-set membership mislabels over half of putatively condition-specific loci, and gating a ratio statistic on its larger term manufactures signal. Conclusions: Conditioning therefore conveys the state but not the mechanism: transfer between states is supported at the level of expression and unsupported at the level of variant effect, and an evaluation that separates the two is needed before either is claimed.",
+      "authors": [
+        "He, H.",
+        "Sun, J.",
+        "Xu, J.",
+        "Abudureyimu, M.",
+        "Yang, Y.",
+        "Huang, Y.",
+        "Wang, Z.",
+        "Xia, Q.",
+        "Wang, S."
+      ],
+      "primary_category": "genomics",
+      "categories": [
+        "genomics"
+      ],
+      "published": "2026-11-25T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.16.767041v3.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts expression response to an unseen stimulus via cell-state conditioning",
+      "llm_evidence_cn": "通过细胞状态条件化预测未见刺激的表达响应",
+      "llm_evidence": "通过细胞状态条件化预测未见刺激的表达响应",
+      "canonical_evidence": "通过细胞状态条件化预测未见刺激的表达响应",
+      "llm_tldr_en": "Conditioning a sequence model on stimulated and unstimulated monocyte snapshots, the authors find predicted expression responses match measured ones at Spearman rho 0.616 but fail to capture stimulus-dependent genetic effects.",
+      "llm_tldr_cn": "二代序列模型可以单细胞快照作为条件，但其条件是否真正携带实验施加的扰动尚未被检验。作者以干扰素β刺激与未刺激单核细胞为条件，用与测量不重叠的细胞预测表达响应，并检验能否识别刺激态特异的表达数量性状位点。结果显示119个基因上预测与实测响应Spearman相关约0.62，但未能捕捉刺激依赖的遗传效应。该工作为虚拟细胞式扰动响应预测的可靠性提供了直接评估。",
+      "llm_tldr": "二代序列模型可以单细胞快照作为条件，但其条件是否真正携带实验施加的扰动尚未被检验。作者以干扰素β刺激与未刺激单核细胞为条件，用与测量不重叠的细胞预测表达响应，并检验能否识别刺激态特异的表达数量性状位点。结果显示119个基因上预测与实测响应Spearman相关约0.62，但未能捕捉刺激依赖的遗传效应。该工作为虚拟细胞式扰动响应预测的可靠性提供了直接评估。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "perturbation response prediction",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-23-768493-v1",
+      "source": "biorxiv",
+      "title": "SimpleP2G: Importance of Image Encoders for Gene Expression Prediction from Pathology Images",
+      "abstract": "Pathology-image-to-gene-expression (P2G) studies often change the prediction head, image encoder, and spatial context together, making performance differences difficult to attribute. We examine these factors through paired image-input controls and explicit input regimes. Our main comparison covers five HEST-1K datasets, two 200-gene panels, and three selected held-out slides per dataset, using validation-selected checkpoints. Across all five datasets, replacing conventional image inputs with Virchow2 improves mean PCC-200 in 39 of 40 method--dataset--panel comparisons, while one comparison decreases. We introduce SimpleP2G, a direct gene-query decoder over frozen embeddings, and SimpleP2G-cross, which adds spatially positioned neighboring embeddings. With shared Virchow2 features, SimpleP2G has the highest single-patch mean PCC-200 on all five datasets under both panels; the cross-patch variant leads on four of five datasets under each panel. Decoder and context ablations show that greater depth and broader context do not consistently improve prediction. Together, these results suggest improving image representations before adding prediction-head complexity: a direct decoder over frozen pathology embeddings already provides a strong baseline. We hope our reimplemented image-encoder-upgraded baselines and SimpleP2G models serve as transparent, reproducible, and strong controls for future P2G research.",
+      "authors": [
+        "Wang, J.",
+        "Zhang, J.",
+        "Hsieh, C.-Y.",
+        "Gu, C.",
+        "Heng, P.-A."
+      ],
+      "primary_category": "cell biology",
+      "categories": [
+        "cell biology"
+      ],
+      "published": "2026-11-25T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.23.768493v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "predicts gene expression directly from pathology images with frozen image encoders",
+      "llm_evidence_cn": "利用冻结图像编码器从病理图像直接预测基因表达",
+      "llm_evidence": "利用冻结图像编码器从病理图像直接预测基因表达",
+      "canonical_evidence": "利用冻结图像编码器从病理图像直接预测基因表达",
+      "llm_tldr_en": "SimpleP2G systematically compares image encoders, prediction heads and spatial context for pathology-image-to-gene-expression prediction, introducing a direct gene-query decoder over frozen embeddings.",
+      "llm_tldr_cn": "针对病理图像到基因表达预测中编码器、预测头与空间上下文同时改动导致性能难以归因的问题，作者通过配对图像输入对照和明确输入设置进行系统比较，覆盖五个HEST-1K数据集与两个200基因面板。结果显示替换为Virchow2编码器在40项比较中39项提升平均PCC-200，并提出基于冻结嵌入的直接基因查询解码器SimpleP2G及其加入空间邻域的变体，为图像推断空间基因表达提供清晰的方法学依据。",
+      "llm_tldr": "针对病理图像到基因表达预测中编码器、预测头与空间上下文同时改动导致性能难以归因的问题，作者通过配对图像输入对照和明确输入设置进行系统比较，覆盖五个HEST-1K数据集与两个200基因面板。结果显示替换为Virchow2编码器在40项比较中39项提升平均PCC-200，并提出基于冻结嵌入的直接基因查询解码器SimpleP2G及其加入空间邻域的变体，为图像推断空间基因表达提供清晰的方法学依据。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-24-768840-v1",
+      "source": "biorxiv",
+      "title": "A noise-corrected metric for evaluating spatial transcriptomics predicted from histology",
+      "abstract": "Deep learning methods that predict spatial transcriptomics from histology offer scalable molecular profiling of clinical cohorts. However, conventional correlation metrics overstate prediction quality across whole sections by crediting models for recognizing broad tissue regions, and understate fine-scale prediction quality because sampling noise dominates sparse RNA counts. To resolve this, we introduce the reproducible-signal correlation (RSC) metric. RSC randomly splits RNA counts into two halves to separate reproducible signal from sampling noise across spatial scales and within tissue regions or cell classes. Across 12 spot-level and three single-cell methods, RSC revealed that most models capture broad tissue patterns but largely miss differences between neighboring spots or cells, which whole-section correlation overlooks. Within malignant cells, RSC distinguished methods that genuinely capture part of the cell-to-cell heterogeneity from those whose scores across all cells were inflated by cell-type composition. Guided by RSC, we designed a pairwise difference loss between neighboring spots that improved fine-scale predictions on average across 11 models. RSC thus provides a foundation for benchmarking predictions, guiding model design and determining which spatial analyses histology can support.",
+      "authors": [
+        "Ouyang, J.",
+        "Gao, Y.",
+        "Jin, C.",
+        "Wang, Y.",
+        "Xu, Y.",
+        "Liang, L.",
+        "Zhou, F.",
+        "Cai, Z.",
+        "Chen, H."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-24T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.24.768840v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "noise-corrected metric for evaluating spatial transcriptomics predicted from histology",
+      "llm_evidence_cn": "面向组织学预测空间转录组的噪声校正评估指标",
+      "llm_evidence": "面向组织学预测空间转录组的噪声校正评估指标",
+      "canonical_evidence": "面向组织学预测空间转录组的噪声校正评估指标",
+      "llm_tldr_en": "Conventional correlation metrics misstate how well deep learning predicts spatial transcriptomics from histology. The reproducible-signal correlation metric splits RNA counts to separate reproducible signal from sampling noise, revealing most models only capture broad tissue patterns.",
+      "llm_tldr_cn": "深度学习已可从组织学图像预测空间转录组，但常规相关系数会因识别大范围组织区域而高估整体预测质量，又因稀疏RNA计数噪声低估细尺度预测能力。作者提出可复现信号相关（RSC）指标，将RNA计数随机二分以在多个空间尺度及组织区域或细胞类型内分离可复现信号与采样噪声。在12种spot级与3种单细胞级方法上评估显示，多数模型只能捕捉粗粒度组织模式而细尺度预测有限。该指标为从组织形态预测空间基因表达提供了更可靠的评价基准。",
+      "llm_tldr": "深度学习已可从组织学图像预测空间转录组，但常规相关系数会因识别大范围组织区域而高估整体预测质量，又因稀疏RNA计数噪声低估细尺度预测能力。作者提出可复现信号相关（RSC）指标，将RNA计数随机二分以在多个空间尺度及组织区域或细胞类型内分离可复现信号与采样噪声。在12种spot级与3种单细胞级方法上评估显示，多数模型只能捕捉粗粒度组织模式而细尺度预测有限。该指标为从组织形态预测空间基因表达提供了更可靠的评价基准。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "Deep learning models that predict spatial transcriptomics from tissue morphology.",
+      "matched_requirement_id": "req-14",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "biorxiv-10-64898-2026-10-12-758706-v2",
+      "source": "biorxiv",
+      "title": "Auditing Confidence-Calibrated Benchmarking of Single-Cell Perturbation Models",
+      "abstract": "Single-cell perturbation models are increasingly assessed for both predictive performance and calibrated uncertainty under distribution shift. We constructed such an evaluation harness (two datasets, Norman 2019 and Replogle 2022; four split types over six dataset-split combinations; three models, scVI, CPA and a linear Ridge baseline; three uncertainty quantification methods, MC dropout, quantile regression and split conformal prediction) and then audited it against null baselines it had never included. Most of its headline results measure something other than what their metric names claim. The harness supplied each test cell to the model as input and then scored the model on reproducing that same cell's expression, so an identity predictor returning the input unchanged attains a perturbation-effect correlation of 1.0 on all six splits: any model given the target cell is measured against this echo ceiling rather than against a null. Against a constant train-mean predictor, scVI wins on 99.7% of Norman cells but only 0.2% of Replogle cells. One split held out sequencing batches rather than perturbations; another scores no genuinely novel perturbation after label collapse; unseen perturbations are silently replaced with a negative-control sentinel at inference; and the most convention-sensitive decision-value entry moves 29.2 percentage points under a library-size convention that changes that row's all-gene MSE by 0.01%. Because a validation budget is spent on a ranked shortlist rather than on a marginal interval, we also score each uncertainty signal by the DE-gene error it avoids in the top k: the worst-calibrated method is the best ranker, and a benchmark reporting only coverage orders the two backwards. We document six failure modes, each with its mechanism, the diagnostic that exposes it, and a detection procedure transferable to other harnesses. One result survives, with a boundary condition: split-conformal coverage calibrated on K562 residuals under-covers on RPE1 (0.900 to 0.847), and marginal coverage at the nominal 0.900 is compatible with covering 0.271 to 0.342 of the DE-gene intervals a prioritization decision would rest on. We continue to recommend conformal prediction, recalibrated per cellular context and reported per gene set rather than marginally.",
+      "authors": [
+        "Gallone, M.",
+        "Ravidath, S.",
+        "Madireddy, S."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-25T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.10.12.758706v2.full.pdf",
+      "tags": [
+        "keyword:virtual-cell",
+        "query:virtual-cell"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "audits benchmarking and uncertainty calibration of single-cell perturbation models",
+      "llm_evidence_cn": "审计单细胞扰动模型的基准评测与不确定性校准",
+      "llm_evidence": "审计单细胞扰动模型的基准评测与不确定性校准",
+      "canonical_evidence": "审计单细胞扰动模型的基准评测与不确定性校准",
+      "llm_tldr_en": "This study audits a confidence-calibrated benchmarking harness for single-cell perturbation models and finds most headline metrics measure something other than claimed, since identity predictors can score well.",
+      "llm_tldr_cn": "针对单细胞扰动模型在分布偏移下的预测性能与不确定性校准评测问题，作者构建包含Norman 2019和Replogle 2022数据集、四种划分、scVI/CPA/岭回归三模型及三种不确定性量化方法的评测框架，并用其从未纳入的零基线进行审计。结果发现多数头条指标并未测量其名称所声称的内容，因为评测把测试细胞本身作为输入再要求复现其表达，恒等预测器即可高分，提示扰动模型评测需重新设计。",
+      "llm_tldr": "针对单细胞扰动模型在分布偏移下的预测性能与不确定性校准评测问题，作者构建包含Norman 2019和Replogle 2022数据集、四种划分、scVI/CPA/岭回归三模型及三种不确定性量化方法的评测框架，并用其从未纳入的零基线进行审计。结果发现多数头条指标并未测量其名称所声称的内容，因为评测把测试细胞本身作为输入再要求复现其表达，恒等预测器即可高分，提示扰动模型评测需重新设计。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "Single cell perturbation response prediction",
+      "matched_requirement_id": "req-8",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2611.30955v1",
+      "source": "arxiv",
+      "title": "LeCellModel: Interpretable Density Estimation over the Gene Expression Manifold",
+      "abstract": "Representation learning for single-cell RNA-seq has been evaluated by the identities representations capture -- cell types, lineages, perturbations -- rather than how faithfully they model the distribution of cell states on the gene expression manifold. As a result, density estimation, rare-state detection, perturbation scoring, and gene-level attribution are bolted onto frozen embeddings as separate models, disconnected from the geometry of the data. We argue that modeling the distribution of cell states should be the primary objective, and that representation quality follows from it. Building on LeJEPA, whose SIGReg objective enforces a provably optimal isotropic Gaussian latent, we introduce LeCellModel, which reads the encoder's Jacobian log-volume (JEPA-SCORE) under this Gaussian latent as a relative typicality score. Across several datasets, LeCellModel outperforms established methods on the scIB benchmark for representation quality. Furthermore, we show that LeCellModel enables detection of rare expression states using JEPA-SCORE as a typicality measure, applying it to a controlled cytokine panel, where it identifies stimulated cells across minority fractions and tracks pathway-response magnitude. We introduce gene-level interpretability of the typicality score -- to our knowledge, the first method for analyzing JEPA-SCORE in feature space. Leveraging this framework, LeCellModel recapitulates the known association of a profibrotic macrophage program with idiopathic pulmonary fibrosis, and discovers a CD177+ activated regulatory T cell subpopulation previously described only in tumor contexts. Both findings emerge directly from the geometry of the learned embedding, without relying on supervised annotations.",
+      "authors": [
+        "Gil Karin",
+        "Artemii Bakulin",
+        "Nir Yosef"
+      ],
+      "primary_category": "q-bio.GN",
+      "categories": [
+        "q-bio.GN",
+        "cs.LG"
+      ],
+      "published": "2026-11-23T16:30:49+00:00",
+      "link": "https://arxiv.org/pdf/2611.30955v1",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene",
+        "query:virtual-cell"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "interpretable density estimation over single-cell gene expression manifold supporting perturbation scoring",
+      "llm_evidence_cn": "在单细胞基因表达流形上做可解释密度估计以支持扰动打分",
+      "llm_evidence": "在单细胞基因表达流形上做可解释密度估计以支持扰动打分",
+      "canonical_evidence": "在单细胞基因表达流形上做可解释密度估计以支持扰动打分",
+      "llm_tldr_en": "LeCellModel makes modeling the distribution of single-cell states the primary objective, deriving density estimation, rare-state detection and perturbation scoring from the expression manifold geometry.",
+      "llm_tldr_cn": "针对单细胞表示学习多以捕获细胞身份为评价标准、而忽视对基因表达流形上细胞状态分布建模的问题，作者提出LeCellModel，基于LeJEPA的SIGReg目标从编码器雅可比读取信息，实现流形上的密度估计。方法将密度估计、稀有状态检测、扰动打分与基因级归因统一到数据几何中。该工作主张以建模细胞状态分布为首要目标，从而获得更优表示与可解释性，为虚拟细胞式建模提供基础。",
+      "llm_tldr": "针对单细胞表示学习多以捕获细胞身份为评价标准、而忽视对基因表达流形上细胞状态分布建模的问题，作者提出LeCellModel，基于LeJEPA的SIGReg目标从编码器雅可比读取信息，实现流形上的密度估计。方法将密度估计、稀有状态检测、扰动打分与基因级归因统一到数据几何中。该工作主张以建模细胞状态分布为首要目标，从而获得更优表示与可解释性，为虚拟细胞式建模提供基础。",
+      "llm_tags": [
+        "query:virtual-cell"
+      ],
+      "matched_query_tag": "query:virtual-cell",
+      "matched_query_text": "virtual cell model",
+      "matched_requirement_id": "req-2",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "biorxiv-10-64898-2026-11-24-768971-v1",
+      "source": "biorxiv",
+      "title": "XenoType: Decoding cellular identity in breast cancer histology through molecular supervision",
+      "abstract": "Characterizing the cellular composition of the tumor microenvironment from histological images is fundamental to understanding cancer biology and informing treatment decisions. Deep learning has enabled automated nuclear detection and classification from hematoxylin and eosin (H&E) images, yet cell classifiers remain largely confined to broad morphological categories owing to a reliance on manual annotations. Recent efforts have used spatial molecular measurements to supervise histological classification, but these approaches often require separate tissue sections or produce altered H&E staining, and the resulting cell-type annotations depend on subjective choices such as marker selection and clustering parameters. Here we develop XenoType, a framework that classifies cells into seven molecularly informed categories directly from routine histology, trained using paired same-section Xenium spatial transcriptomics. Cell-type annotations are reconciled from four single-cell RNA-sequencing references, reducing dependence on marker choices. Across eight held-out breast tissue sections, XenoType outperformed commonly used CellViT++ retrained on the same molecular annotations under both four-class (macro-F1: 0.703 vs. 0.569) and seven-class (macro-F1: 0.571 vs. 0.403) taxonomies, with the largest gains for myoepithelial (F1: 0.175 to 0.572) and endothelial cells (F1: 0.395 to 0.682). Molecular measurements are required only during training; at inference, XenoType uses the H&E image alone. Model-reference agreement increased consistently with annotation confidence, and XenoType generalized to an independently profiled breast tissue section from a different spatial transcriptomics platform, supporting scalable cell-type mapping from routine histology without per-specimen molecular profiling.",
+      "authors": [
+        "Forjaz, D. F.",
+        "Vieira, D. F.",
+        "Queiroga, V.",
+        "Willig, M. L.",
+        "Joshi, S.",
+        "Kiemen, A. L.",
+        "Forjaz, A.",
+        "Wirtz, D.",
+        "Wu, P.-H."
+      ],
+      "primary_category": "bioinformatics",
+      "categories": [
+        "bioinformatics"
+      ],
+      "published": "2026-11-25T00:00:00+00:00",
+      "link": "https://www.biorxiv.org/content/10.64898/2026.11.24.768971v1.full.pdf",
+      "tags": [
+        "keyword:spatial-gene",
+        "keyword:virtual-cell",
+        "query:spatial-gene"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "uses spatial molecular measurements to supervise histology-based cell classification",
+      "llm_evidence_cn": "利用空间分子测量监督组织学图像的细胞分类",
+      "llm_evidence": "利用空间分子测量监督组织学图像的细胞分类",
+      "canonical_evidence": "利用空间分子测量监督组织学图像的细胞分类",
+      "llm_tldr_en": "XenoType uses spatial molecular measurements to supervise cell-type classification directly from H&E images, avoiding manual annotations and separate sections, enabling molecularly informed decoding of breast cancer histology.",
+      "llm_tldr_cn": "从 H&E 图像判定肿瘤微环境细胞组成常依赖人工标注，类别粗泛且受标记选择与聚类主观性影响。作者提出 XenoType，利用空间分子测量直接监督组织学图像上的细胞类型分类，无需另切组织片或改变染色。该框架在乳腺癌组织学中实现分子层面的细胞身份解码，为组织形态与分子状态的联合建模提供可扩展方案。",
+      "llm_tldr": "从 H&E 图像判定肿瘤微环境细胞组成常依赖人工标注，类别粗泛且受标记选择与聚类主观性影响。作者提出 XenoType，利用空间分子测量直接监督组织学图像上的细胞类型分类，无需另切组织片或改变染色。该框架在乳腺癌组织学中实现分子层面的细胞身份解码，为组织形态与分子状态的联合建模提供可扩展方案。",
+      "llm_tags": [
+        "query:spatial-gene"
+      ],
+      "matched_query_tag": "query:spatial-gene",
+      "matched_query_text": "multimodal learning combining histology images and gene expression",
+      "matched_requirement_id": "req-12",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    }
+  ]
+}

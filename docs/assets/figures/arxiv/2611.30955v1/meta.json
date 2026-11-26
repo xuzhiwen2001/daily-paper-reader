@@ -1,0 +1,42 @@
+{
+  "version": 3,
+  "extractor": "arxiv-html",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.30955v1/fig-001.webp",
+      "caption": "Figure 2: LeCellModel embedding of the Heart Cell Atlas v2. UMAP of 704,296 704{,}296 cells encoded by LeCellModel. (a) Colored by cell type. Twelve major cardiac populations form well-separated clusters, preserving biological structure. (b) Colored by batch (32 preparations across scRNA-seq, snRNA-seq, and 10x Multiome). Cells from different batches mix within each cluster, demonstrating effective correction of multi-modality batch effects.",
+      "page": 0,
+      "index": 1,
+      "width": 4172,
+      "height": 1545,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30955v1/fig-002.webp",
+      "caption": "Figure 3: Rare-state detection benchmark. Stimulated cells at minority fractions f ∈ { 1 % , 3 % , 5 % , 10 % } f\\in\\{1\\%,3\\%,5\\%,10\\%\\} ; no label seen during training. AUROC (top) and AUPRC (bottom). Three pairs have established biological responses; the weaker IL-4 response in CD16 monocytes is reported in Appendix M .",
+      "page": 0,
+      "index": 2,
+      "width": 1400,
+      "height": 1007,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30955v1/fig-003.webp",
+      "caption": "Figure 4: Rare-program discovery and score-based gene attribution in IPF lung. For each cohort, UMAP is computed on all cells; each row shows the indicated cell type at its coordinates in that full embedding. (A) JEPA score: Low-JEPA-score cells (red) form a coherent neighborhood within the cell type. (B) disease enrichment: k k NN-smoothed disease enrichment z z -score; the low-JEPA-score region is enriched for IPF cells relative to the cell-type baseline (monocyte-derived macrophages: 31.7% vs. 12.5%, 2.53 × 2.53\\times ; CD4 T cells: 34.7% vs. 5.3%, 6.57 × 6.57\\times ). (C) gene influence: T",
+      "page": 0,
+      "index": 3,
+      "width": 1320,
+      "height": 768,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.30955v1/fig-004.webp",
+      "caption": "Figure 5: GeneJEPA zero-shot embedding of HLCA Core, colored by cell type. The frozen encoder does not produce separated clusters on primary tissue, consistent with the Tahoe-100M → \\to HLCA domain gap.",
+      "page": 0,
+      "index": 4,
+      "width": 1020,
+      "height": 820,
+      "label": "Figure"
+    }
+  ]
+}

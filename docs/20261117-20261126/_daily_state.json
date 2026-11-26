@@ -1,0 +1,73 @@
+{
+  "date": "20261117-20261126",
+  "date_label": "2026-11-17 ~ 2026-11-26",
+  "generated_at": "2026-11-26 18:42:46 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-16-767041-v3",
+      "route": "20261117-20261126/biorxiv-10-64898-2026-11-16-767041-v3-cell-state-conditioning-predicts-the-expression-response-to-an-unseen-stimulus-but-not-stimulus-dependent-genetic-effects",
+      "title": "Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "通过细胞状态条件化预测未见刺激的表达响应",
+      "first_seen_at": "2026-11-26 18:42:46 UTC",
+      "updated_at": "2026-11-26 18:42:46 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-23-768493-v1",
+      "route": "20261117-20261126/biorxiv-10-64898-2026-11-23-768493-v1-simplep2g-importance-of-image-encoders-for-gene-expression-prediction-from-pathology-images",
+      "title": "SimpleP2G: Importance of Image Encoders for Gene Expression Prediction from Pathology Images",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "利用冻结图像编码器从病理图像直接预测基因表达",
+      "first_seen_at": "2026-11-26 18:42:46 UTC",
+      "updated_at": "2026-11-26 18:42:46 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-24-768971-v1",
+      "route": "20261117-20261126/biorxiv-10-64898-2026-11-24-768971-v1-xenotype-decoding-cellular-identity-in-breast-cancer-histology-through-molecular-supervision",
+      "title": "XenoType: Decoding cellular identity in breast cancer histology through molecular supervision",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 7.0,
+      "evidence": "利用空间分子测量监督组织学图像的细胞分类",
+      "first_seen_at": "2026-11-26 18:42:46 UTC",
+      "updated_at": "2026-11-26 18:42:46 UTC"
+    },
+    {
+      "paper_id": "2611.30955v1",
+      "route": "20261117-20261126/2611.30955v1-lecellmodel-interpretable-density-estimation-over-the-gene-expression-manifold",
+      "title": "LeCellModel: Interpretable Density Estimation over the Gene Expression Manifold",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 6.0,
+      "evidence": "在单细胞基因表达流形上做可解释密度估计以支持扰动打分",
+      "first_seen_at": "2026-11-26 18:42:46 UTC",
+      "updated_at": "2026-11-26 18:42:46 UTC"
+    }
+  ]
+}

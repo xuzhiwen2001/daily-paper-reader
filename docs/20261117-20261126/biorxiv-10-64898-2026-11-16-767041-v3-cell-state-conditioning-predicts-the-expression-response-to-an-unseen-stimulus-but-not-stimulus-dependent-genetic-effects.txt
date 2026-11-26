@@ -1,0 +1,1253 @@
+Title: Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects
+
+URL Source: https://www.biorxiv.org/content/10.64898/2026.11.16.767041v3.full.pdf
+
+Number of Pages: 26
+
+Markdown Content:
+# Cell-state conditioning in AlphaGenome 2 reproduces an unseen 1
+
+# interferon response but shows no reliable stimulus-specific eQTL 2
+
+# effects 34
+
+Authors: Haodong He*, Jianxuan Sun*, Jingyu Xu, Maimaiti Abudureyimu, Yuxuan Yang, Yifan Huang, Zhihua 5
+
+Wang†, Qidong Xia†, Shaogang Wang† 6
+
+Affiliations: Department and Institute of Urology, Hubei Provincial Clinical Research Center for Minimally Inva-7
+
+sive Treatment of Urology, Tongji Hospital, Tongji Medical College, Huazhong University of Science and Tech-8
+
+nology, 1095 Jiefang Avenue, Wuhan 430030, Hubei, China 9
+
+Correspondence: † Qidong Xia, Zhihua Wang and Shaogang Wang, Department and Institute of Urology, Hubei 10 
+
+Provincial Clinical Research Center for Minimally Invasive Treatment of Urology, Tongji Hospital, Tongji Medical 11 
+
+College, Huazhong University of Science and Technology, 1095 Jiefang Avenue, Wuhan 430030, Hubei, China. 12 
+
+E-mail: qidongxia_md@163.com (Q.X.); zhwang_hust@hotmail.com (Z.W.); sgwangtjm@163.com (S.W.) 13 
+
+* These authors contributed equally to this work. 14 
+
+Running title: Cell-state conditioning in AlphaGenome 2 15 
+
+## Abstract 16 
+
+Background: Sequence-to-function models such as AlphaGenome 2 can be conditioned on a cell state supplied 17 
+
+as a single-cell expression profile. Whether this conditioning captures the effects of an experimental stimulus, on 18 
+
+gene expression or on the activity of regulatory variants, has not been tested. 19 
+
+Results: We conditioned AlphaGenome 2 on interferon-β-stimulated and unstimulated CD14+ monocytes from 20 
+
+a published single-cell dataset, using cells that were not used to measure the response. Predicted and measured 21 
+
+1
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint expression changes agreed across 119 genes (Spearman ρ = 0.615; 95% CI 0.486 to 0.716), and agreement was 22 
+
+essentially unchanged when these genes were removed from the conditioning input (ρ = 0.607). Across fifteen 23 
+
+conditioning states, the predicted response scaled with each state’s measured similarity to the interferon response 24 
+
+(slope 0.73, Pearson 0.92). We then asked whether the same conditioning identifies stimulus-specific expression 25 
+
+quantitative trait loci (eQTL) in two monocyte stimulation studies. The main comparison in our analysis plan, 26 
+
+on interferon-γ-stimulated monocytes, was inconclusive (p = 0.096). Of four replication arms, only influenza 27 
+
+infection separated activation-specific from resting-specific eQTL (p = 0.0019; 0.0076 corrected for four arms); 28 
+
+the difference arose from near-zero predicted effects in the resting condition and disappeared when both conditions 29 
+
+were required to have measurable predicted effects (p = 0.443). Two analysis issues are likely to affect similar 30 
+
+evaluations: 71.5% and 75.9% of eQTL labelled condition-specific by credible-set membership had a significant 31 
+
+effect in the other condition, and a ratio statistic filtered on the larger of its two terms converted a baseline difference 32 
+
+into apparent condition dependence. 33 
+
+Conclusions: Conditioning on a single-cell profile transferred the expression response to an unseen stimulus, 34 
+
+but we found no reliable evidence that it transfers stimulus-dependent variant effects. Evaluations of conditioned 35 
+
+models should test these two capabilities separately, define condition-specific eQTL by testing both conditions, and 36 
+
+require measurable effects in both conditions before comparing them. 37 
+
+Keywords: AlphaGenome; cell-state conditioning; sequence-to-function models; expression quantitative trait loci; 38 
+
+response eQTL; interferon; single-cell RNA sequencing; benchmarking 39 
+
+## Background 40 
+
+Sequence-to-function models predict regulatory activity, such as chromatin accessibility and gene expression, di-41 
+
+rectly from DNA sequence [1, 2]. Until recently, these models predicted a fixed set of cell types and assays, namely 42 
+
+those represented in their training data. Two models released in late 2026 instead condition their predictions on a 43 
+
+cell state supplied by the user as single-cell expression data, so that predictions can be requested for states outside 44 
+
+the training catalogue [3, 4]. 45 
+
+Many of the questions that motivate such predictions concern perturbed states: the response of a cell to a cytokine, 46 
+
+a pathogen or a drug, and the regulatory variants whose effects appear only after stimulation. Studies of response 47 
+
+eQTL in immune cells have shown that a substantial fraction of genetic effects on gene expression are modified by 48 
+
+stimulation [5–8]. Reference catalogues, by contrast, are built largely from unperturbed tissue, so a user interested 49 
+
+2
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+in a perturbed state has to supply it. 50 
+
+Predicting transcriptional responses to perturbations from single-cell data is an established problem. Generative 51 
+
+models such as scGen, CPA and GEARS predict responses for unseen cell types or perturbations [9–11], and scGen 52 
+
+used the interferon-β-stimulated blood cells analysed here as a benchmark. Recent benchmarks show that simple 53 
+
+linear baselines perform as well as deep learning models at predicting the effects of genetic perturbations [12]. 54 
+
+Conditioned sequence models differ from these approaches in that they predict expression from DNA sequence 55 
+
+given a state, and can therefore also be used to predict how sequence variants act in that state. Sequence models 56 
+
+have so far explained differences in expression between individuals poorly [13, 14]. Independent evaluations of 57 
+
+the first-generation AlphaGenome found that it registers in-silico promoter disruption locally but often fails to 58 
+
+propagate it to downstream exons [15], and that annotations derived from it do not improve GWAS locus discovery 59 
+
+beyond standard functional annotations [16]. None has evaluated cell-state conditioning. 60 
+
+Two capabilities need to be distinguished. A conditioned model may reproduce how expression differs between 61 
+
+two states without reproducing how the effects of individual variants differ between them, because the condition is 62 
+
+a representation learned from expression profiles, which describe how a state looks on average rather than how it 63 
+
+changes the consequences of individual variants. 64 
+
+Here we test both capabilities in AlphaGenome 2 using interferon-β-stimulated CD14+ monocytes, a stimulated 65 
+
+state that is not among the model’s built-in conditions. We ask whether the predicted expression response tracks 66 
+
+the measured response, how the predicted response scales across fifteen conditioning states, and whether the same 67 
+
+conditioning identifies stimulus-specific eQTL in two monocyte stimulation studies. We also describe what the 68 
+
+built-in conditions of both model generations contain, and two analysis issues that produced a spurious result in 69 
+
+our site-level analysis and are likely to affect similar evaluations. 70 
+
+## Results 71 
+
+Predicted expression response to interferon-β 72 
+
+We conditioned AlphaGenome 2 on interferon-β-stimulated and unstimulated CD14+ monocytes from a published 73 
+
+single-cell experiment [17] and compared the predicted log2 fold change between the two states with the measured 74 
+
+one. Each condition was built from 256 cells, the maximum accepted by the encoder, drawn once per library 75 
+
+without replacement. The measured response was computed from the remaining 2,529 unstimulated and 2,334 76 
+
+3
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+stimulated CD14+ singlets, pooled to libraries of 5.63 and 5.76 million counts, so that no cell contributed to both 77 
+
+the condition and the measurement. Of the 246 genes in the 40 input intervals that had a measured value, 119 78 
+
+passed the activity filter (maximum predicted activity above 1) and form the analysis set (Methods). 79 
+
+Predicted and measured log2 fold changes agreed at Spearman ρ = 0.615 across the 119 genes (window-clustered 80 
+
+bootstrap 95% CI 0.486 to 0.716; 35 windows of 1 Mb; Fig. 1a). Removing the ten genes with the largest absolute 81 
+
+measured log2 fold change left ρ = 0.563 (n = 109; 95% CI 0.419 to 0.674), so the agreement was not driven by 82 
+
+a few strongly responding genes. Deleting all 119 analysis genes from the conditioning input, which reduced it 83 
+
+from 35,635 to 35,516 genes, gave ρ = 0.607 with the measured response, and these predictions correlated with 84 
+
+the original ones at ρ = 0.989 (Fig. 1b, c). The predictions for these genes therefore did not depend on their own 85 
+
+expression values in the conditioning input. 86 
+
+Table 1 summarises the supporting analyses. In our initial analysis, the measured response was computed from the 87 
+
+same 256 cells that built each condition, which gave ρ = 0.486 at a library depth of 557,000 counts. Binomially 88 
+
+thinning the disjoint counts to that depth gave ρ = 0.434 ± 0.053 over 20 draws. Sharing cells therefore raised the 89 
+
+estimate by about 0.05, within the standard deviation of the thinning, whereas the lower depth accounted for about 90 
+
+0.18 of the difference (Additional file 1, Fig. S1). In a split-half null, the control cells were divided into two halves 91 
+
+that served as the two conditions; the mean correlation was +0.027 (SD 0.229), and none of 50 draws reached 92 
+
+the observed value, which gives the smallest attainable one-sided p of 1/51 = 0.020 (Additional file 1, Fig. S2a). 93 
+
+Because the split-half predictions are about an order of magnitude smaller than the real ones, this null shows that 94 
+
+the pipeline does not create correlation from noise, but not whether an unrelated condition could reach the same 95 
+
+value; the calibration below addresses that question. 96 
+
+The conditioning and measurement cells were disjoint but came from the same eight donors. Because demuxlet 97 
+
+assigns every cell to one of the eight donors, a donor-disjoint split is possible; it was not run. 98 
+
+Table 1. Supporting analyses for the expression-level comparison. 99 
+
+Analysis Statistic Value Main comparison Spearman ρ, 119 genes 0.615 (95% CI 0.486–0.716) Target genes held out of the conditioning input Spearman ρ 0.607 4
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+Analysis Statistic Value Held-out predictions vs original predictions Spearman ρ 0.989 Depth-matched disjoint estimate Spearman ρ, 20 thinnings 0.434 ± 0.053 Split-half null (control cells halved, 50 draws) mean ρ, SD +0.027, 0.229 Split-half null, draws at or above observed count 0 of 50 (one-sided p = 0.0196) −4 −2 0 2 4 6 8measured log 2FC (IFN-β) 
+
+> −4
+> −202468predicted log 2FC
+> ρ= 0.615 n = 119 genes
+
+a  
+
+> full gene hold-out
+> 0.0 0.2 0.4 0.6 0.8
+> ρ vs measured
+> 0.615 0.607
+
+b  
+
+> 05prediction, full input
+> −4
+> −202468prediction, held-out
+> ρ= 0.989
+
+c
+
+Figure 1: Expression-level prediction and gene hold-out. (a) Predicted versus measured log2 fold change for the 119 analysis genes under the matched interferon-β condition (Spearman ρ = 0.615; window-clustered bootstrap 95% CI 0.486–0.716). (b) The same comparison after all 119 analysis genes were removed from the conditioning input (ρ = 0.607). (c) Agreement between the original and hold-out predictions (ρ = 0.989). 
+
+Calibration across fifteen conditioning states 100 
+
+To ask whether the predicted response depends on how similar the conditioning state is to the target state, we 101 
+
+conditioned the model on fifteen states: seven unstimulated cell populations, the same seven after interferon-β 102 
+
+stimulation, and the matched interferon-β monocyte state. For each state, the measured overlap is the Spearman 103 
+
+correlation between that state’s measured log ratio relative to unstimulated CD14+ monocytes and the measured 104 
+
+interferon-β response; the model value is the same correlation computed with the predicted log ratio after condi-105 
+
+tioning on that state (Methods). The matched condition has a measured overlap of 1 by construction. 106 
+
+The model value was linearly related to the measured overlap, y = 0.728x − 0.025 (Pearson 0.923, Spearman 107 
+
+0.850; Fig. 2). Correcting for measurement error in x, whose reliability was 0.983, gave a slope of 0.741, and the 108 
+
+5
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+intercept was indistinguishable from zero. On average, the model therefore recovered about three quarters of the 109 
+
+rank structure that a state’s measured contrast shared with the target response. Recomputing the measured axis 110 
+
+against the CD14+ monocyte baseline that excludes the conditioning cells changed the slope from 0.728 to 0.731 111 
+
+and the corrected slope from 0.741 to 0.743. 112 
+
+Unstimulated FCGR3A+ (CD16+) monocytes, the population closest to the target, gave a model value of 0.295, 113 
+
+about half the matched condition’s 0.615, at a measured overlap of 0.336 (95% CI 0.133 to 0.508). The fitted 114 
+
+line predicts 0.22 at this overlap, so the point lies 0.075 above the line: the contrast between the two monocyte 115 
+
+populations shares structure with the interferon response, and the model reproduced most of it. The six other 116 
+
+unstimulated conditions received model values between −0.12 and +0.05. 117 
+
+Deviations from the line were associated with lineage. Stimulated CD8 T and B cells had similar measured overlaps 118 
+
+(0.212 and 0.228) but different model values (−0.008 and +0.224), a gap of about 0.23. Among the seven stimulated 119 
+
+conditions, the three T and NK populations had the only negative residuals (CD4 T −0.090, CD8 T −0.138, NK 120 
+
+−0.125), whereas B cells, dendritic cells, megakaryocytes and FCGR3A+ monocytes had positive residuals, from 121 
+
++0.079 to +0.152; the probability of this split when three of seven residuals are negative at random is 1/35 = 122 
+
+0.029. The standard deviation of the fifteen residuals was 0.096, and the largest residual was that of stimulated 123 
+
+megakaryocytes (+0.152). 124 
+
+The relation is driven mainly by the spread between conditions. Among the seven unstimulated conditions, whose 125 
+
+measured overlaps lie between −0.12 and +0.34, the rank correlation between model value and measured overlap 126 
+
+was 0.429 (p = 0.34). The calibration was not part of the analysis plan and is exploratory (Additional file 1, Table 127 
+
+S1). 128 
+
+Stimulus-specific eQTL 129 
+
+We next asked whether the same pair of conditions identifies genetic effects that depend on stimulation. Fine-130 
+
+mapped eQTL from two monocyte stimulation studies [5, 6] were taken from the eQTL Catalogue [18]. A variant– 131 
+
+gene pair was labelled activation-specific or resting-specific according to the condition in whose credible set it 132 
+
+appeared, and was kept only if its absolute z score in the other condition was below 2 (see “Condition-specific 133 
+
+labels from credible-set membership” below). For each site we computed the log ratio of the absolute predicted 134 
+
+effect under the stimulated condition to that under the resting condition, and compared activation-specific with 135 
+
+resting-specific sites using a two-sided Mann–Whitney test among sites whose larger predicted effect exceeded 136 
+
+6
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+−0.4 −0.2 0.0 0.2 0.4 0.6 0.8 1.0 
+
+measured overlap with the IFN-β response (Spearman ρ)
+
+−0.4 
+
+−0.2 0.0 0.2 0.4 0.6 
+
+> model overlap (Spearman  ρ)
+> T/NK stimulated, 3 conditions: systematic underestimation (p = 0.029) delta = 0.23 at the same measured overlap megakaryocyte: largest residual (0.152), 134 cells, interval 0.43
+> OLS: slope 0.73 unstimulated stimulated matched (IFN-beta)
+
+Figure 2: Calibration of predicted against measured cross-condition overlap. Each point is one of 15 condi-tioning states: seven unstimulated cell types (circles), the same seven after IFN-β stimulation (triangles), and the matched IFN-β monocyte condition (star). The x axis is the measured overlap between that state and the monocyte IFN-β response, that is, the Spearman correlation across the 119 analysis genes between log2 expression of the state relative to unstimulated CD14+ monocytes and the measured IFN-β log2 fold change; horizontal bars are 95% window-clustered bootstrap intervals. The y axis is the same quantity computed from model predictions. Dashed line: ordinary least squares fit (slope 0.728, intercept −0.025; Pearson 0.923, Spearman 0.850; 14-point fit without the matched condition, slope 0.826). Three features are annotated: the three stimulated T/NK states carry the three negative residuals (permutation p = 0.029 for that partition); the CD8 T and B cell conditions have almost identical measured overlap (0.212 and 0.228) yet differ by 0.23 in the model, so the residual is not a smooth function of the x axis; and the stimulated megakaryocyte condition has the largest residual (0.152) and rests on the fewest cells (134 cells; interval width 0.43). Measured baselines. The x axis uses all singlet cells of each annotated cell type (2,785 CD14+ monocytes in the control library, 5,161 CD4 T, 1,082 CD8 T, 916 NK, 1,307 B, 203 dendritic, 122 megakaryocyte, 739 FCGR3A+ monocytes), with no cells excluded; the measured response on the y axis uses CD14+ monocytes excluding the 256 cells per library that built the conditioning input (2,529 control, 2,334 stim-ulated). The two axes therefore use different cell sets (Methods; Additional file 1, Table S2). 7
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+0.1. 137 
+
+The analysis plan named the Fairfax interferon-γ arm as the main analysis. It was inconclusive: 10 activation-138 
+
+specific against 23 resting-specific sites, p = 0.096, difference in group medians +0.37 (95% CI −0.20 to +1.54). 139 
+
+Neither Fairfax LPS arm, which the plan listed for comparison, separated the groups (24 h: p = 0.44; 2 h: p = 140 
+
+0.34), and both point estimates had the opposite sign to that of the interferon-γ arm. An earlier run of the main 141 
+
+analysis with credible-set labels, made before version 2 of the plan was written, gave p = 0.0489 by rank sum and p 142 
+
+= 0.0383 by the permutation test specified in version 1, with no difference in a placebo split (p = 0.276). It would 143 
+
+not have met the plan’s criterion for support, which also required a clearly weaker result in the LPS 2-h arm. In 144 
+
+that run the LPS 2-h arm showed a difference larger than that of the interferon-γ arm and opposite in sign (median 145 
+
+log2 ratio −0.808 at activation-specific against −0.301 at resting-specific sites); the interferon-γ difference had the 146 
+
+sign expected in version 1, but it arose from smaller predicted effects under stimulation at resting-specific sites, not 147 
+
+from the larger effects at activation-specific sites that version 1 had expected. 148 
+
+The plan treated the four Quach arms as replications and expected the largest difference for influenza; this part 149 
+
+of the plan was written before any prediction for a Quach site existed (Methods). Influenza separated the groups 150 
+
+(12 against 18 sites, p = 0.0019; 0.0076 after correction for the four replication arms and 0.0133 for all seven 151 
+
+arms). LPS, R848 and Pam3CSK4 did not (p = 0.45, 0.74 and 0.95), with differences in group medians between 152 
+
+−0.002 and +0.08. Arms within a study share sites: within the Quach study, LPS and Pam3CSK4 share 3 of the 6 153 
+
+activation-specific and 4 of the 7 resting-specific sites of the LPS arm, and the two Fairfax LPS arms share 16 of 154 
+
+the 26 resting-specific sites of the 24 h arm (Additional file 1, Table S4b), so a correction by the number of arms is 155 
+
+conservative. A criterion added to the plan later (supplement D) would have set aside an arm whose transcriptional 156 
+
+response was negatively correlated with the interferon-β response; no arm met it (match scores +0.086 to +0.621; 157 
+
+Methods), so the reversed Fairfax LPS arms count as directional inconsistencies. Counts, medians, confidence 158 
+
+intervals, leave-one-out values and results under a gate on the smaller term are given for every arm in Additional 159 
+
+file 1, Table S4. 160 
+
+Source of the influenza signal The influenza result was robust to leave-one-out (worst p = 0.00374), to placebo 161 
+
+splits (p between 0.28 and 0.94), to removing the three sites shared with the Fairfax study (11 against 16 sites, p = 162 
+
+0.0072) and to a stricter label threshold (12 against 17 sites, p = 0.0015). Per-site medians of the bounded index 163 
+
+were +0.478 for activation-specific and −0.134 for resting-specific sites. 164 
+
+8
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+The visibility gate in the plan, however, constrains only the larger of the two predicted effects. For most activation-165 
+
+specific sites the ratio exceeds 1, so the resting-condition effect is the smaller term and is not constrained. Seven 166 
+
+of the twelve activation-specific sites had resting-condition predictions below 0.1 (median 0.077), compared with 167 
+
+two of eighteen resting-specific sites (median 0.172). Requiring both effects to exceed a threshold removed the 168 
+
+difference (Table 2), although part of this loss reflects the smaller sample. Testing the two terms separately does 169 
+
+not depend on sample size: the groups did not differ in the stimulated-condition prediction (p = 0.144) but did 170 
+
+differ in the resting-condition prediction (p = 0.00373; Fig. 3). The influenza result therefore reflects a difference 171 
+
+in resting-condition baselines rather than stimulation dependence. 172 
+
+Table 2. The site-level contrast under four visibility gates, in the influenza arm. 173 
+
+Gate n (activation / resting) rank-sum p max(A,B) > 0.10, as specified in the plan 12 / 18 0.0019 min(A,B) > 0.05 9 / 18 0.0168 min(A,B) > 0.10 5 / 13 0.443 min(A,B) > 0.15 2 / 6 0.143 
+
+Control analyses The first-generation model, which has no stimulated-state tracks, also separated the two groups 174 
+
+by baseline effect size in its CD14+ monocyte RNA track (median absolute predicted effect 0.037 for activation-175 
+
+specific against 0.082 for resting-specific sites, p = 0.044), but not in its DNase track (p = 0.28). The two groups 176 
+
+therefore differ in a property unrelated to conditioning. Conditioning on a mismatched cell type (CD4 T or B cells) 177 
+
+collapsed the predictions for activation-specific sites to median absolute values of 0.006 and 0.021, with seven of 178 
+
+twelve below 0.01, so the absence of separation in this control (p = 0.92 and 0.82) is uninformative. Because this 179 
+
+control changes the cell type rather than the state, it shows only that the output depends on the conditioning input. 180 
+
+Condition-specific labels from credible-set membership 181 
+
+The site-level analysis depends on how condition specificity is defined. A variant that appears in the credible set of 182 
+
+one condition but not the other is often treated as condition-specific, but a difference in significance is not itself a 183 
+
+significant difference [19], and joint analyses of eQTL across tissues find that most effects are shared, often differing 184 
+
+in magnitude rather than presence [20]. We therefore looked up each labelled variant in the other condition’s full 185 
+
+summary statistics. Of the rows labelled condition-specific by credible-set membership, 1,077 of 1,506 in Fairfax 186 
+
+9
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint max(A,B) > 0.10 min(A,B) > 0.05 min(A,B) > 0.10 min(A,B) > 0.15
+> 10 −3
+> 10 −2
+> 10 −1
+> 10 0
+> Mann-Whitney p
+> 0.0019 12/18 0.0168 9/18 0.443 5/13 0.143 2/6
+
+a
+
+> denominator (resting) numerator (stimulated)
+> 0.00 0.05 0.10 0.15 p (act vs rest)
+> 0.00373 0.144
+
+b    
+
+> act-speci fi crest-speci fi c
+> 10 −2
+> 10 −1
+> 10 0
+> |effect| (predicted log 2 ratio)
+> ABAB
+
+cFigure 3: Decomposition of the site-level association in the influenza arm. (a) Mann–Whitney p for the activation-specific versus resting-specific contrast under four visibility gates. The gate on the larger of the two effects, as specified in the plan (max(A,B) > 0.1), gives p = 0.0019; requiring both effects to exceed 0.1 gives p = 0.443 (min(A,B) > 0.1, n = 5/13). (b) The same contrast split into its two terms: the groups differ in the resting-condition effect (p = 0.00373) but not in the stimulated-condition effect (p = 0.144). (c) Distributions of the stimulated (A) and resting (B) effect magnitudes by group; the activation-specific group has the smaller resting-condition effects. (71.5%) and 2,754 of 3,628 in Quach (75.9%) had an absolute z score of at least 2 in the other condition (Table 3; 187 
+
+Fig. 4). A further 18 and 34 rows could not be tested because the variant was absent from the other condition, and 188 
+
+2 and 421 because the gene or probe had no record there; these rows were excluded and not treated as evidence of 189 
+
+no effect. Lowering the threshold to 1.9 moved 15 Fairfax rows and 27 Quach rows and changed no conclusion. 190 
+
+Under the looser labels each arm had two to three times as many sites, and the site-level estimates changed with 191 
+
+every reasonable change of definition. 192 
+
+Table 3. Attrition of credible-set condition-specific rows under the strict definition. 193 
+
+Fairfax Quach Condition-specific label rows (activation + resting) 1,506 3,628 of which validation comparisons 1,506 3,627 removed: absolute z ≥ 2 in the other condition 1,077 (71.5%) 2,754 (75.9%) removed: variant not tested in the other condition 18 34 10 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint Fairfax Quach removed: gene or probe not tested in the other condition 2 421 retained: activation / resting 146 / 263 219 / 200 Shared rows, excluded from the comparison 420 1,751 All label rows (1,506 + 420; 3,628 + 1,751) 1,926 5,379 Shared rows with opposite effect direction 4 —
+
+## Discussion 194 
+
+Conditioning AlphaGenome 2 on a single-cell profile of interferon-β-stimulated monocytes produced expression 195 
+
+predictions that tracked the measured response, and the predicted response scaled with the similarity between each 196 
+
+conditioning state and the target state. In contrast, we found no reliable evidence that the same conditioning identi-197 
+
+fies stimulus-specific eQTL: the main analysis was inconclusive, and the only significant arm reflected a difference 198 
+
+in resting-condition baselines. The model therefore reproduced a state-level expression response, whereas its ability 199 
+
+to capture state-dependent variant effects remains unestablished. 200 
+
+Expression-level prediction 201 
+
+Our expression-level result is not directly comparable with benchmarks of perturbation-response models such as 202 
+
+scGen [9], which predict the response of a held-out cell type from the responses observed in other cell types of 203 
+
+the same dataset. Here the model received the stimulated state as input and predicted expression from sequence, 204 
+
+although none of its built-in conditions is labelled with this stimulus. Whether a comparably simple baseline 205 
+
+would perform as well, as reported for the prediction of genetic perturbation effects [12], remains to be tested. 206 
+
+The calibration indicates that the predicted response was attenuated by about one quarter on average and that the 207 
+
+attenuation was not uniform: stimulated T and NK states were consistently under-predicted, so users conditioning 208 
+
+on such states should expect the response to be understated. Because the reliability of the measured axis was 0.983, 209 
+
+11 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+# Fairfax Quach 020 40 60 80 100 % of variant –gene –stimulus rows  n = 1,506 27.2% n = 3,628 11.5% 
+
+|z other | ≥ 2untested in the other condition retained Figure 4: Attrition of credible-set condition-specific rows under the strict definition. Fraction of variant–gene– stimulus rows removed when the strict definition is applied: rows whose effect in the other condition reaches |z| = 2, rows untested in the other condition (variant or probe for Fairfax, variant or gene for Quach), and rows retained after both exclusions. Fairfax: 1,077 of 1,506 condition-specific rows removed (71.5%); Quach: 2,754 of 3,628 (75.9%). 12 
+
+.CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint the analysis is limited mainly by the number of conditions. 210 
+
+Site-level result and its possible explanations 211 
+
+Neither catalogue contains an entry labelled with an experimental treatment. Across 4,430 first-generation tracks 212 
+
+and 2,799 second-generation conditions, keyword searches over every text field returned no cytokine, Toll-like 213 
+
+receptor ligand, virus, glucocorticoid or androgen treatment under either a narrow or a wide keyword list (Addi-214 
+
+tional file 1, Table S3). The only matches were two GTEx skin labels (sun-exposed and not sun-exposed) and 215 
+
+one GTEx label for Epstein-Barr-transformed lymphocytes, none of which is an experimental treatment under our 216 
+
+definition (Methods). Lymphoblastoid lines appear under their cell-line names; GM12878 and the lines of its par-217 
+
+ents (GM12891 and GM12892) alone contribute 131 tracks in the first-generation catalogue. The catalogues do 218 
+
+carry cell states. Under the wide list (activated, activation, effector, memory), 29 first-generation tracks and 135 219 
+
+second-generation conditions are labelled with a differentiation or activation state, such as memory and effector 220 
+
+memory T cells, memory B cells, activated T cells and activated fibroblasts. Memory and effector labels occur in 221 
+
+both catalogues, whereas the word activated occurs only in the second-generation conditions. 222 
+
+The absence of a labelled treatment is one possible explanation for the site-level result, not a demonstrated cause. 223 
+
+The same result is expected if sequence-to-expression models predict variation between genes better than variant 224 
+
+effects between individuals [13, 14]; if the model underestimates the effects of causal eQTL variants, as reported 225 
+
+for the first-generation AlphaGenome [21]; or if the conditions do not match, since none of the eQTL arms used 226 
+
+interferon-β. The site-level analysis does not show that the conditioning carries no information about variant effects. 227 
+
+It shows that we could not detect any in two studies and seven stimulus arms once both conditions were required 228 
+
+to have a measurable predicted effect, with at most a few dozen sites per arm. A ground truth based on allelic 229 
+
+activity measured directly in both conditions, such as reporter assays run under two treatments [22–24], would test 230 
+
+the same question with an order of magnitude more sites. 231 
+
+Implications for evaluating condition-dependent predictions 232 
+
+Two issues in our site-level analysis are likely to affect other evaluations of condition-dependent predictions. First, 233 
+
+labelling eQTL as condition-specific by credible-set membership retained mostly variants with significant effects 234 
+
+in both conditions; condition specificity should instead be defined by testing the effect in both conditions or by 235 
+
+modelling the conditions jointly [20]. Second, filtering a ratio of two predicted effects on the larger term leaves 236 
+
+13 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+the denominator unconstrained, so groups that differ in how often their denominators lie near the detection floor 237 
+
+separate without any difference in condition dependence. Problems with ratio variables are long recognised [25]; 238 
+
+in our data this one produced p = 0.0019 in the arm that the plan expected to show the largest difference. Three 239 
+
+practices would have detected it: filtering on the smaller of the two terms, reporting the two terms separately for 240 
+
+each group, and testing each term against the grouping. Effect sizes are also better reported in bounded form. The 241 
+
+log ratio for activation-specific sites in the influenza arm is +1.504, which reads as a 2.8-fold difference, whereas 242 
+
+the bounded index, the difference of the two terms over their sum, is +0.478 and cannot be inflated by a small 243 
+
+denominator; per site the two are monotone transforms of each other, so rank-based tests give identical p values. 244 
+
+The same issue arises whenever predicted quantities are compared between two conditions, cell types or model 245 
+
+versions by taking their ratio. 246 
+
+Related work and future directions 247 
+
+A literature search on 24 November 2026 found three independent evaluations of the first-generation model [15, 16, 248 
+
+26], one fine-tuning of it [27], and no evaluation of cell-state conditioning. Our site-level result is consistent with 249 
+
+the finding that annotations derived from these models do not improve common-variant discovery beyond standard 250 
+
+functional annotations [16], although the two studies address different questions. An independently developed 251 
+
+cell-state-conditioned model with its own variant-effect scoring [3] was not evaluated here; both analysis issues 252 
+
+described above apply to it. Further work should test the expression-level result in other datasets, stimuli and cell 253 
+
+types, use allelic activity measured in paired conditions as ground truth, build conditions from experimentally 254 
+
+perturbed single-cell data, and compare conditioned models. 255 
+
+Limitations 256 
+
+The expression-level evidence comes from one cell type, one stimulus, one dataset and 119 genes, all on chromo-257 
+
+somes 1 to 7 and X; the fifteen calibration conditions come from the same dataset and are correlated against the 258 
+
+same measured response, so they are not independent replications. The conditioning and measurement cells share 259 
+
+eight donors, all patients with systemic lupus erythematosus, a disease often accompanied by a type I interferon 260 
+
+signature in blood; if the unstimulated cells carry such a signature, the measured interferon-β fold changes would 261 
+
+be compressed. The calibration slope is an average: individual conditions deviate from the fit by up to 0.15, and 262 
+
+the calibration was added after the analysis plan. The site-level analysis is underpowered in every arm: strict la-263 
+
+belling leaves at most a few dozen visible sites per arm, some with only 6 or 7 per group and, under the gate on 264 
+
+14 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+the smaller term, as few as two sites per group (Additional file 1, Table S4). The mismatched-condition control is 265 
+
+uninformative because the predictions collapse under it. Finally, the statement that neither catalogue contains an 266 
+
+entry labelled with an experimental treatment is limited to the two keyword lists and the fields searched; because 267 
+
+the catalogues label activation by cell state rather than by how the state arose, some activated states may come from 268 
+
+experimentally stimulated cells. Further technical notes, including sensitivity to the pseudocount and the overlap 269 
+
+between the two eQTL studies, are given in Additional file 1, Supplementary Note 2. 270 
+
+## Conclusions 271 
+
+Conditioning AlphaGenome 2 on a single-cell profile of a stimulated state reproduced the expression response of 272 
+
+monocytes to interferon-β, and the predicted response scaled with the similarity of the conditioning state to the 273 
+
+target. We found no reliable evidence that the same conditioning identifies stimulus-specific eQTL; the one signif-274 
+
+icant result arose from an analysis artifact. Evaluations of conditioned models should assess state-level expression 275 
+
+and state-dependent variant effects separately, define condition-specific eQTL by testing both conditions, require 276 
+
+measurable effects in both conditions when comparing them, and report every planned comparison. 277 
+
+## Methods 278 
+
+Single-cell data 279 
+
+All expression data come from GSE96583 batch 2 [17]: peripheral blood mononuclear cells from eight donors with 280 
+
+systemic lupus erythematosus, assayed unstimulated and after six hours of interferon-β stimulation, with cell-type 281 
+
+annotations and singlet calls from the series. Only singlets were used. Counts were pooled within each cell type 282 
+
+and library and converted to counts per million (CPM); pooling, rather than treating cells as replicates, avoids the 283 
+
+inflated false-discovery rates that follow from the latter [28]. 284 
+
+Conditioning and scoring 285 
+
+Each condition was built from 256 cells, the maximum accepted by the cell encoder, drawn once per library with 286 
+
+default_rng(7) without replacement; all cells were used where a population had fewer than 256 (megakary-287 
+
+ocytes, 122 and 134; dendritic cells, 203 and 228). Predictions were made with the denoised single-cell gene-288 
+
+expression head under a 200 kb mean mask. 289 
+
+The 40 input intervals were the 1,048,576-bp bins containing the most genes among the first 1,500 expressed genes 290 
+
+15 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+in the order of the count matrix; each interval was centred on its bin midpoint. The count matrix orders chromo-291 
+
+somes by length (1 to 7, then X, then the rest), so these genes, and therefore all 40 intervals, lie on chromosomes 292 
+
+1 to 7 and X. Gene midpoints, (start + end)/2, assigned genes to bins, whereas the window-clustered bootstrap 293 
+
+grouped genes by the Ensembl annotation start, which for a gene on the minus strand is its 3￿ end. The deposited 294 
+
+predictions cover the 246 genes in these intervals that have a measured value; 119 of them pass the activity filter, 295 
+
+falling in 35 of the 40 intervals. 296 
+
+The analysis set was defined once, on the matched condition only, as genes whose larger predicted activity across 297 
+
+the two states exceeds 1 and that have a measured value in the count matrix. With a pseudocount of 1 the measured 298 
+
+log ratio is always finite, so in practice the activity threshold selects the set. This gives 119 genes in 35 windows, 299 
+
+which are used for every condition; defining the set per condition would give 116 to 132 genes and would not be 300 
+
+comparable across conditions. The predicted log fold change is log2 of (treated activity + 1) over (baseline activity 301 
+
++ 1), and the measured response is log2 of (stimulated CPM + 1) over (control CPM + 1). 302 
+
+Cell sets used for each quantity 303 
+
+The measured response and the measured overlap use different cell sets (Table 4). The measured response excludes 304 
+
+the 256 conditioning cells in each library, so that it shares no cells with the conditioning input. The measured 305 
+
+overlap describes cell state and uses all cells of each type. The control library contains 2,785 CD14+ singlets and 306 
+
+the stimulated library 2,590, so the two measured-response sets differ in size after 256 cells are removed from each. 307 
+
+Table 4. Cells used for each quantity. 308 
+
+Quantity Cells Library (counts) Measured response, control 2,529 CD14+ monocytes, the 256 conditioning cells excluded 5,634,862 Measured response, stimulated 2,334 CD14+ monocytes, the 256 conditioning cells excluded 5,762,086 Measured overlap, baseline 2,785 CD14+ monocytes, none excluded 6,192,051 Measured overlap, numerators 122 to 5,161 cells per type, none excluded see Additional file 1, Table S2 16 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+Gene hold-out 309 
+
+For the hold-out, the 119 analysis genes were deleted as columns from the single-cell matrix supplied to the encoder, 310 
+
+reducing it from 35,635 to 35,516 genes, and both conditions were rebuilt and rescored. No other input changed. 311 
+
+Measured overlap and calibration 312 
+
+For each cell population, the measured overlap is the Spearman correlation between log2 of (that population’s CPM 313 
+
++ 1) over (control CD14+ monocyte CPM + 1) and the measured interferon-β response. The model value is the 314 
+
+same correlation with the predicted log fold change in place of the measured one. Unstimulated populations use 315 
+
+the control library and stimulated populations the stimulated library; the matched condition’s measured overlap is 316 
+
+1 by construction. 317 
+
+The calibration is an ordinary least-squares fit of model value on measured overlap over the fifteen points. The 318 
+
+reliability of the measured axis was estimated by splitting each cell type’s cells in half, computing baseline and 319 
+
+numerator each from its own half, and correlating the two resulting vectors across the fourteen non-matched condi-320 
+
+tions; over 20 repetitions the half-sample reliability was 0.967 (SD 0.018), giving a Spearman–Brown full-sample 321 
+
+reliability of 0.983. The disattenuated slope is the fitted slope divided by that value. 322 
+
+Uncertainty and null distributions 323 
+
+Confidence intervals are window-clustered bootstraps: windows were resampled with replacement, rows concate-324 
+
+nated and the statistic recomputed (2,000 draws, seed 0). A gene-level bootstrap would understate the uncertainty 325 
+
+because genes within a window are correlated; both approaches understate it relative to resampling the conditioning 326 
+
+cells. The split-half null halves the control cells, builds a condition from each half and scores the resulting log ratio 327 
+
+against the measured response (50 draws). In one draw, predictions were available for only 62 of the 119 analysis 328 
+
+genes, because scoring failed for part of one half’s intervals and only genes scored in both halves enter a draw; that 329 
+
+draw is included in the reported distribution, and excluding it leaves none of the remaining 49 draws at or above the 330 
+
+observed value. The depth comparison binomially thins the disjoint counts to the depth of the earlier shared-cell 331 
+
+measurement (20 draws) and compares the resulting correlation with the shared-cell value at that depth. 332 
+
+17 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+Site-level analysis 333 
+
+Fine-mapped eQTL were taken from eQTL Catalogue release 8 [18] for two monocyte studies [5, 6], fine-mapped 334 
+
+with SuSiE [29]. A site is activation-specific if it enters only the stimulated condition’s credible set, resting-specific 335 
+
+if it enters only the resting one, and shared if it enters both. Under the strict definition used throughout, a site 336 
+
+additionally requires an absolute z score below 2 in the other condition’s full summary statistics; sites not tested 337 
+
+there are counted separately (variant, gene or probe not tested) and are not treated as absence of effect, and shared 338 
+
+sites require the same effect direction in both conditions. 339 
+
+The z scores for the other condition were retrieved from the remote tabix-indexed summary statistics. For the same 340 
+
+variant, beta is identical in the credible-set file and in the nominal summary statistics of a study, but the standard 341 
+
+error in the credible-set files is systematically smaller (median 1.55% in Fairfax and 3.24% in Quach), so the two 342 
+
+files do not carry interchangeable z scores. The validation criterion written before the lookup, agreement within 343 
+
+0.01, therefore failed for 1,482 of 1,506 Fairfax and 3,617 of 3,627 Quach comparisons. After the labels had 344 
+
+been built and the first group comparison made, we replaced it with sign agreement of 100%, a rank correlation 345 
+
+above 0.999 and at least 99.5% agreement on the absolute-z-below-2 classification; these thresholds were set after 346 
+
+the validation results were known. Under them, Fairfax agreed on 100% of 1,506 comparisons (rank correlation 347 
+
+0.99996) and Quach on 99.945% of 3,627, with the two disagreements at absolute z of 1.898 and 2.020. Twenty 348 
+
+sites not found in the summary statistics were rechecked with a wider window, and no missed records were found. 349 
+
+The revision changed how the lookup was validated, not which sites the labels contain. 350 
+
+The test statistic is log2 of the ratio of absolute predicted effects, stimulated condition over resting condition. Fol-351 
+
+lowing the plan, arm-level comparisons use a visibility gate on the larger of the two absolute effects (> 0.1); because 352 
+
+that gate leaves the smaller term unconstrained, results under a gate on the smaller term are reported for the influenza 353 
+
+arm in Results and for all seven arms in Additional file 1, Table S4. Effect sizes are reported as the bounded index, 354 
+
+the difference of the two terms over their sum. All medians of site-level quantities are per-site medians: for each 355 
+
+site the log ratio and the bounded index are computed, and the median of those values is reported. Group compar-356 
+
+isons used two-sided Mann–Whitney tests. Robustness was assessed by leave-one-out, placebo splits of the control 357 
+
+condition, removal of sites shared between the two studies, and a stricter label threshold. 358 
+
+The match score, used only for the criterion added in supplement D, is the Spearman correlation across genes 359 
+
+between an arm’s transcriptional response and the interferon-β response in the Kang data, log2((CPM stimulated 360 
+
+18 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
++ 1)/(CPM control + 1)) over all CD14+ monocytes. An arm’s response is the log2 ratio of median TPM between 361 
+
+the stimulated and naive conditions for the Quach arms; for the Fairfax arms it is the median over donors of the 362 
+
+difference between stimulated and naive microarray log intensities, taken per probe and then as the median over 363 
+
+the probes of a gene. Genes enter if they carry an eQTL label for that arm, have median TPM above zero in both 364 
+
+conditions (Quach) or are present in both sources (Fairfax), and have a row in the pooled CD14+ count matrix, 365 
+
+which leaves 555 to 757 genes per arm; 95% intervals come from resampling genes with replacement (1,000 366 
+
+draws). 367 
+
+Catalogue keyword searches 368 
+
+Counts of conditions and tracks carrying a given label were computed over the full returned tables, 2,799 conditions 369 
+
+and 4,430 tracks, by concatenating every text field and matching case-insensitively. Two keyword lists, a narrow 370 
+
+and a wide one, are reported; both lists and the fields searched are given in Additional file 1, Table S3. We counted 371 
+
+as an experimental treatment a stimulus, drug or infection applied to cells before profiling; the derivation of a cell 372 
+
+line, including EBV transformation or reprogramming to pluripotency, is not a treatment. The genetically modified 373 
+
+tracks in the first-generation catalogue (734, all TF ChIP-seq) carry a tag on the factor under study, introduced by 374 
+
+CRISPR insertion at the endogenous locus (694) or by stable transfection of a tagged construct (40), to identify 375 
+
+where the factor binds rather than to perturb the cell; we did not count them as treatments. 376 
+
+Analysis plan and deviations 377 
+
+The analysis plan was kept in versioned files with a local SHA-256 hash chain; there was no external registration 378 
+
+or timestamp, so all timings rest on local file records. Version 1, written on 13 November 2026, named the Fairfax 379 
+
+interferon-γ arm as the main analysis, to be tested as a mean difference of log ratios by permutation. Version 2 380 
+
+was written on 14 November, after the main analysis had been run once with credible-set labels (p = 0.0489 by 381 
+
+two-sided rank sum). It replaced the main test with a two-sided rank sum, because a recomputation had shown that 382 
+
+the mean difference was dominated by sites whose denominator approached zero; adopted the strict label definition 383 
+
+and the 0.1 visibility threshold; and added the four Quach arms as replications, expecting influenza to show the 384 
+
+largest difference, before any Quach prediction existed. It also rewrote the expected pattern to match what had been 385 
+
+seen in the Fairfax arm: version 1 expected larger predicted effects under stimulation at activation-specific sites, 386 
+
+whereas version 2 expected smaller ones at resting-specific sites; the expected sign of the group difference was 387 
+
+the same. In this paper, “the plan” refers to version 2 together with its first supplement (supplement A). The plan 388 
+
+19 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+required, for support of the main analysis, a significant main test (p < 0.05), a placebo split showing no difference, 389 
+
+and a clearly weaker result in the LPS 2-h arm; it stated no rule for the replication arms. 390 
+
+Changes made after the plan are reported as such. Supplement C replaced supplement A’s rule for multiple mi-391 
+
+croarray probes with exact matching on the molecular trait identifier, after the Quach predictions existed but before 392 
+
+any strict label was built or any Quach comparison was run. Supplement D added the mismatch criterion described 393 
+
+above; it was written after the Fairfax results under credible-set labels were known and before the strict labels were 394 
+
+built or any Quach comparison was made, and no arm met it. The z-score validation criterion was replaced after 395 
+
+the labels had been built and after the first group comparison (see above). The expression-level analyses were run 396 
+
+before version 1 and the calibration was added later; both are exploratory. Additional file 1, Table S1 gives the 397 
+
+status of each reported analysis relative to the plan, and Supplementary Note 1 gives the history of the plan with 398 
+
+times; the complete log of changes is deposited with the code ( provenance_log.csv ). 399 
+
+Use of AI-assisted tools 400 
+
+DeepSeek-V4.1-Flash was used as a coding and analysis agent under the direction of the authors, who decided 401 
+
+which analyses to run and approved each reported result; analyses added after the analysis plan are identified in 402 
+
+Additional file 1, Table S1. It wrote and ran the scoring and analysis code, plotted the figures from the archived ta-403 
+
+bles and typeset the manuscript (13–16 November 2026), and corrected the text and reran analyses during revision 404 
+
+(22–24 November 2026). A co-author recomputed the numbers reported in the version of 16 November indepen-405 
+
+dently of the analysis code, using only the archived per-gene tables, with Anthropic Claude Opus 5 and earlier 406 
+
+model versions (13–16 November 2026). Before submission, an automated script ( audit_numbers.py ) checked 407 
+
+72 printed values against the deposited tables and run logs and found no discrepancies. Both models were used to 408 
+
+draft and revise text (15–16 November 2026), and Anthropic Claude Opus 5.5 was used to review the manuscript 409 
+
+and edit the text during revision (22–24 November 2026); the authors reviewed and edited all such text. No figure 410 
+
+was generated as an image, no model is an author, and the authors take full responsibility for the content. 411 
+
+## List of abbreviations 412 
+
+API: application programming interface; ChIP-seq: chromatin immunoprecipitation followed by sequencing; CI: 413 
+
+confidence interval; CPM: counts per million; EBV: Epstein–Barr virus; eQTL: expression quantitative trait locus 414 
+
+or loci; GTEx: Genotype-Tissue Expression project; GWAS: genome-wide association study; IFN: interferon; LPS: 415 
+
+20 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+lipopolysaccharide; NK: natural killer; PBMC: peripheral blood mononuclear cell; SDK: software development 416 
+
+kit; SuSiE: sum of single effects; TF: transcription factor; TPM: transcripts per million. 417 
+
+## Declarations 418 
+
+Ethics approval and consent to participate 419 
+
+Not applicable. All data analysed here are public and were previously collected under the original studies’ ap-420 
+
+provals; no human participants were recruited for this work. 421 
+
+Consent for publication 422 
+
+Not applicable. 423 
+
+Availability of data and materials 424 
+
+All primary data are public. Single-cell expression data are from GEO series GSE96583 [17], and fine-mapped 425 
+
+eQTL from eQTL Catalogue release 8 [18]. Model predictions were obtained through the public API (alphagenome 426 
+
+Python SDK v2.0.0) between 13 and 16 November 2026; the AlphaGenome 2 technical report accessed on 16 427 
+
+November has since been superseded by a preprint [4]. 428 
+
+The derived tables are deposited so that every number in this paper can be recomputed without access to the model. 429 
+
+The deposit contains the per-gene predictions for all fifteen conditions, cell-type CPM including the two columns 430 
+
+that define the measured response, the cell counts and library sizes behind every column, the reliability vectors, 431 
+
+the calibration summary, the site-level tables for all seven arms (labels, z scores and predicted effects under both 432 
+
+conditions), the run log check_fixed.log , the full first-generation track table ( v1_all_tracks.csv , 4,430 433 
+
+rows), the full second-generation condition table ( ag2_conditions.csv , 2,799 rows) and the complete log of 434 
+
+changes made during the independent recomputation and revision ( provenance_log.csv ). The README states 435 
+
+two conventions that are easy to get wrong: the columns that define the measured response differ from the CD14+ 436 
+
+monocyte columns used for the measured overlap (using the latter gives 0.619 rather than 0.615 for the main result), 437 
+
+and the analysis gene set must be derived from the matched condition’s rows alone. 438 
+
+Code for the analysis and for the independent recomputation is available at https://github.com/hhdgit0149/alphagenome2-439 
+
+conditioning-evaluation. The code, the derived tables and the manuscript sources used for this paper are archived 440 
+
+together at https://doi.org/10.5281/zenodo.24494903 (v1.1.0). The code is released under the MIT licence 441 
+
+21 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+and the other files under CC BY 4.0, except that files containing AlphaGenome outputs, or derived from 442 
+
+them, remain subject to the AlphaGenome Output Terms of Use. The two codebases were written separately 443 
+
+from the same specification; discrepancies between them that changed a reported number are recorded in 444 
+
+provenance_log.csv . An earlier version of this manuscript, under a different title, was posted as a preprint at 445 
+
+bioRxiv (https://doi.org/10.64898/2026.11.16.767041) on 17 November 2026 under a CC BY 4.0 licence. 446 
+
+Competing interests 447 
+
+The authors declare that they have no competing interests. 448 
+
+Funding 449 
+
+This work received no specific grant from any funding agency in the public, commercial, or not-for-profit sectors. 450 
+
+Authors’ contributions 451 
+
+HH: conceptualization, methodology, software, formal analysis, investigation, data curation, visualization, writ-452 
+
+ing – original draft. JS: conceptualization, methodology, software, formal analysis, investigation, data curation, 453 
+
+visualization, writing – original draft. JX: validation, investigation, writing – review and editing. MA: validation, 454 
+
+investigation, writing – review and editing. YY: validation, investigation, writing – review and editing. YH: val-455 
+
+idation, data curation, writing – review and editing. ZW: conceptualization, supervision, project administration, 456 
+
+writing – review and editing. QX: conceptualization, supervision, project administration, writing – review and 457 
+
+editing. SW: conceptualization, supervision, project administration, writing – review and editing. All authors read 458 
+
+and approved the final manuscript. 459 
+
+Acknowledgements 460 
+
+We thank the investigators of the Kang, Fairfax and Quach studies and the eQTL Catalogue for making their data 461 
+
+publicly available. The use of AI-assisted tools is described in Methods. 462 
+
+## References 463 
+
+1. Avsec Ž, Agarwal V, Visentin D, Ledsam JR, Grabska-Barwińska A, Taylor KR, et al. Effective gene expression 464 
+
+prediction from sequence by integrating long-range interactions. Nature Methods. 2021;18:1196–203. https: 465 
+
+//doi.org/10.1038/s41592-021-01252-x. 466 
+
+22 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+2. Avsec Ž, Latysheva N, Cheng J, Novati G, Taylor KR, Ward T, et al. Advancing regulatory variant effect 467 
+
+prediction with AlphaGenome. Nature. 2026;649:1206–18. https://doi.org/10.1038/s41586-025-10014-0. 468 
+
+3. Liu H, Mao S, Gallent T, Chen Y, Yan Z, Vogel I, et al. Predicting cell-state-specific gene regulation from DNA 469 
+
+across species. bioRxiv. 2026. https://doi.org/10.64898/2026.10.19.760026. 470 
+
+4. Gayoso A, Mottram A, Karollus A, Novati G, Drotár P, Reid J, et al. AlphaGenome 2 predicts regulatory activity 471 
+
+and variant effects across cell states. bioRxiv. 2026. https://doi.org/10.64898/2026.11.11.765857. 472 
+
+5. Fairfax BP, Humburg P, Makino S, Naranbhai V, Wong D, Lau E, et al. Innate immune activity conditions the 473 
+
+effect of regulatory variants upon monocyte gene expression. Science. 2014;343:1246949. https://doi.org/10.112 474 
+
+6/science.1246949. 475 
+
+6. Quach H, Rotival M, Pothlichet J, Loh Y-HE, Dannemann M, Zidane N, et al. Genetic adaptation and Neandertal 476 
+
+admixture shaped the immune system of human populations. Cell. 2016;167:643–656.e17. https://doi.org/10.101 477 
+
+6/j.cell.2016.09.024. 478 
+
+7. Kim-Hellmuth S, Bechheim M, Pütz B, Mohammadi P, Nédélec Y, Giangreco N, et al. Genetic regulatory 479 
+
+effects modified by immune activation contribute to autoimmune disease associations. Nature Communications. 480 
+
+2017;8:266. https://doi.org/10.1038/s41467-017-00366-1. 481 
+
+8. Oelen R, de Vries DH, Brugge H, Gordon MG, Vochteloo M, Ye CJ, et al. Single-cell RNA-sequencing of pe-482 
+
+ripheral blood mononuclear cells reveals widespread, context-specific gene expression regulation upon pathogenic 483 
+
+exposure. Nature Communications. 2022;13:3267. https://doi.org/10.1038/s41467-022-30893-5. 484 
+
+9. Lotfollahi M, Wolf FA, Theis FJ. scGen predicts single-cell perturbation responses. Nature Methods. 485 
+
+2019;16:715–21. https://doi.org/10.1038/s41592-019-0494-8. 486 
+
+10. Lotfollahi M, Klimovskaia Susmelj A, De Donno C, Hetzel L, Ji Y, Ibarra IL, et al. Predicting cellular responses 487 
+
+23 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+to complex perturbations in high-throughput screens. Molecular Systems Biology. 2023;19:e11517. https://doi.or 488 
+
+g/10.15252/msb.202211517. 489 
+
+11. Roohani Y, Huang K, Leskovec J. Predicting transcriptional outcomes of novel multigene perturbations with 490 
+
+GEARS. Nature Biotechnology. 2024;42:927–35. https://doi.org/10.1038/s41587-023-01905-6. 491 
+
+12. Ahlmann-Eltze C, Huber W, Anders S. Deep-learning-based gene perturbation effect prediction does not yet 492 
+
+outperform simple linear baselines. Nature Methods. 2025;22:1657–61. https://doi.org/10.1038/s41592-025-493 
+
+02772-6. 494 
+
+13. Sasse A, Ng B, Spiro AE, Tasaki S, Bennett DA, Gaiteri C, et al. Benchmarking of deep neural networks for pre-495 
+
+dicting personal gene expression from DNA sequence highlights shortcomings. Nature Genetics. 2023;55:2060–4. 496 
+
+https://doi.org/10.1038/s41588-023-01524-6. 497 
+
+14. Huang C, Shuai RW, Baokar P, Chung R, Rastogi R, Kathail P, et al. Personal transcriptome variation is poorly 498 
+
+explained by current genomic deep learning models. Nature Genetics. 2023;55:2056–9. https://doi.org/10.1038/ 499 
+
+s41588-023-01574-w. 500 
+
+15. Sreenivasan V, Aksu ED, Spielmann M. Systematic promoter perturbation reveals limitations of AlphaGenome 501 
+
+gene expression predictions. bioRxiv. 2026. https://doi.org/10.64898/2026.11.06.764851. 502 
+
+16. Bass A, Park J, Mukherjee S, Whittaker J, Wallace C. Genomic foundation models do not yet boost common 503 
+
+variant discovery beyond standard functional annotations. bioRxiv. 2026. https://doi.org/10.64898/2026.10.13.75 504 
+
+8880. 505 
+
+17. Kang HM, Subramaniam M, Targ S, Nguyen M, Maliskova L, McCarthy E, et al. Multiplexed droplet single-506 
+
+cell RNA-sequencing using natural genetic variation. Nature Biotechnology. 2018;36:89–94. https://doi.org/10.1 507 
+
+038/nbt.4042. 508 
+
+24 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+18. Kerimov N, Hayhurst JD, Peikova K, Manning JR, Walter P, Kolberg L, et al. A compendium of uniformly 509 
+
+processed human gene expression and splicing quantitative trait loci. Nature Genetics. 2021;53:1290–9. https: 510 
+
+//doi.org/10.1038/s41588-021-00924-w. 511 
+
+19. Gelman A, Stern H. The difference between “significant” and “not significant” is not itself statistically signif-512 
+
+icant. The American Statistician. 2006;60:328–31. https://doi.org/10.1198/000313006X152649. 513 
+
+20. Urbut SM, Wang G, Carbonetto P, Stephens M. Flexible statistical methods for estimating and testing effects 514 
+
+in genomic studies with multiple conditions. Nature Genetics. 2019;51:187–95. https://doi.org/10.1038/s41588-515 
+
+018-0268-8. 516 
+
+21. Drusinsky S, Pollard KS. Causal variant underestimation is a major overlooked driver of sequence-to-function 517 
+
+model underperformance. bioRxiv. 2026. https://doi.org/10.64898/2026.09.08.750172. 518 
+
+22. Penner-Goeke S, Bothe M, Rek N, Kreitmaier P, Pöhlchen D, Kühnel A, et al. High-throughput screening of 519 
+
+glucocorticoid-induced enhancer activity reveals mechanisms of stress-related psychiatric disorders. Proceedings 520 
+
+of the National Academy of Sciences. 2023;120:e2305773120. https://doi.org/10.1073/pnas.2305773120. 521 
+
+23. Morova T, Ding Y, Huang C-CF, Sar F, Schwarz T, Giambartolomei C, et al. Optimized high-throughput 522 
+
+screening of non-coding variants identified from genome-wide association studies. Nucleic Acids Research. 523 
+
+2023;51:e18. https://doi.org/10.1093/nar/gkac1198. 524 
+
+24. Huang C-CF, Lingadahalli S, Morova T, Ozturan D, Hu E, Yu IPL, et al. Functional mapping of androgen 525 
+
+receptor enhancer activity. Genome Biology. 2021;22:149. https://doi.org/10.1186/s13059-021-02339-6. 526 
+
+25. Kronmal RA. Spurious correlation and the fallacy of the ratio standard revisited. Journal of the Royal Statistical 527 
+
+Society: Series A (Statistics in Society). 1993;156:379–92. https://doi.org/10.2307/2983064. 528 
+
+26. Guo R, Shan W, Liu R, Yang L, Mu D, Wang H. Evaluating the added value of sequence models in noncoding 529 
+
+25 
+
+> .CC-BY 4.0 International license perpetuity. It is made available under a preprint (which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in The copyright holder for this this version posted November 25, 2026. ;https://doi.org/10.64898/2026.11.16.767041 doi: bioRxiv preprint
+
+RNA assays: A baseline-aware framework. bioRxiv. 2026. https://doi.org/10.64898/2026.10.22.760090. 530 
+
+27. Hingerl J, Gagneur J. Scooby-2: Fine-tuning AlphaGenome for single-cell genomic track prediction. bioRxiv. 531 
+
+2026. https://doi.org/10.64898/2026.10.28.762238. 532 
+
+28. Squair JW, Gautier M, Kathe C, Anderson MA, James ND, Hutson TH, et al. Confronting false discoveries in 533 
+
+single-cell differential expression. Nature Communications. 2021;12:5692. https://doi.org/10.1038/s41467-021-534 
+
+25960-2. 535 
+
+29. Wang G, Sarkar A, Carbonetto P, Stephens M. A simple new approach to variable selection in regression, 536 
+
+with application to genetic fine mapping. Journal of the Royal Statistical Society: Series B. 2020;82:1273–300. 537 
+
+https://doi.org/10.1111/rssb.12388. 538 
+
+## Supplementary information 539 
+
+Additional file 1 (PDF). Supplementary Tables S1–S4b, Supplementary Figures S1–S2 and Supplementary Notes 540 
+
+1–2. Table S1, status of each reported analysis relative to the analysis plan; Table S2, cells and library sizes behind 541 
+
+each expression column; Table S3, keyword lists, fields searched and counts; Table S4, site-level results for the 542 
+
+seven stimulus arms; Table S4b, overlap of visible sites between arms within each study; Figure S1, effect of shared 543 
+
+cells and sequencing depth on the expression-level correlation; Figure S2, split-half null and unmatched cell-type 544 
+
+conditions; Supplementary Note 1, history of the analysis plan; Supplementary Note 2, additional technical notes. 545 
+
+26
