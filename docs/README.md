@@ -48,17 +48,17 @@
 <section class="dpr-home-dashboard-card dpr-home-report-card">
   <div class="dpr-home-dashboard-header">
     <div>
-      <span class="dpr-home-dashboard-kicker">2026-11-17 ~ 2026-11-26</span>
+      <span class="dpr-home-dashboard-kicker">2026-11-18 ~ 2026-11-27</span>
       <h3 class="dpr-home-dashboard-title">今日汇总</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">共 4 篇</strong>
+    <strong class="dpr-home-dashboard-count">共 3 篇</strong>
   </div>
   <dl class="dpr-home-dashboard-stats">
     <div class="dpr-home-dashboard-stat"><dt>累计更新</dt><dd>1 次</dd></div>
     <div class="dpr-home-dashboard-stat"><dt>精读</dt><dd>2</dd></div>
-    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>2</dd></div>
+    <div class="dpr-home-dashboard-stat"><dt>速读</dt><dd>1</dd></div>
   </dl>
-  <p class="dpr-home-dashboard-body">最近更新：2026-11-26 18:42:46 UTC<br>状态：成功</p>
+  <p class="dpr-home-dashboard-body">最近更新：2026-11-27 18:44:24 UTC<br>状态：成功</p>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-brief-card">
   <div class="dpr-home-dashboard-header">
@@ -69,7 +69,9 @@
     <strong class="dpr-home-dashboard-count">AI</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<p>2026-11-17至26共筛读4篇，精读2篇均获9.0高分，聚焦基因表达预测与细胞状态建模。最值得看的是《Cell-state conditioning》揭示的“刺激响应可预测、遗传效应难预测”边界，以及《SimpleP2G》强调的病理图像编码器对基因表达预测的关键作用。普通读者可先看这两篇精读摘要，再按兴趣速读乳腺癌细胞身份解码与表达流形密度估计两篇。</p>
+<p>本期精选3篇（精读2篇、速读1篇），主打空间转录组预测与单细胞基础模型评测两大热点。</p>
+<p>最值得看：一是《Spatial Transcriptomics Prediction from Histology via Topology-Informed Graph Attention and Gene-Semantics Conditioning》以10.0满分示范如何从组织学图像预测空间转录组；二是9.0分的单细胞基础模型公开数据基准，明确其在注释、in silico扰动与基因调控推断中“何处真正有用”。</p>
+<p>普通读者可先读这两篇的评测设计与结论表，再判断自己的数据能否直接套用其基准流程；病理基础模型BioScoring那篇（7.0）可作为选型时的对照参考。</p>
   </div>
 </section>
 <section class="dpr-home-dashboard-card dpr-home-deep-card">
@@ -81,7 +83,7 @@
     <strong class="dpr-home-dashboard-count">2 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects">Cell-state conditioning predicts the expression response to an unseen stimulus but not stimulus-dependent genetic effects</span></li><li><span class="dpr-home-dashboard-paper-title" title="SimpleP2G: Importance of Image Encoders for Gene Expression Prediction from Pathology Images">SimpleP2G: Importance of Image Encoders for Gene Expression Prediction from Pathology Images</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="Spatial Transcriptomics Prediction from Histology via Topology-Informed Graph Attention and Gene-Semantics Conditioning">Spatial Transcriptomics Prediction from Histology via Topology-Informed Graph Attention and Gene-Semantics Conditioning</span></li><li><span class="dpr-home-dashboard-paper-title" title="Where single-cell foundation models help: a public-data benchmark of annotation, in silico perturbation and gene regulatory inference">Where single-cell foundation models help: a public-data benchmark of annotation, in silico perturbation and gene regulatory inference</span></li></ul>
   </div>
   <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
 </section>
@@ -91,12 +93,12 @@
       <span class="dpr-home-dashboard-kicker">今日累计</span>
       <h3 class="dpr-home-dashboard-title">速读推荐</h3>
     </div>
-    <strong class="dpr-home-dashboard-count">2 篇</strong>
+    <strong class="dpr-home-dashboard-count">1 篇</strong>
   </div>
   <div class="dpr-home-dashboard-body">
-<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="XenoType: Decoding cellular identity in breast cancer histology through molecular supervision">XenoType: Decoding cellular identity in breast cancer histology through molecular supervision</span></li><li><span class="dpr-home-dashboard-paper-title" title="LeCellModel: Interpretable Density Estimation over the Gene Expression Manifold">LeCellModel: Interpretable Density Estimation over the Gene Expression Manifold</span></li></ul>
+<ul class="dpr-home-dashboard-paper-list"><li><span class="dpr-home-dashboard-paper-title" title="A gene informed benchmark for BioScoring of pathology foundation models">A gene informed benchmark for BioScoring of pathology foundation models</span></li></ul>
   </div>
-  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span><span class="dpr-home-dashboard-tag">virtual-cell <strong>1</strong></span></div>
+  <div class="dpr-home-dashboard-tags"><span class="dpr-home-dashboard-tag">spatial-gene <strong>1</strong></span></div>
 </section>
 </div>
 

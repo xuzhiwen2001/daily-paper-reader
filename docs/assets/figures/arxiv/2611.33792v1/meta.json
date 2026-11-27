@@ -1,0 +1,60 @@
+{
+  "version": 3,
+  "extractor": "arxiv-html",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.33792v1/fig-001.webp",
+      "caption": "Figure 1 : Overview of TIGEM. TIGEM includes two main modules: TIG module and GSMu module, enabling accurate spatial expression prediction and zero-shot gene inference.",
+      "page": 0,
+      "index": 1,
+      "width": 2791,
+      "height": 1494,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.33792v1/fig-002.webp",
+      "caption": "Figure 2 : Visualization of biomarker expression prediction across methods. Top shows the prediction of prostate cancer marker KLK3 on the MEND dataset. Region 1-3 are tumor regions. Bottom shows the prediction of epicardium marker DCN on the HEART dataset.",
+      "page": 0,
+      "index": 2,
+      "width": 6141,
+      "height": 2094,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.33792v1/fig-003.webp",
+      "caption": "Figure 3 : Visualization of unseen biomarker gene prediction.",
+      "page": 0,
+      "index": 3,
+      "width": 3914,
+      "height": 1517,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.33792v1/fig-004.webp",
+      "caption": "Figure 3 : Visualization of unseen biomarker gene prediction.",
+      "page": 0,
+      "index": 4,
+      "width": 3194,
+      "height": 1576,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.33792v1/fig-005.webp",
+      "caption": "Figure 4 : TIGEM performance with different hyperparameter values on the HEART dataset MISC142.",
+      "page": 0,
+      "index": 5,
+      "width": 2988,
+      "height": 1223,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.33792v1/fig-006.webp",
+      "caption": "Figure 5 : Visualization of biomarker expression prediction across methods. Top shows the prediction of prostate cancer marker AZGP1 on the MEND dataset (MEND146). Bottom shows the prediction of cardiomyocyte marker ANKRD1 on the HEART dataset (MISC142).",
+      "page": 0,
+      "index": 6,
+      "width": 4102,
+      "height": 4551,
+      "label": "Figure"
+    }
+  ]
+}

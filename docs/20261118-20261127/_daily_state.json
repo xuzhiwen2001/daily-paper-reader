@@ -1,0 +1,57 @@
+{
+  "date": "20261118-20261127",
+  "date_label": "2026-11-18 ~ 2026-11-27",
+  "generated_at": "2026-11-27 18:44:24 UTC",
+  "recommend_exists": true,
+  "run_count": 1,
+  "papers": [
+    {
+      "paper_id": "2611.33792v1",
+      "route": "20261118-20261127/2611.33792v1-spatial-transcriptomics-prediction-from-histology-via-topology-informed-graph-attention-and-gene-semantics-conditioning",
+      "title": "Spatial Transcriptomics Prediction from Histology via Topology-Informed Graph Attention and Gene-Semantics Conditioning",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 10.0,
+      "evidence": "从H&E组织学图像预测空间转录组的深度学习模型",
+      "first_seen_at": "2026-11-27 18:44:24 UTC",
+      "updated_at": "2026-11-27 18:44:24 UTC"
+    },
+    {
+      "paper_id": "biorxiv-10-64898-2026-11-03-763968-v4",
+      "route": "20261118-20261127/biorxiv-10-64898-2026-11-03-763968-v4-where-single-cell-foundation-models-help-a-public-data-benchmark-of-annotation-in-silico-perturbation-and-gene-regulatory-inference",
+      "title": "Where single-cell foundation models help: a public-data benchmark of annotation, in silico perturbation and gene regulatory inference",
+      "section": "deep",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "virtual-cell"
+        }
+      ],
+      "score": 9.0,
+      "evidence": "在计算机扰动任务上基准测试单细胞基础模型与监督扰动模型",
+      "first_seen_at": "2026-11-27 18:44:24 UTC",
+      "updated_at": "2026-11-27 18:44:24 UTC"
+    },
+    {
+      "paper_id": "2611.34930v1",
+      "route": "20261118-20261127/2611.34930v1-a-gene-informed-benchmark-for-bioscoring-of-pathology-foundation-models",
+      "title": "A gene informed benchmark for BioScoring of pathology foundation models",
+      "section": "quick",
+      "tags": [
+        {
+          "kind": "query",
+          "label": "spatial-gene"
+        }
+      ],
+      "score": 7.0,
+      "evidence": "将病理图像编码器与空间转录组细胞身份关联的基准",
+      "first_seen_at": "2026-11-27 18:44:24 UTC",
+      "updated_at": "2026-11-27 18:44:24 UTC"
+    }
+  ]
+}

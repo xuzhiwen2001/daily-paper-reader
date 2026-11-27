@@ -1,0 +1,114 @@
+{
+  "version": 3,
+  "extractor": "arxiv-html",
+  "figures": [
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-001.webp",
+      "caption": "Figure 1 : BioScore overview and encoder ranking. Left: SAE activation map is compared to cell-identity. Right: win rate (%) of row over column across the 52 identities; bold: Holm-corrected Wilcoxon p < 0.05 p<0.05 ; and compact letter ranking.",
+      "page": 0,
+      "index": 1,
+      "width": 2157,
+      "height": 1086,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-002.webp",
+      "caption": "Figure 2 : Overview of BioScore. (A) An SAE is trained on the frozen patch embeddings of the encoder under test. (B) On the scoring H&E sections, its features are clustered into K K feature groups (blue); a curated panel of 52 cell identities is built from CellMarker (yellow); and each identity is credited with the group of best quality Q Q . Example: the Virchow2 group matched to ovarian carcinoma cells ( ρ = 0.81 \\rho=0.81 )",
+      "page": 0,
+      "index": 2,
+      "width": 3141,
+      "height": 1798,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-003.webp",
+      "caption": "Figure 3 : Effect of impurity weight λ \\lambda . BioScore (left) and distinct matched groups (right); dotted: λ = 3 \\lambda=3 . Full results in Tab. 9 .",
+      "page": 0,
+      "index": 3,
+      "width": 1948,
+      "height": 1039,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-004.webp",
+      "caption": "Figure 4 : Win rate (%) of row over column across the 27 comparison identities of Tab. 2 ; bold: Holm-corrected Wilcoxon p < 0.05 p<0.05 .",
+      "page": 0,
+      "index": 4,
+      "width": 2503,
+      "height": 1322,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-005.webp",
+      "caption": "Figure 5 : K ablation. BioScore (left) and distinct matched groups (right), plotted against K up to one group per feature (stars); dotted: default K = 3000 K=3000 . Full results in Tab. 9 .",
+      "page": 0,
+      "index": 5,
+      "width": 1948,
+      "height": 1039,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-006.webp",
+      "caption": "Figure 6 : Correlation per identity. Correlation ρ \\rho of the matched group, one scaled axis per identity (range in brackets); immune: selection of 11 identities, all 52 in Fig. 12 . Full results in Tab. 19 .",
+      "page": 0,
+      "index": 6,
+      "width": 4133,
+      "height": 1322,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-007.webp",
+      "caption": "Figure 7 : Sample of two matched groups with cell identity. H&E, identity map (red) and matched groups (blue) of the best and weakest pathology models and the best natural-image model for that identity; r r : correlation on the section.",
+      "page": 0,
+      "index": 7,
+      "width": 4133,
+      "height": 1066,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-008.webp",
+      "caption": "Figure 8 : BioScore per seed and test tiers. BioScore per SAE seed (dots) and mean (bar), with the compact letter display of Fig. 1 . Full results in Tab. 16 .",
+      "page": 0,
+      "index": 8,
+      "width": 1948,
+      "height": 1086,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-009.webp",
+      "caption": "Figure 15 : Examples of grouping behaviors across co-localization thresholds. Maps of signature sets, with the number of signatures in parentheses and genes of the strongest signature. (a) Below 0.4, unrelated lineages start to merge despite clear spatial differences: smooth muscle and endothelial cells (merged at 0.3), and the T and B cell set with plasmacytoid dendritic cells (merged at 0.2). (b) Between 0.6 and 0.4, related identities with specific localizations start to merge. Although they share a similar spatial structure, their high-activation spots remain markedly distinct. CD8+ T cell",
+      "page": 0,
+      "index": 9,
+      "width": 2100,
+      "height": 2940,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-010.webp",
+      "caption": "Figure 13 : Groups matched with Pearson vs. Spearman. Sample of four identities: H&E, identity spatial score map (red), and the matched group of SAE features (blue) with Pearson and with Spearman correlation. Percentage in each panel is the share of the section’s patches where the group is active, in addition to the coverage ratio (row caption): share of the Spearman-matched group active patches, divided by the same share for the Pearson-matched group. The Pearson-based Q Q rewards groups following hotspots of the identity map, whereas the Spearman-matched groups tend to be broader. We find th",
+      "page": 0,
+      "index": 10,
+      "width": 2100,
+      "height": 2400,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-011.webp",
+      "caption": "Figure 16 : More activation maps (1/2). As Fig. 7 : H&E, identity map (red), and the matched groups (blue) of the best and the weakest pathology models and of the best natural-image model for the identity. Their correlation r r on the section is indicated; inactive meaning the group does not fire on the section.",
+      "page": 0,
+      "index": 11,
+      "width": 2100,
+      "height": 2700,
+      "label": "Figure"
+    },
+    {
+      "url": "assets/figures/arxiv/2611.34930v1/fig-012.webp",
+      "caption": "Figure 17 : More activation maps (2/2). As Fig. 7 : H&E, identity map (red), and the matched groups (blue) of the best and the weakest pathology models and of the best natural-image model for the identity. Their correlation r r on the section is indicated; inactive meaning the group does not fire on the section.",
+      "page": 0,
+      "index": 12,
+      "width": 2100,
+      "height": 2700,
+      "label": "Figure"
+    }
+  ]
+}

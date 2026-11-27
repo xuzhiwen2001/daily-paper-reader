@@ -1,0 +1,1606 @@
+Title: Spatial Transcriptomics Prediction from Histology via Topology-Informed Graph Attention and Gene-Semantics Conditioning
+
+URL Source: https://arxiv.org/pdf/2611.33792v1
+
+Published Time: Thu, 26 Nov 2026 02:05:14 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# Spatial Transcriptomics Prediction from Histology via Topology-Informed Graph Attention and Gene-Semantics Conditioning 
+
+Yuqi Cheng 1 Boshuai Zhang 2 Ziqi Zhang 1 Xiuwei Zhang 11Georgia Institute of Technology 2University of California, San Diego    
+
+> cheng.yuqi@gatech.edu boz030@ucsd.edu ziqi.zhang@gatech.org xiuwei.zhang@gatech.edu
+
+Abstract 
+
+Spatial transcriptomics (ST) profiles gene expression with spatial context but remains costly, motivating models that infer expression from H&E images. Existing approaches face three key limitations: (i) a single patch embedding is often insufficient—morphologically similar regions can exhibit distinct expression due to spatial context, while naive neighborhood aggregation can over-smooth bound-aries; (ii) conventional fixed, gene-indexed output heads treat genes independently and cannot directly support strict zero-shot prediction for unseen genes; and (iii) common metrics under-measure spatial pattern fidelity and bound-ary resolution. To address these challenges, we propose TIGEM, a topology-informed, gene-conditioned framework for histology-to-ST inference. TIGEM learns topology-aware spot representations by regularizing graph attention with tissue-level topology and morphology cues to avoid cross-compartment smoothing, and uses gene semantic modulation to replace gene-indexed heads, enabling zero-shot prediction for unseen genes. We also introduce Graph Spectral Correlation (GSC) to evaluate spatial pattern fi-delity and boundary resolution complement to PCC/MSE. Across three large-scale ST datasets, TIGEM achieves over-all state-of-the-art performance and significantly improved boundary prediction resolution, and further demonstrates the ability to predict expression patterns for genes unseen during training, extending prior zero-shot histology-to-ST efforts with topology-aware spatial propagation and PLM-based gene conditioning. The model is open-sourced at https://github.com/ZhangLabGT/TIGEM. 
+
+1. Introduction 
+
+Spatial transcriptomics (ST) profiles gene expression while preserving tissue architecture, enabling links between molecular activity, morphology, and spatial organiza-tion [16, 32]. Standard workflows partition hematoxylin and eosin (H&E)-stained whole-slide images (WSI) into thousands of micrometer-scale spots and measure spot-level expression [22, 23], providing insights into cellular hetero-geneity and tissue microenvironments [24, 28]. However, ST remains costly and operationally complex, limiting clin-ical deployment. In contrast, H&E slides are inexpensive and routinely collected in clinical settings, motivating mod-els that infer spatial gene expression directly from histology. A common paradigm in histology-to-ST prediction is to extract a H&E patch-level embedding for each spot and then regress spot-level expression [8, 21, 39, 45], option-ally with graph-based neighborhood aggregation to incor-porate spatial context [4, 11, 12, 25, 30, 41, 44]. Al-though this formulation appears straightforward, it relies on a strong implicit assumption: that local patch appearance (or together with all spatial neighbors) is sufficiently infor-mative for downstream expression inference. In practice, however, this assumption is often invalid. Morphologically similar spots may still exhibit markedly different transcrip-tional programs when their surrounding tissue organization differs, for example across glandular lumens, compartment boundaries, stromal interfaces, or other microenvironmen-tal transitions [5, 46]. Some methods attempt to solve this problem by replacing deterministic regression with genera-tive modeling and sampling-based prediction. Yet the core input assumption remains largely unchanged: the model is still asked to infer expression primarily from a single patch-level representation without explicitly modeling the surrounding tissue context. Meanwhile, we should also no-ticed that naive neighborhood aggregation can mix distinct tissue contexts into overly similar representations, leading to over-smoothed predictions and reduced fidelity near spa-tial expression boundaries. These observations suggest that the missing ingredient is not merely a stronger regressor, but a context-aware propa-gation rule that adapts message passing to slide-specific tis-sue organization. In particular, spatial modeling should be guided by a learned notion of where information can plausi-bly travel in the tissue plane, instead of assuming that spatial location proximity alone implies expression coupling. A second limitation is that gene semantics remain under-1arXiv:2611.33792v1 [cs.CV] 25 Nov 2026 utilized in many histology-to-ST predictors. Conventional methods typically employ a fixed, gene-indexed output head of size |Gtrain |, restricting prediction to predefined training genes and preventing direct inference for unseen genes un-der a strict zero-shot split ( Gtest ∩ Gtrain = ∅) without mod-ifying or retraining the output layer. Recent studies[3, 40] have begun to explore semantic conditioning for unseen-gene prediction, but they largely focus on gene-level gen-eralization without explicitly modeling tissue topology or boundary-aware spatial propagation. This motivates gene-conditioned predictors that can transfer across genes while preserving spatial context. Together, these limitations not only limit prediction reso-lution and boundary accuracy but also hinder clinical gener-alization. In addition, existing evaluation metrics are often overly simplistic, relying primarily on Pearson correlation. As a result, the spatial fidelity of a model at the boundary-level is often overlooked, and such metrics do not quan-tify the extent to which the predictions preserve biologically meaningful and spatially localized heterogeneity. To address these limitations, we propose TIGEM 
+
+(Topology-Informed Graph attention with g Ene semantic 
+
+Modulation), a framework for predicting both seen and un-seen spatial gene expression from histology images (Fig. 1). TIGEM first introduces a Topology-Informed Graph atten-tion (TIG) module that learns a slide-specific continuous barrier field from morphology and topology cues to regular-ize graph attention, encouraging within-region propagation while suppressing message passing across potential tissue boundaries. TIGEM further replaces conventional gene-indexed output heads with a Gene Semantic Modulation unit (GSMu), where pretrained gene embeddings condition the readout and enable strict zero-shot inference by swap-ping in unseen-gene embeddings at test time. Together, these modules address both indiscriminate neighborhood aggregation and the fixed-output limitation of conventional predictors. We additionally introduce Graph Spectral Cor-relation (GSC), a graph-spectral metric that complements spot-wise measures such as PCC by evaluating spatial pat-tern fidelity. We provide its mathematical formulation and biological interpretation, and use it as a complementary cri-terion for benchmarking spatial expression patterns. We summarize our contributions as follows: • We present TIGEM , a topology-informed graph atten-tion framework for histology-to-ST prediction, which sig-nificantly improves both overall expression accuracy and boundary fidelity, and achieves state-of-the-art results on three diverse ST benchmarks. • By adopting pretrained pathology vision models (PVM) and protein language models (PLMs) [2, 17, 19] for the patch and gene embedding generation, TIGEM also sig-nificantly reduce the computational cost compared to ex-isting prediction models. • We extend zero-shot histology-to-ST prediction by in-troducing a PLM-conditioned GSMu decoder that sup-ports strict unseen-gene inference, and combine it with topology-informed graph attention to improve spatial fi-delity for clinically relevant biomarkers. • We propose GSC, a graph-spectral metric that com-plements conventional magnitude-based measures (e.g., MSE and PCC) by quantifying spatial pattern preserva-tion and boundary-resolving ability. 
+
+2. Related works 
+
+ST prediction from histology images. Predicting spatially resolved gene expression from H&E-stained WSIs has at-tracted growing interest in computational pathology. Ex-isting methods can fall into regression-based and genera-tive paradigms. Regression approaches range from spot-wise predictors such as ST-Net [8] to spatial-context models that aggregate neighborhood information and even multi-model information, such as HisToGene [25], Hist2ST [41], TRIPLEX [4], and newly published M2TGLGO [30]. Com-plementary lines improve robustness by aligning images and genes via contrastive-based designs (BLEEP [36], EGN [39]). Generative predictors are more recent, exem-plified by STEM [45] using conditional diffusion. Despite these advances, most methods still instantiate a single map-ping from morphology to expression and treat genes as in-dependent targets, which can blur region-specific variability and limit generalization, especially to unseen genes. 
+
+Zero-shot gene expression prediction. Recent stud-ies have begun to explore gene-level generalization be-yond fixed gene-indexed prediction heads. SGN [40] intro-duces semantic gene information to enable zero-shot predic-tion of unseen genes from histology, while other methods such as M2TGLGO[30], stImpute[42], and HEIST [20] ex-plore gene relationships, imputation, or gene-generalizable representation learning in spatial transcriptomics. These studies highlight the value of semantic or relational gene information, but differ substantially in task setting and input modality. TIGEM builds on this direction by combining PLM-based gene conditioning with topology-informed, boundary-aware graph propagation, jointly mod-eling unseen-gene transfer and spatial tissue context. 
+
+Pathology vision models (PVMs). Pathology vision models aim to learn general-purpose representations of his-tology image patches that can be transferred to downstream tasks such as gene expression prediction and prognosis analysis. Leveraging large-scale histology datasets, mod-els such as UNI [2], CONCH [19], Virchow[33], and H-Optimus [29] are trained with self-supervised or multi-modal objectives. These foundation models capture rich morphological information that implicitly reflects cellular organization and molecular context, making them valuable for computational pathology and spatial omics applications. 2Figure 1. Overview of TIGEM. TIGEM includes two main modules: TIG module and GSMu module, enabling accurate spatial expression prediction and zero-shot gene inference. 
+
+3. TIGEM 
+
+3.1. Preliminary 
+
+Spatial transcriptomics and spots. For a given slide, ST data provides a set of N measurement spots V =
+
+{1, . . . , N } and si = ( xi, y i) denotes the spot coordinate in the WSI. Around each spot i, a fixed-size image patch 
+
+Ii ∈ RH×W ×3 (224 × 224 pixels) is cropped from the H&E slide. Benefiting from pretrained pathology vision models (PVMs), we can directly use their patch embeddings instead of extracting features from scratch, substantially improv-ing computational efficiency. We assume a pretrained PVM 
+
+fP V M (·) maps Ii to a feature vector vi ∈ Rdv , following 
+
+vi = fP V M (Ii). (1) In our experiments, we benchmark multiple PVM back-bones and their combinations, and use the best-performing combination UNI-2[2]+Virchow-2[33] as vi. We further use a trainable graph encoder (GE) fGE to encode neigh-borhood information into the primary morphology feature 
+
+vi, obtaining the spot histology representation hi.
+
+hi = fGE (vi). (2) For a set of G genes G = {g1, . . . , g G}, we denote the observed expression at spot i as yi =  yi,g 
+
+ 
+
+> g∈G
+
+∈ RG,where yi,g is the log-normalized gene expression value. 
+
+Gene embedding. For each gene, we use its correspond-ing protein embedding eg ∈ Rdg , obtained from the pre-trained protein language model fP LM (·) following 
+
+eg = fP LM (gprotein ). (3) In practice, we use ESM2[18] to generate eg from the amino-acid sequence of gene g.
+
+3.2. Topology-Informed GAT (TIG) Module 
+
+The goal of the TIG module (Fig. 1) is to learn boundary-aware spot representations on a spatial graph. Because tis-sue architecture is non-homogeneous, we adopt graph atten-tion (GAT) to enable task-driven neighbor weighting. How-ever, standard GAT still normalizes attention over geometric neighbors using only patch-derived features, which can lead to information leakage across compartment boundaries and thus over-smoothed predictions near expression transitions. To address this, we introduce a global barrier-field branch 
+
+that estimates a slide-specific barrier map and uses it to reg-ularize attention, discouraging cross-boundary propagation. 
+
+Field branch for continuous barrier estimation. We learn a continuous barrier field over the tissue plane from fused morphology–topology cues. We first construct a dense spatial feature map 
+
+F = [ Fmorph ∥ Ftopo ] ∈ RC×Hf ×Wf , (4) aligned with slide coordinates, and predict a nonnegative barrier map via a lightweight U-Net, 
+
+B = ffield (F ) ∈ RHf ×Wf , (5) where larger values indicate regions through which propa-gation is less plausible. 
+
+Morphology channels. Given spot embeddings xi ∈ Rdx
+
+and spot coordinates si, we project each embedding into a lower-dimensional morphology space, 
+
+˜xi = Wxxi ∈ Rdm , (6) and rasterize these projected features onto a 2D grid using Gaussian splatting: 
+
+Fmorph (u) = 
+
+> N
+
+X
+
+> i=1
+
+Kσ (u − si) ˜ xi, (7) 3where u is a grid location and Kσ is a Gaussian kernel with bandwidth σ.
+
+Topology channels. To further incorporate spatial struc-tural information beyond patch appearance, we construct an additional topology cue map Ftopo . We use CellViT[10] (which is the default in HEST-1k dataset [13]) to perform cell segmentation for the slide. In practice, this map in-cludes processed cell- or tissue-level descriptors such as cell density, local nuclei count, and anisotropy statistics ex-tracted from the histology image. These channels provide complementary evidence about local connectivity, discon-tinuity, and compartment transitions that are not fully cap-tured by morphology embeddings alone. The detailed con-structions of the topology descriptors are provided in the 
+
+Supplementary Material .
+
+Ftopo = Fdensity ∥ Fcount ∥ Fanisotropy 
+
+ (8) 
+
+Barrier cost. For an edge (i, j ) ∈ E , let ℓij (t) = (1 −
+
+t)si + tsj , t ∈ [0 , 1] , denote the line segment connecting the two spots. We sample T points uniformly along this segment and define the traversal cost 
+
+cij = ∥si − sj ∥2
+
+T
+
+> T
+
+X
+
+> t=1
+
+B(ℓij (τt)) , (9) where {τt}Tt=1 are uniformly spaced samples in [0 , 1] .
+
+Pairwise supervision for training the barrier field. The field branch is pre-trained with an independent weak pair-wise objective defined on edges. We construct positive 
+
+edges P that are likely within the same compartment and 
+
+negative edges N that likely cross a boundary (based on morphology/topology cues; see Supplementary ). The bar-rier field is trained to assign smaller traversal costs to posi-tives than to negatives using a margin ranking loss: 
+
+Lfield = 1
+
+|P| 
+
+X
+
+> (i,j )∈P
+
+1
+
+|N (i)|
+
+X 
+
+> (i,k )∈N (i)
+
+max  0, m +cij −cik 
+
+,
+
+(10) where m > 0 is a margin and N (i) = {k | (i, k ) ∈ N } .This prevents degenerate solutions (e.g., a flat B) and pro-vides a direct learning signal for updating ffield .Finally, the barrier-induced distribution over the neigh-borhood of node i is then derived from the pre-trained fixed 
+
+cij 
+
+qij = softmax j∈N (i)
+
+
+
+− cij 
+
+τb
+
+
+
+, (11) where τb is a temperature parameter. 
+
+Topology-informed graph attention. Given node fea-tures h(l−1)  
+
+> i
+
+from layer (l − 1) , a multi-head graph attention layer computes attention logits 
+
+e(m,l ) 
+
+> ij
+
+= Attn (m,l )
+
+h(l−1)  
+
+> i
+
+, h(l−1) 
+
+> j
+
+
+
+, (12) for head m and neighbor j ∈ N (i). TIGEM targets Visium-style layouts, where each spot has a canonical first-ring neighborhood of 6 hexagonal neighbors. Thus N (i) is the surrounding 6 nearest neighbors (Fig. 1). The correspond-ing attention distribution is 
+
+p(m,l ) 
+
+> ij
+
+= softmax j∈N (i)
+
+
+
+e(m,l )
+
+> ij
+
+
+
+. (13) We use the average attention across heads as 
+
+¯p(l) 
+
+> ij
+
+= 1
+
+M
+
+> M
+
+X
+
+> m=1
+
+p(m,l ) 
+
+> ij
+
+. (14) The topology-informed aggregation at layer l is given by 
+
+˜h(l) 
+
+> i
+
+= M
+
+∥
+
+> m=1
+
+X 
+
+> j∈N (i)
+
+p(m,l ) 
+
+> ij
+
+W (m,l ) 
+
+> V
+
+h(l−1)  
+
+> j
+
+, (15) where ∥ denotes concatenation over heads. Each TIG block further includes a residual connection, layer normalization, and a position-wise feed-forward network: 
+
+ˆh(l) 
+
+> i
+
+= LN 
+
+
+
+h(l−1)  
+
+> i
+
++ ˜h(l)
+
+> i
+
+
+
+, (16) 
+
+h(l) 
+
+> i
+
+= LN 
+
+ˆh(l) 
+
+> i
+
++ FFN (l)(ˆh(l) 
+
+> i
+
+)
+
+
+
+. (17) Stacking L TIG blocks yields the final node embedding ma-trix 
+
+H = [ h1, . . . , hN ]⊤ ∈ RN ×d. (18) 
+
+Topology supervision. The learned barrier field does not directly predict expression. Instead, it provides a spa-tially structured distribution that regularizes graph attention. We use a KL divergence between the field-induced distribu-tion in Eq. (11) and the GAT attention distribution: 
+
+Ltopo = 1
+
+L
+
+> L
+
+X
+
+> l=1
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+KL 
+
+
+
+stopgrad( qi) ∥ ¯p(l)
+
+> i
+
+
+
+. (19) Importantly, gradients are stopped through q (and thus B)in Ltopo , so this term updates only the GAT encoder and prevents the field branch from trivially adapting to match the GAT attention. 
+
+3.3. Gene Semantic Modulation unit (GSMu) 
+
+Given the learned node embeddings H ∈ RN ×d from the TIG encoder and gene embeddings E ∈ RG×dg from ESM2, our goal is to perform gene-conditioned expres-sion readout. Instead of learning G independent prediction heads, we use the gene embeddings to modulate a shared morphological representation, so that each gene is decoded as this tissue pattern, as seen from the perspective of this gene . Herein, we design a GSMu module that combines cross-attention and feature-wise linear modulation (FiLM)-style conditioning [27] (Fig. 1). 4Gene tokens and cross-attention. We first normalize and linearly project each gene embedding eg from ESM2 to the encoder dimension, obtaining gene tokens ϕg ∈ Rd,
+
+g = 1 , . . . , G . A single cross-attention layer then lets each gene token “look at” the tissue morphology: gene tokens act as queries, and the node embeddings H provide keys and values, 
+
+zgene  
+
+> g
+
+= CrossAttn  ϕg , H  ∈ Rd, (20) so that zgene  
+
+> g
+
+becomes a morphology-aware representation of gene g. This step explicitly aligns sequence-level semantics with slide-specific histology before decoding expression. 
+
+FiLM modulation for gene-specific readout. From each refined gene token zgene  
+
+> g
+
+we generate FiLM parameters via a small MLP, producing a channel-wise scaling and shift 
+
+(γg , βg ) ∈ Rd × Rd. Given a node embedding hi ∈ Rd,we obtain a gene-specific modulated feature 
+
+˜hi,g = γg ⊙ hi + βg , (21) and apply a shared readout MLP to predict expression: 
+
+ˆyi,g = fhead 
+
+˜hi,g 
+
+
+
+. (22) This removes gene-indexed parameters from the output and instead decodes expression through semantic conditioning. 
+
+Zero-shot prediction for unseen genes. Because GSMu is fully conditioned on gene embeddings (rather than gene indices), TIGEM supports strict zero-shot inference. At test time, for an unseen gene g∗ we compute its embed-ding eg∗ , form the token ϕg∗ , and reuse the same cross-attention and FiLM-conditioned readout to predict ˆyi,g ∗ .The topology-informed encoder remains unchanged. 
+
+3.4. Total Training Objective 
+
+We train the model to predict log-transformed expression for spot i and gene g. The main supervision is a mean squared error (MSE) over all observed spots and genes. In addition, we use the topology-guided KL term from Sec-tion 3.2 to align attention distributions with the topology prior. The overall loss is 
+
+L = LMSE + λtopo Ltopo , (23) where λtopo controls the strength of topology guidance. 
+
+4. Experiments 
+
+4.1. Datasets 
+
+We selected three publicly available spatial transcriptomics datasets, named HEART, COAD, and MEND datasets, to do the benchmarking. Specifically, HEART [15] consists of 9 human heart tissue sections from independent samples, COAD [9] contains 13 human colorectal cancer samples, and MEND [6] includes 14 human prostate cancer sections. These datasets are also available in HEST-1k[13]. 
+
+4.2. Experiment Setting 
+
+All H&E slides are cropped into 224 ×224 patches centered at each spot. For all benchmark comparisons, TIGEM anal-yses, and ablation studies, we adopt leave-one-out cross-validation (LOOCV) over all slides. In each fold, one slide is held for testing and the remaining slides are used for train-ing. We report the mean and standard deviation across folds. Across baselines, we select the top 500 genes from the intersection of highly expressed and highly variable genes (HEHVG) as targets, and apply log1p to all counts. Hyper-parameters are reported in the Supplementary ; we initialize from official settings and tune key hyperparameters on the validation split for fair comparison. 
+
+4.3. Evaluation Metric 
+
+We report mean squared error (MSE) and Pearson correla-tion coefficient (PCC), following prior work [4, 45]. PCC is evaluated at two scales, PCC(50) and PCC(200), calculating the average of top 50 and top 200 PCC values. Meanwhile, we also notice that MSE and PCC primarily measure vector-level agreement and may overlook spatial fidelity. In practice, predicted expression maps are often smoother than the ground truth [36, 45], making PCC less sensitive to gene spatial pattern mismatches, while MSE is dominated by magnitude differences and does not ex-plicitly assess spatial structure. To explicitly evaluate spa-tial pattern fidelity, we design Graph Spectral Correla-tion (GSC) in collaboration with biological experts. GSC is a graph signal processing metric that compares predic-tions and ground truth in the graph Fourier domain. Given the spot adjacency graph with the normalized Laplacian 
+
+L = I − D−1/2AD −1/2 and eigenbasis U , we compute the cosine similarity between the truncated spectral coefficients that retain a proportion p of cumulative spectral energy: 
+
+GSC( p) = ⟨ˆx(p)true , ˆx(p)pred ⟩∥ˆx(p)true ∥2 ∥ˆx(p)pred ∥2 + ε . (24) We report GSC@90% in the main results as a resolution-oriented metric. Take Fig. 2 as a justification, GSC@90% faithfully measures spatial pattern than PCC. Although Stem model achieves noticeably higher PCC than ST-Net and BLEEP, its predictions are overly smoothed, resulting in blurred boundaries and failure to recover the spatial pat-tern of KLK3. Thus it does not exhibit a corresponding ad-vantage under GSC@90%, highlighting the metric’s abil-ity to penalize spatial mismatches that PCC overlooks. A complete mathematical proof and biological interpretation of GSC are provided in the Supplementary Material .To provide an independent assessment of spatial fidelity, we additionally report Structural Similarity Index (SSIM) with top 50 values SSIM (50), an established image-structure metric that is independent of both GSC and the TIGEM training objective. 5Table 1. Benchmark results of TIGEM, existing ST prediction models, and PVM baselines (Group 1). Best and second-best results in each column are highlighted with red and blue backgrounds, respectively. Higher is better for PCC(50), PCC(200), GSC@90%, and SSIM (50), while lower is better for MSE. All values are reported as mean with standard deviation shown in the subscript. 
+
+Model HEART (LOOCV) COAD (LOOCV) MEND (LOOCV) MSE ↓ PCC(50) ↑ PCC(200) ↑ GSC@90% ↑ SSIM (50) ↑ MSE ↓ PCC(50) ↑ PCC(200) ↑ GSC@90% ↑ SSIM (50) ↑ MSE ↓ PCC(50) ↑ PCC(200) ↑ GSC@90% ↑ SSIM (50) ↑
+
+ST prediction methods 
+
+ST-Net [8] 0.365 .074 0.208 .083 0.109 .027 0.054 .015 0.063 .013 1.078 .093 0.574 .055 0.448 .044 0.402 .053 0.359 .045 0.333 .029 0.577 .056 0.428 .030 0.338 .026 0.364 .038 
+
+HistoGene [25] 0.468 .055 0.159 .029 0.082 .032 0.044 .012 0.049 .009 1.019 .094 0.561 .063 0.470 .058 0.452 .046 0.413 .033 0.354 .030 0.387 .035 0.238 .038 0.176 .032 0.202 .019 
+
+THItoGene [14] 0.528 .088 0.125 .048 0.098 .022 0.041 .014 0.040 .011 1.893 .101 0.528 .050 0.400 .045 0.288 .050 0.231 .042 0.578 .042 0.278 .039 0.179 .029 0.101 .039 0.135 .022 
+
+BLEEP [36] 0.327 .070 0.276 .049 0.198 .034 0.101 .016 0.103 .018 0.992 .098 0.577 .062 0.483 .040 0.427 .036 0.360 .041 0.361 .031 0.594 .044 0.439 .037 0.329 .022 0.350 .035 
+
+TRIPLEX [4] 0.545 .057 0.295 .051 0.212 .048 0.114 .014 0.117 .019 0.726 .083 0.697 .067 0.598 .049 0.553 .049 0.515 .035 0.318 .024 0.669 .036 0.529 .033 0.399 .030 0.428 .036 
+
+Stem [45] 0.503 .050 0.224 .045 0.114 .022 0.089 .021 0.086 .013 1.387 .116 0.567 .064 0.467 .056 0.507 .036 0.449 .047 0.537 .033 0.574 .041 0.388 .029 0.336 .036 0.382 .029 
+
+istar [43] 0.321 .058 0.252 .040 0.154 .032 0.123 .018 0.120 .020 0.897 .076 0.664 .055 0.604 .041 0.541 .051 0.487 .035 0.435 .032 0.638 .050 0.484 .045 0.360 .026 0.392 .030 
+
+M2TGLGO [7] 0.328 .044 0.292 .048 0.155 .037 0.120 .025 0.114 .016 0.874 .077 0.672 .068 0.583 .055 0.530 .043 0.493 .054 0.376 .036 0.609 .052 0.497 .043 0.371 .045 0.409 .034 
+
+mclSTExp [21] 0.297 .037 0.236 .032 0.144 .026 0.118 .013 0.113 .017 0.913 .079 0.611 .048 0.523 .056 0.497 .036 0.448 .034 0.316 .028 0.602 .033 0.472 .030 0.348 .036 0.376 .050 
+
+STFlow [11] 0.324 .041 0.281 .039 0.149 .030 0.113 .017 0.114 .016 0.861 .082 0.669 .071 0.589 .043 0.558 .041 0.522 .042 0.322 .036 0.687 .048 0.534 .036 0.411 .035 0.447 .039 
+
+MERGE [7] 0.355 .049 0.358 .051 0.221 .043 0.143 .015 0.149 .023 0.813 .086 0.705 .059 0.619 .043 0.538 .040 0.477 .030 0.424 .032 0.674 .050 0.507 .039 0.359 .047 0.387 .029 
+
+PVM encoders 
+
+Virchow2 [33] 0.366 .033 0.258 .035 0.181 .039 0.065 .013 0.069 .008 0.907 .068 0.562 .047 0.482 .039 0.468 .045 0.417 .028 0.327 .027 0.613 .039 0.495 .033 0.334 .032 0.374 .034 
+
+CONCH [19] 0.380 .024 0.189 .041 0.106 .018 0.042 .010 0.040 .010 1.125 .118 0.505 .042 0.395 .046 0.337 .042 0.266 .033 0.346 .035 0.541 .027 0.427 .041 0.297 .028 0.339 .035 
+
+UNI-2 [2] 0.348 .044 0.243 .032 0.205 .038 0.093 .016 0.097 .013 0.922 .077 0.581 .063 0.476 .044 0.438 .031 0.364 .038 0.324 .025 0.608 .037 0.478 .026 0.328 .031 0.369 .041 
+
+GigaPath [37] 0.351 .042 0.218 .029 0.123 .036 0.072 .012 0.075 .018 0.997 .084 0.537 .044 0.428 .030 0.417 .038 0.355 .028 0.330 .039 0.550 .046 0.447 .032 0.288 .037 0.322 .023 
+
+UNI-2 + Virchow2 0.328 .037 0.277 .033 0.212 .031 0.098 .016 0.103 .019 0.904 .083 0.585 .063 0.496 .038 0.480 .038 0.437 .029 0.320 .024 0.624 .044 0.499 .036 0.346 .047 0.388 .037 
+
+CONCH + UNI-2 0.349 .054 0.228 .035 0.203 .040 0.091 .013 0.088 .017 1.007 .093 0.548 .052 0.468 .039 0.387 .040 0.340 .024 0.337 .032 0.600 .039 0.467 .028 0.325 .039 0.362 .044 
+
+CONCH + UNI-2 + Virchow2 0.334 .033 0.264 .037 0.215 .032 0.102 .015 0.106 .018 0.972 .080 0.599 .043 0.503 .048 0.491 .042 0.450 .031 0.322 .030 0.634 .057 0.495 .027 0.345 .028 0.379 .029 
+
+Ours 
+
+TIGEM 0.245 .049 0.388 .064 0.241 .049 0.160 .015 0.175 .020 0.687 .074 0.718 .061 0.631 .043 0.584 .034 0.539 .046 0.308 .043 0.701 .038 0.549 .045 0.422 .038 0.466 .054 
+
+4.4. ST Expression Prediction 
+
+Comparing with H&E-based ST prediction models. We first benchmarked our method with 11 published ST pre-diction models. As shown in Tab. 1, TIGEM consis-tently outperforms all baseline models across all evaluation metrics and achieves state-of-the-art performance on three datasets spanning distinct tissue types and pathological con-ditions. Benefiting from the incorporation of cell-level ge-ometric topology, TIGEM more effectively preserves spa-tial expression structure, leading to substantially higher GSC@90% scores compared with competing methods. Im-portantly, TIGEM also achieves the highest SSIM on all three datasets, independently corroborating the spatial im-provements observed with GSC@90% using an established spatial-structure metric. Since all histology sections orig-inate from different patients or sequencing batches, these results also suggest that TIGEM is robust to technical noise and generalizes well to unseen query slices. 
+
+Evaluated TIGEM against recent pathology vision models (PVMs) . To assess whether TIGEM perfor-mance comes merely from strong histology embeddings, we included several open-source PVMs (Virchow2, UNI-2, CONCH, and GigaPath) as well as their combinations. We followed the HEST-1K protocol by training a random forest regressor on their patch embeddings. Across all datasets, TIGEM still surpasses these models and their combina-tions on all metrics, with a particularly large margin on the spatial-pattern metric GSC@90% (Tab. 1). This demon-strates that TIGEM predicts expression in a higher resolu-tion than using PVM embeddings alone, and that its frame-work substantially enhances the spatial organization aware-ness of existing pathology encoders. 
+
+4.5. Biomarker Recovery 
+
+One key application of spatial gene expression prediction is to uncover the relationship between disease progression and tissue morphology, which requires accurate biomarker estimation. We therefore evaluated TIGEM and the top eight baseline methods on four biomarker genes across both healthy H&E sections (HEART dataset) and cancer tissue (MEND dataset, prostate cancer). In MEND, we selected two established prostate cancer markers, KLK3[26, 31] and AZGP1[35]; in HEART, we evaluated the cardiomyocyte marker ANKRD1[1] and the epicardium marker DNC[38]. As shown in Fig. 2, TIGEM’s predictions exhibit strong alignment with the ground truth and closely overlap with pathology-annotated regions, producing sharply defined ex-pression boundaries. These results demonstrate TIGEM’s strong ability to capture spatially coherent biomarker pat-terns under topology-informed guidance. Additional visu-alizations are shown in Supplementary Material .
+
+4.6. Unseen Gene Prediction 
+
+Using PLM-derived gene semantic embeddings, TIGEM can generalize to genes absent from training. To evaluate this ability, we constructed six training–testing splits with different proportions of seen and unseen genes. The top 500 HEHVGs were used for training, while the remaining top 100, 250, and 500 HEHVGs formed three unseen test sets (ratios 5:1, 2:1, and 1:1). To further assess general-ization to functionally related but unseen genes, we cre-ated another three test sets by selecting the top 100, 250, and 500 semantic-related genes (SRGs) whose PLM em-beddings were closest to the training genes. As summarized in Tab. 2, zero-shot performance varies across datasets. TIGEM achieves meaningful unseen-gene prediction on COAD and MEND, whereas performance on HEART is substantially weaker, indicating that zero-shot transfer remains challenging and dataset-dependent. Nev-ertheless, SRG test sets generally outperform their HEHVG counterparts, particularly on COAD and MEND, suggesting that PLM-derived gene semantics facilitate transfer to func-tionally related unseen genes. We further compare TIGEM 6Figure 2. Visualization of biomarker expression prediction across methods. Top shows the prediction of prostate cancer marker KLK3 on the MEND dataset. Region 1-3 are tumor regions. Bottom shows the prediction of epicardium marker DCN on the HEART dataset. Table 2. Zero-shot prediction performance of TIGEM under different unseen gene settings. Best and second-best results in each column are highlighted with red and blue backgrounds, respectively. Setting Ratio HEART (MISC142) COAD (MISC36) MEND (MEND146) MSE ↓ PCC(all) ↑ GSC@90% ↑ MSE ↓ PCC(all) ↑ GSC@90% ↑ MSE ↓ PCC(all) ↑ GSC@90% ↑
+
+HEHVG 5:1 0.328 .007 0.092 .005 0.087 .009 1.289 .009 0.582 .011 0.622 .008 0.403 .006 0.293 .011 0.308 .009 
+
+2:1 0.335 .007 0.084 .009 0.083 .008 1.425 .010 0.555 .009 0.610 .010 0.410 .008 0.276 .007 0.293 .010 
+
+1:1 0.329 .011 0.086 .004 0.081 .007 1.341 .007 0.559 .009 0.614 .008 0.413 .005 0.276 .010 0.288 .007 
+
+SRG 5:1 0.265 .005 0.107 .004 0.109 .005 0.973 .005 0.639 .006 0.687 .009 0.327 .007 0.312 .005 0.328 .006 
+
+2:1 0.293 .011 0.092 .007 0.089 .008 1.085 .010 0.607 .007 0.661 .009 0.355 .009 0.291 .008 0.312 .009 
+
+1:1 0.322 .006 0.081 .007 0.076 .003 1.117 .008 0.577 .010 0.641 .008 0.385 .012 0.286 .010 0.299 .010 
+
+with SGN[40], a recent zero-shot histology-to-ST method, under the same SRG 5:1 setting across all three datasets. TIGEM consistently outperforms SGN, with detailed re-sults reported in Supplementary Material . 
+
+> (a) GPCPD1 gene prediction (b) TSPAN8 gene prediction
+
+Figure 3. Visualization of unseen biomarker gene prediction. 
+
+Beyond aggregate performance, we further examined whether TIGEM can recover biologically meaningful spa-tial patterns for individual unseen genes. We evaluated the epithelial marker GPCPD1 in COAD and the prostate cancer-associated marker TSPAN8 in MEND, both excluded from training. As shown in Fig. 3a, TIGEM recovers the spatial expression pattern of GPCPD1 with high agreement with the ground truth (PCC = 0 .897 , GSC@90% = 0 .922 ). TIGEM also preserves the cancer-associated spatial local-ization of TSPAN8 in prostate tissue (Fig. 3b). These gene-level examples complement the aggregate evaluation and demonstrate that, when semantic transfer is effective, TIGEM can recover biologically relevant spatial patterns for genes unseen during training. 
+
+4.7. Extended Analysis on TIGEM 
+
+Ablation study. We further perform both fine-grained and module-level ablations in Tab. 3. Full TIGEM achieves the best performance across all metrics on all three datasets. Within the topology design, removing either the mor-phology or topology channel consistently degrades perfor-mance, demonstrating that the two sources provide com-plementary cues for learning the barrier field. Removing TopoKL further reduces performance across datasets, con-firming the contribution of topology-guided attention reg-ularization. At the module level, removing Residual/FFN or GSMu also consistently degrades performance, although the effect of GSMu is relatively smaller. Finally, all TIGEM variants generally outperform vanilla GAT, supporting the benefit of the proposed topology-aware architecture over standard graph aggregation. 
+
+Choice of PVM encoders. We benchmark several pretrained PVM backbones and combinations [2, 19, 33, 37]. As shown in Tab. 4, multi-PVM combinations con-sistently outperform single backbones, indicating com-plementary feature scales. Among two-model pairings, Virchow2+UNI-2 offers the best overall balance, reach-ing top GSC@90% with competitive MSE/PCC. Adding more PFMs yields only marginal gains (e.g., slightly better MSE/PCC(200)) while substantially increasing preprocess-7Table 3. Ablation study with LOOCV across datasets. Each variant removes a key component of TIGEM. Best and second-best results in each column are highlighted with red and blue backgrounds, respectively. Setting HEART (LOOCV) COAD (LOOCV) MEND (LOOCV) MSE ↓ PCC(50) ↑ PCC(200) ↑ GSC@90% ↑ MSE ↓ PCC(50) ↑ PCC(200) ↑ GSC@90% ↑ MSE ↓ PCC(50) ↑ PCC(200) ↑ GSC@90% ↑
+
+Fine-grained ablation of the topology design 
+
+w/o Morphology channel 0.272 .039 0.371 .048 0.226 .036 0.150 .028 0.715 .072 0.673 .045 0.604 .029 0.561 .027 0.325 .037 0.685 .048 0.539 .038 0.414 .047 
+
+w/o Topology channel 0.274 .045 0.368 .037 0.228 .041 0.147 .038 0.720 .064 0.676 .061 0.599 .048 0.553 .034 0.331 .053 0.679 .036 0.533 .032 0.411 .038 
+
+Broad ablation of each module 
+
+w/o Residual/FFN 0.271 .030 0.369 .034 0.228 .045 0.149 .038 0.706 .063 0.689 .040 0.610 .051 0.562 .043 0.320 .031 0.684 .040 0.536 .045 0.414 .033 
+
+w/o TopoKL 0.278 .038 0.363 .040 0.223 .036 0.144 .022 0.728 .058 0.668 .054 0.592 .037 0.547 .033 0.329 .028 0.679 .063 0.531 .035 0.409 .034 
+
+w/o GSMu 0.260 .032 0.379 .052 0.235 .035 0.157 .020 0.692 .045 0.711 .042 0.626 .039 0.578 .035 0.309 .051 0.696 .032 0.545 .052 0.417 .029 
+
+vanilla GAT 0.284 .037 0.358 .044 0.219 .053 0.144 .022 0.746 .066 0.652 .047 0.589 .041 0.540 .042 0.336 .036 0.673 .046 0.521 .043 0.404 .046 
+
+Full TIGEM 0.245 .049 0.388 .064 0.241 .049 0.160 .015 0.687 .074 0.718 .061 0.631 .043 0.584 .034 0.308 .043 0.701 .038 0.549 .045 0.422 .038 
+
+Table 4. Ablation study on the choice of PVMs (HEART dataset). Best and second-best results in each column are highlighted with red and blue backgrounds, respectively.                                                     
+
+> Setting MSE ↓PCC(50) ↑PCC(200) ↑GSC@90% ↑
+> CONCH only 0.317 .008 0.539 .009 0.370 .012 0.219 .021
+> UNI-2 only 0.306 .002 0.545 .005 0.378 .010 0.227 .013
+> GigaPath only 0.311 .017 0.538 .009 0.372 .025 0.215 .009
+> CONCH + UNI-2 0.301 .015 0.544 .011 0.376 .018 0.227 .011
+> UNI-2 + GigaPath 0.303 .010 0.547 .015 0.380 .008 0.228 .019
+> CONCH + GigaPath 0.308 .014 0.540 .007 0.372 .012 0.221 .007
+> Virchow2 + UNI-2 0.291 .016 0.552 .010 0.381 .024 0.230 .011
+> CONCH + UNI-2 + GigaPath 0.294 .016 0.548 .017 0.377 .018 0.226 .011
+> CONCH + Virchow2 + GigaPath 0.292 .011 0.547 .009 0.381 .006 0.229 .008
+> Virchow2 + UNI-2 + GigaPath 0.291 .012 0.551 .016 0.382 .008 0.226 .019
+> CONCH + UNI-2 + GigaPath + Virchow2 0.289 .017 0.550 .025 0.383 .018 0.230 .014
+
+ing cost, so we adopt a compact but effective combination in our main experiments. 
+
+Zero-shot evidence. To justify the feasibility of strict 
+
+Gtest ∩ Gtrain = ∅ inference with gene embedding, we added sensitivity analyses (Tab. 5) on MEND and COAD under the SRG 5:1 split and compared TIGEM with non-semantic conditioning baselines, including ran-dom gene embeddings and one-hot gene identifiers. Seman-tic gene/protein embedding variants substantially outper-form these baselines, indicating that the gain does not come from simply providing a gene identifier but from meaning-ful gene-level semantics. The additional dataset is presented in Supplementary Material .
+
+Table 5. Justification of the feasibility of strict Gtest ∩ Gtrain = ∅
+
+inference. 
+
+Setting COAD MEND MSE ↓ PCC (All) ↑ GSC@90% ↑ MSE ↓ PCC (All) ↑ GSC@90% ↑
+
+SRG 5:1 0.973 .005 0.639 .006 0.687 .009 0.327 .007 0.312 .005 0.328 .006 
+
+Random 1.585 .010 0.422 .009 0.459 .010 0.450 .006 0.199 .006 0.192 .007 
+
+One-hot 1.596 .009 0.425 .008 0.464 .005 0.431 .008 0.203 .005 0.185 .006 
+
+Effect of hyperparameters and model scale. We next analyzed the impact of key hyperparameters, including the temperature τ , the KL weight λtopo , and the number of GAT layers L in the TIG module. The result figures provided in the Supplementary Material show that lowering the temper-ature (sharper topology prior) or increasing λtopo consis-tently improves model performance, supporting the impor-tance of the topology prior for guiding spatial prediction. We also assessed model scaling by varying the number of GAT layers in the TIG module. As reported in the Sup-plementary Material , moderate increases in depth improve accuracy, but performance plateaus once the model reaches 3–5 blocks, indicating limited benefit from further growth. 
+
+Computational Cost. We further summarized the com-putational cost of TIGEM and all baselines on a single-slide sample per LOOCV fold, with all runs conducted on the same NVIDIA A40 GPU. The results are provided in the Supplementary Material . We report parameter counts and wall-clock training time (to convergence/early stop-ping) for all methods, while inference time is reported only for Stem since its DiT-based sampling introduces substan-tial prediction overhead. Notably, TIGEM’s training time already includes patch embedding extraction; with pre-generated patch embeddings and cached topology priors, TIGEM avoids training image encoders from scratch and is consistently among the fastest methods. In contrast, Stem is orders of magnitude slower. 
+
+5. Conclusion 
+
+We present TIGEM , a topology-informed graph attention framework with gene semantic modulation for histology-to-spatial transcriptomics prediction. TIGEM regularizes graph message passing with a topology-guided prior distribution to reduce cross-region over-smoothing, and decodes expression through a gene-conditioned GSMu head, enabling strict zero-shot inference for unseen genes by swapping in gene embeddings at test time. We also introduce GSC , a complementary graph-spectral metric for evaluating spatial-pattern fidelity beyond conventional spot-wise metrics. Across diverse ST datasets, TIGEM consistently outperforms existing methods under MSE, PCC, and GSC, while improvements in the established SSIM metric independently corroborate the spatial fidelity captured by GSC. Ablation studies further demonstrate consistent contributions from the topology barrier field, TopoKL, and GSMu, while zero-shot experiments show the potential to recover biologically relevant expression patterns for genes absent from training. Together, these results establish TIGEM as a generalizable framework that integrates topology-aware spatial modeling with gene-semantic conditioning for histology-to-ST prediction. 8References 
+
+[1] Takuro Arimura, J Martijn Bos, Akinori Sato, Toru Kubo, Hiroshi Okamoto, Hirofumi Nishi, Haruhito Harada, Yoshi-nori Koga, Mousumi Moulik, Yoshinori L Doi, et al. Car-diac ankyrin repeat protein gene (ankrd1) mutations in hy-pertrophic cardiomyopathy. Journal of the American College of Cardiology , 54(4):334–342, 2009. 6 [2] Richard J Chen, Tong Ding, Ming Y Lu, Drew FK Williamson, Guillaume Jaume, Bowen Chen, Andrew Zhang, Daniel Shao, Andrew H Song, Muhammad Shaban, et al. Towards a general-purpose foundation model for com-putational pathology. Nature Medicine , 2024. 2, 3, 6, 7 [3] Yuqi Cheng, Boshuai Zhang, Chandra Sekhar Reddy Edula, Mo Sun, Ziqi Zhang, and Xiuwei Zhang. Mixture-of-residuals meets llm-semantic gene conditioning: Inter-pretable spatial transcriptomic prediction from h&e images. In Proceedings of the 32nd ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 2 , pages 10716– 10727, 2026. 2 [4] Youngmin Chung, Ji Hun Ha, Kyeong Chan Im, and Joo Sang Lee. Accurate spatial gene expression prediction by integrating multi-resolution features. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , pages 11591–11600, 2024. 1, 2, 5, 6 [5] Ofer Elhanani, Raz Ben-Uri, and Leeat Keren. Spatial pro-filing technologies illuminate the tumor microenvironment. 
+
+Cancer cell , 41(3):404–420, 2023. 1 [6] Andrew Erickson, Mengxiao He, Emelie Berglund, Maja Marklund, Reza Mirzazadeh, Niklas Schultz, Linda Kvas-tad, Alma Andersson, Ludvig Bergenstråhle, Joseph Bergen-stråhle, et al. Spatially resolved clonal copy number alter-ations in benign and malignant tissue. Nature , 608(7922): 360–367, 2022. 5 [7] Aniruddha Ganguly, Debolina Chatterjee, Wentao Huang, Jie Zhang, Alisa Yurovsky, Travis Steele Johnson, and Chao Chen. Merge: Multi-faceted hierarchical graph-based gnn for gene expression prediction from whole slide histopathol-ogy images. In 2025 IEEE/CVF Conference on Computer Vi-sion and Pattern Recognition (CVPR) , pages 15611–15620. IEEE, 2025. 6 [8] Bryan He, Ludvig Bergenstråhle, Linnea Stenbeck, Abubakar Abid, Alma Andersson, Åke Borg, Jonas Maaskola, Joakim Lundeberg, and James Zou. Integrating spatial gene expression and breast tumour morphology via deep learning. Nature biomedical engineering , 4(8): 827–834, 2020. 1, 2, 6 [9] Cody N Heiser, Alan J Simmons, Frank Revetta, Eliot T McKinley, Marisol A Ramirez-Solano, Jiawei Wang, Har-simran Kaur, Justin Shao, Gregory D Ayers, Yu Wang, et al. Molecular cartography uncovers evolutionary and microen-vironmental dynamics in sporadic colorectal tumors. Cell ,186(25):5620–5637, 2023. 5 [10] Fabian Hörst, Moritz Rempe, Lukas Heine, Constantin Sei-bold, Julius Keyl, Giulia Baldini, Selma Ugurel, Jens Siveke, Barbara Grünwald, Jan Egger, et al. Cellvit: Vision trans-formers for precise cell segmentation and classification. 
+
+Medical Image Analysis , 94:103143, 2024. 4, 1 [11] Tinglin Huang, Tianyu Liu, Mehrtash Babadi, Wengong Jin, and Rex Ying. Scalable generation of spatial transcriptomics from histology images via whole-slide flow matching. arXiv preprint arXiv:2506.05361 , 2025. 1, 6 [12] Tinglin Huang, Tianyu Liu, Mehrtash Babadi, Rex Ying, and Wengong Jin. Stpath: a generative foundation model for inte-grating spatial transcriptomics and whole-slide images. NPJ Digital Medicine , 8(1):659, 2025. 1 [13] Guillaume Jaume, Paul Doucet, Andrew H. Song, Ming Y. Lu, Cristina Almagro-Perez, Sophia J. Wagner, Anurag J. Vaidya, Richard J. Chen, Drew F. K. Williamson, Ahrong Kim, and Faisal Mahmood. Hest-1k: A dataset for spatial transcriptomics and histology image analysis. In Advances in Neural Information Processing Systems , 2024. 4, 5, 1 [14] Yuran Jia, Junliang Liu, Li Chen, Tianyi Zhao, and Yadong Wang. Thitogene: a deep learning method for predicting spatial transcriptomics from histological images. Briefings in Bioinformatics , 25(1), 2023. 6 [15] Kazumasa Kanemaru, James Cranley, Daniele Muraro, An-tonio MA Miranda, Siew Yen Ho, Anna Wilbrey-Clark, Jan Patrick Pett, Krzysztof Polanski, Laura Richardson, Monika Litvinukova, et al. Spatially resolved multiomics of human cardiac niches. Nature , 619(7971):801–810, 2023. 5 [16] Ludvig Larsson, Jonas Frisén, and Joakim Lundeberg. Spa-tially resolved transcriptomics adds a new dimension to ge-nomics. Nature methods , 18(1):15–18, 2021. 1 [17] Zeming Lin, Halil Akin, Roshan Rao, Brian Hie, Zhongkai Zhu, Wenting Lu, Nikita Smetanin, Allan dos Santos Costa, Maryam Fazel-Zarandi, Tom Sercu, Sal Candido, et al. Lan-guage models of protein sequences at the scale of evolution enable accurate structure prediction. bioRxiv , 2022. 2 [18] Zeming Lin, Halil Akin, Roshan Rao, Brian Hie, Zhongkai Zhu, Wenting Lu, Nikita Smetanin, Robert Verkuil, Ori Ka-beli, Yaniv Shmueli, et al. Evolutionary-scale prediction of atomic-level protein structure with a language model. Sci-ence , 379(6637):1123–1130, 2023. 3 [19] Ming Y Lu, Bowen Chen, Drew FK Williamson, Richard J Chen, Ivy Liang, Tong Ding, Guillaume Jaume, Igor Odintsov, Long Phi Le, Georg Gerber, et al. A visual-language foundation model for computational pathology. 
+
+Nature Medicine , 30:863–874, 2024. 2, 6, 7 [20] Hiren Madhu, João Felipe Rocha, Tinglin Huang, Siddharth Viswanath, Smita Krishnaswamy, and Rex Ying. Heist: a graph foundation model for spatial transcriptomics and pro-teomics data. In International Conference on Learning Rep-resentations , pages 65453–65476, 2026. 2 [21] Wenwen Min, Zhiceng Shi, Jun Zhang, Jun Wan, and Chang-miao Wang. Multimodal contrastive learning for spatial gene expression prediction using histology images. Briefings in Bioinformatics , 25(6):bbae551, 2024. 1, 6 [22] Jeffrey R Moffitt, Emma Lundberg, and Holger Heyn. The emerging landscape of spatial profiling technologies. Nature Reviews Genetics , 23(12):741–759, 2022. 1 [23] Lambda Moses and Lior Pachter. Museum of spatial tran-scriptomics. Nature methods , 19(5):534–546, 2022. 1 [24] Michelli Faria de Oliveira, Juan Pablo Romero, Meii Chung, Stephen R Williams, Andrew D Gottscho, Anushka Gupta, 
+
+9Susan E Pilipauskas, Seayar Mohabbat, Nandhini Raman, David J Sukovich, et al. High-definition spatial transcrip-tomic profiling of immune cell populations in colorectal can-cer. Nature Genetics , pages 1–12, 2025. 1 [25] Minxing Pang, Kenong Su, and Mingyao Li. Leverag-ing information in spatial transcriptomics to predict super-resolution gene expression from histology images in tumors. 
+
+BioRxiv , pages 2021–11, 2021. 1, 2, 6 [26] Kathryn L Penney, Fredrick R Schumacher, Peter Kraft, Lorelei A Mucci, Howard D Sesso, Jing Ma, Yuxin Niu, Jit Kong Cheong, David J Hunter, Meir J Stampfer, et al. As-sociation of klk3 (psa) genetic variants with prostate cancer risk and psa levels. Carcinogenesis , 32(6):853–859, 2011. 6 [27] Ethan Perez, Florian Strub, Harm De Vries, Vincent Du-moulin, and Aaron Courville. Film: Visual reasoning with a general conditioning layer. In Proceedings of the AAAI con-ference on artificial intelligence , 2018. 4 [28] Anjali Rao, Dalia Barkley, Gustavo S França, and Itai Yanai. Exploring tissue architecture using spatial transcriptomics. 
+
+Nature , 596(7871):211–220, 2021. 1 [29] Charlie Saillard, Rodolphe Jenatton, Felipe Llinares-López, Zelda Mariet, David Cahané, Eric Durand, and Jean-Philippe Vert. H-optimus-0, 2024. 2 [30] Hang Shi, Changxi Chi, Peng Wan, Daoqiang Zhang, and Wei Shao. Multi-modal topology-embedded graph learn-ing for spatially resolved genes prediction from pathology images with prior gene similarity information. In 2025 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) , pages 20810–20819. IEEE, 2025. 1, 2[31] Srilakshmi Srinivasan, Thomas Kryza, Nathalie Bock, Brian WC Tse, Kamil A Sokolowski, Panchadsaram Janaththani, Achala Fernando, Leire Moya, Carson Stephens, Ying Dong, et al. A psa snp associates with cellu-lar function and clinical outcome in men with prostate can-cer. Nature communications , 15(1):9587, 2024. 6 [32] Patrik L Ståhl, Fredrik Salmén, Sanja Vickovic, Anna Lund-mark, José Fernández Navarro, Jens Magnusson, Stefania Giacomello, Michaela Asp, Jakub O Westholm, Mikael Huss, et al. Visualization and analysis of gene expression in tissue sections by spatial transcriptomics. Science , 353 (6294):78–82, 2016. 1 [33] Eugene Vorontsov, Alican Bozkurt, Adam Casson, George Shaikovski, Michal Zelechowski, Kristen Severson, Eric Zimmermann, James Hall, Neil Tenenholtz, Nicolo Fusi, Ellen Yang, Philippe Mathieu, Alexander van Eck, Donghun Lee, Julian Viret, Eric Robert, Yi Kan Wang, Jeremy D. Kunz, Matthew C. H. Lee, Jan H. Bernhard, Ran A. Godrich, Gerard Oakley, Ewan Millar, Matthew Hanna, Hannah Wen, Juan A. Retamero, William A. Moye, Razik Yousfi, Christo-pher Kanan, David S. Klimstra, Brandon Rothrock, Siqi Liu, and Thomas J. Fuchs. A foundation model for clinical-grade computational pathology and rare cancers detection. Nature Medicine , 2024. 2, 3, 6, 7 [34] Zhou Wang, Alan C Bovik, Hamid R Sheikh, and Eero P Si-moncelli. Image quality assessment: from error visibility to structural similarity. IEEE transactions on image processing ,13(4):600–612, 2004. 5 [35] Ru M Wen, Zhengyuan Qiu, G Edward W Marti, Eric E Pe-terson, Fernando Jose Garcia Marques, Abel Bermudez, Yi Wei, Rosalie Nolley, Nathan Lam, Alex LaPat Polasko, et al. Azgp1 deficiency promotes angiogenesis in prostate cancer. 
+
+Journal of translational medicine , 22(1):383, 2024. 6 [36] Ronald Xie, Kuan Pang, Sai Chung, Catia Perciani, Sonya MacParland, Bo Wang, and Gary Bader. Spatially resolved gene expression prediction from histology images via bi-modal contrastive learning. Advances in Neural Information Processing Systems , 36:70626–70637, 2023. 2, 5, 6 [37] Hanwen Xu, Naoto Usuyama, Jaspreet Bagga, Sheng Zhang, Rajesh Rao, Tristan Naumann, Cliff Wong, Zelalem Gero, Javier González, Yu Gu, et al. A whole-slide foundation model for digital pathology from real-world data. Nature ,630(8015):181–188, 2024. 6, 7 [38] Wen Yan, Peihua Wang, Chun Xia Zhao, Jiarong Tang, Xiao Xiao, and Dao Wen Wang. Decorin gene delivery in-hibits cardiac fibrosis in spontaneously hypertensive rats by modulation of transforming growth factor-β/smad and p38 mitogen-activated protein kinase signaling pathways. Hu-man gene therapy , 20(10):1190–1200, 2009. 6 [39] Yan Yang, Md Zakir Hossain, Eric A Stone, and Shafin Rah-man. Exemplar guided deep neural network for spatial tran-scriptomics analysis of gene expression prediction. In Pro-ceedings of the IEEE/CVF Winter Conference on Applica-tions of Computer Vision , pages 5039–5048, 2023. 1, 2 [40] Yan Yang, Md Zakir Hossain, Xuesong Li, Shafin Rahman, and Eric Stone. Spatial transcriptomics analysis of zero-shot gene expression prediction. In International Conference on Medical Image Computing and Computer-Assisted Interven-tion , pages 492–502. Springer, 2024. 2, 7 [41] Yuansong Zeng, Zhuoyi Wei, Weijiang Yu, Rui Yin, Yuchen Yuan, Bingling Li, Zhonghui Tang, Yutong Lu, and Yue-dong Yang. Spatial transcriptomics prediction from histol-ogy jointly through transformer and graph neural networks. 
+
+Briefings in Bioinformatics , 23(5), 2022. 1, 2 [42] Yuansong Zeng, Yujie Song, Chengyang Zhang, Haoxuan Li, Yongkang Zhao, Weijiang Yu, Shiqi Zhang, Hongyu Zhang, Zhiming Dai, and Yuedong Yang. Imputing spatial transcriptomics through gene network constructed from pro-tein language model. Communications Biology , 7(1):1271, 2024. 2 [43] Daiwei Zhang, Amelia Schroeder, Hanying Yan, Haochen Yang, Jian Hu, Michelle YY Lee, Kyung S Cho, Katalin Susztak, George X Xu, Michael D Feldman, et al. Infer-ring super-resolution tissue architecture by integrating spa-tial transcriptomics with histology. Nature biotechnology ,42(9):1372–1377, 2024. 6 [44] Weiqin Zhao, Zhuo Liang, Xianjie Huang, Yuanhua Huang, and Lequan Yu. Hist2cell: deciphering fine-grained cellular architectures from histology images. Cell Genomics , 6(3), 2026. 1 [45] Sichen Zhu, Yuchen Zhu, Molei Tao, and Peng Qiu. Dif-fusion generative modeling for spatially resolved gene ex-pression inference from histology images. arXiv preprint arXiv:2501.15598 , 2025. 1, 2, 5, 6 [46] Chunman Zuo, Junjie Xia, and Luonan Chen. Dissecting tumor microenvironment from spatially resolved transcrip-
+
+10 tomics data by heterogeneous graph learning. Nature Com-munications , 15(1):5057, 2024. 1 
+
+11 Spatial Transcriptomics Prediction from Histology via Topology-Informed Graph Attention and Gene-Semantics Conditioning 
+
+# Supplementary Material 
+
+6. Dataset Description 
+
+In this work, we benchmarked our method on three large-scale ST datasets, whose details are summarized in Tab. 6. 
+
+Table 6. Datasets statistics Dataset Technology #Samples Avg. spots Total spots Organ HEART 10X Visium 9 2461 25861 Heart COAD 10X Visium 13 3354 43605 Bowel MEND 10X Visium 14 2455 34370 Prostate 
+
+All three datasets were sourced from HEST-1K[13]. The HEART dataset contains samples MISC132–142 (ex-cluding MISC137, 134), the COAD dataset includes sam-ples MISC33–45, and the MEND dataset contains samples 140–153. Raw expression counts were transformed by the log1p numpy function. All experiment results can be repro-duced by directly downloading the datasets we mentioned without further preprocessing. 
+
+7. Topology cue construction 
+
+We construct three topology cue channels from CellViT cell segmentation [10] to form Ftopo =[Fdensity ∥ Fcount ∥ Fanisotropy ]. CellViT provides a set of nuclei (or cell) centroids C = {cm = ( xm, y m)}Mm=1 
+
+in the same slide coordinate system as spot centers. All topology maps are computed on a regular grid of size 
+
+Hf × Wf aligned with the WSI, with grid location u
+
+representing the corresponding pixel coordinate. 
+
+Kernelized density map. We define a smooth cell density field by Gaussian kernel density estimation (KDE): 
+
+Fdensity (u) = 
+
+> M
+
+X
+
+> m=1
+
+Kσd (u − cm) , Kσ (r) = exp 
+
+
+
+− ∥r∥22
+
+2σ2
+
+
+
+,
+
+(25) where σd controls the spatial smoothing bandwidth. This channel captures local cellularity and highlights tissue com-partments with distinct cell packing. 
+
+Local nuclei count map. To provide a complementary, less-smoothed signal, we compute a local count within a fixed-radius neighborhood: 
+
+Fcount (u) = 
+
+> M
+
+X
+
+> m=1
+
+1[ ∥u − cm∥2 ≤ rc ] , (26) where rc is a counting radius (in pixels). Compared with KDE density, this produces a piecewise-constant map that is sensitive to sharp transitions. 
+
+Anisotropy / structure map. We quantify local direc-tional organization by measuring the anisotropy of the cen-troid distribution in a neighborhood. For each grid point u,let N (u) = {m : ∥u − cm∥2 ≤ ra} be nearby centroids. We compute the weighted second-moment matrix 
+
+S(u) = 1
+
+Z(u)
+
+X 
+
+> m∈N (u)
+
+wm(u) ( cm − μ(u)) ( cm − μ(u)) ⊤ ,
+
+(27) where wm(u) = Kσa (u−cm), Z(u) = P  
+
+> m∈N (u)
+
+wm(u),and μ(u) = 1
+
+> Z(u)
+
+P  
+
+> m∈N (u)
+
+wm(u) cm. Let λ1(u) ≥ λ2(u) ≥ 0 denote eigenvalues of S(u). We define an anisotropy index 
+
+Fanisotropy (u) = λ1(u) − λ2(u)
+
+λ1(u) + λ2(u) + ε , (28) where ε is a small constant. This channel is high in locally aligned or elongated structures (e.g., stromal bands) and low in isotropic regions, providing cues about boundaries and compartment transitions. 
+
+Normalization and stacking. Before concatenation, each channel is robustly normalized per slide: 
+
+˜F (u) = clip 
+
+ F (u) − median( F )IQR( F ) + ε , [−3, 3] 
+
+
+
+, (29) and we set Ftopo = [ ˜Fdensity ∥ ˜Fcount ∥ ˜Fanisotropy ].In summary, these three channels are chosen to pro-vide a compact but expressive summary of cell-level ge-ometry that is most relevant to spatial expression infer-ence. Fdensity captures cellularity and coarse compart-mental structure (e.g., tumor-rich vs. stroma-rich regions), which is strongly associated with broad transcriptional pro-grams. Fcount complements KDE density by retaining 
+
+sharp local discontinuities and abrupt changes in cellu-lar abundance that frequently occur near lumens, inva-sive fronts, and tissue interfaces—precisely where message passing should be attenuated. Fanisotropy encodes organi-zation and alignment of local cell arrangements, highlight-ing directional stromal bands, glandular boundaries, and other architectural motifs that are not well represented by 1scalar density alone. Together, these cues cover three fun-damental geometric factors— how many cells are present 
+
+(mass), how abruptly this changes (discontinuity), and how cells are arranged (orientation/structure)—which empiri-cally explain most topology-driven variation in tissue mi-croenvironments at Visium resolution. We therefore treat 
+
+Ftopo = [ Fdensity ∥ Fcount ∥ Fanisotropy ] as a lightweight yet sufficient topology descriptor set for learning slide-specific barrier fields, while keeping the field branch inexpensive and robust to segmentation noise. 
+
+7.1. Constructing positive/negative edge sets for barrier-field supervision 
+
+We build a spot graph G = ( V, E) (Visium 6-neighbors MNN). For each edge (i, j ) ∈ E , we compute two scores: 
+
+Morphology discrepancy. 
+
+dmorph  
+
+> ij
+
+= ∥xi − xj ∥2, (30) where xi is the patch embedding. 
+
+Topology discrepancy. Let ti ∈ R3 be the topology descriptor at spot i, obtained by sampling 
+
+[Fdensity , F count , F anis ] at si.
+
+dtopo  
+
+> ij
+
+= ∥ti − tj ∥2. (31) We define positive edges P (likely within-compartment) and negative edges N (likely cross-boundary) by threshold-ing these discrepancies using per-slide quantiles: 
+
+(i, j ) ∈ P ⇐⇒ dmorph  
+
+> ij
+
+≤ Qα
+
+ dmorph  ∧ dtopo  
+
+> ij
+
+≤ Qα
+
+ dtopo  ,
+
+(32) 
+
+(i, j ) ∈ N ⇐⇒ dmorph  
+
+> ij
+
+≥ Qβ
+
+ dmorph  ∨ dtopo  
+
+> ij
+
+≥ Qβ
+
+ dtopo  ,
+
+(33) with α < β (e.g., α = 0 .3, β = 0 .7). This yields weak but effective pseudo-labels for boundary supervision. 
+
+Barrier-field loss. Given the barrier map B = ffield (F ),we compute the traversal cost cij along the straight segment between si and sj (Eq. 10 in the main text). We supervise 
+
+B by enforcing that positive edges have lower costs than negative edges incident to the same anchor node i:
+
+Lfield = 1
+
+|P| 
+
+X
+
+> (i,j )∈P
+
+1
+
+|N (i)|
+
+X 
+
+> (i,k )∈N (i)
+
+max  0, m +cij −cik 
+
+,
+
+(34) where N (i) = {(i, k ) ∈ N } and m > 0 is a margin. This provides a direct training signal for ffield and avoids degen-eracy of the barrier map. The barrier field B is optimized to rank traversal costs on local graph edges: for an anchor spot i, edges in P (likely within the same compartment/state) are enforced to have lower line-integral cost cij than edges in N (i) (likely cross-ing a boundary), up to a margin m (Eq. (34)). Since cij ag-gregates B along the straight segment connecting si and sj ,the only way to satisfy these inequalities consistently across many anchors is to assign high B values to spatial locations that are repeatedly traversed by negative edges but rarely by positive edges. These locations correspond to persistent transition regions in the tissue plane (e.g., lumens, stromal interfaces, compartment borders), while homogeneous re-gions accumulate low B.As a result, B induces a data-driven propagation prior 
+
+on the spot graph: edges whose connecting paths pass through high-barrier regions receive large cij and are down-weighted, whereas edges staying within low-barrier regions receive small cij and are favored. Converting costs to a neighborhood distribution via qij ∝ exp( −cij /τ b) there-fore yields a topology-aware teacher graph that preserves within-compartment connectivity while suppressing cross-boundary leakage. Importantly, this supervision is indepen-dent of the GAT attention and does not rely on matching the student; thus the learned field does not trivially collapse to the model’s current attention pattern and provides a stable geometric prior for boundary-aware message passing. 
+
+8. Pseudocode of TIGEM 
+
+Due to restrictions on external links, we provide pseu-docode for our implementation in the manuscript instead of sharing an anonymous GitHub repository. Following the modular structure of our codebase, we decompose the framework into four components and present pseudocode for each. The topology prior construction is given in Al-gorithm 1, train barrier field is shown in Algorithm 2 and TIG block details are shown in Algorithm 4, the GSMu al-gorithm is provided in Algorithm 5, and unseen gene pre-diction is provided in Algorithm 6. The official coda base will be provided after being accepted. 
+
+9. TIGEM implementation and training 
+
+Here we provide the implementation details of our TIGEM for reproduction. Generally, our model is implemented based on Pytorch v2.7. 
+
+Backbone encoder. We stack L=3 identical TIG blocks. Each block applies Pre-Norm LayerNorm, a multi-head GATv2 layer on the spot graph ( H=4 heads, hidden 
+
+d=512 ), ELU and dropout ( p=0 .2), followed by a resid-ual projection and a position-wise FFN (GELU, expansion ratio 2×) with a second residual. The topology appears via a KL regularizer. 
+
+Node features and graphs. For each slide we concate-nate UNI-2 and Virchow2 embeddings. The spot graph is built by kNN →MNN with k=6 on full-resolution pixel co-ordinates and pruned by a global threshold τ =c·median-NN 2Algorithm 1 Topology prior construction for TIGEM 
+
+Require: Spot coordinates {si}Ni=1 , patch embeddings 
+
+{xi}Ni=1 , CellViT cell centroids C = {(um, v m)}Mm=1 
+
+Require: Hyperparameters: k (neighbors), grid size (Hf , W f ), splat bandwidth σ, thresholds 
+
+(τdens , τ ani , τ morph )
+
+Ensure: Spot graph G = ( V, E), positive edges P, negative edges N 
+
+> 1:
+
+Build spot graph E ← MNN( {si}, k) ▷ or Visium 6-neighbor  
+
+> 2:
+
+Rasterize morphology Fmorph ← PNi=1 Kσ (· − 
+
+si) Wxxi 
+
+> 3:
+
+Compute topology cues from C: 
+
+> 4:
+
+density map Fdens ; anisotropy map Fani ; nuclei-count map Fcnt  
+
+> 5:
+
+Ftopo ← [Fdens ∥ Fcnt ∥ Fani ] 
+
+> 6:
+
+F ← [Fmorph ∥ Ftopo ] ∈ RC×Hf ×Wf 
+
+> 7:
+
+Score each edge (i, j ) ∈ E using cue differences:  
+
+> 8:
+
+dmorph  
+
+> ij
+
+← ∥ Wmxi − Wmxj ∥2 
+
+> 9:
+
+ddens  
+
+> ij
+
+← | Fdens (si) − Fdens (sj )| 
+
+> 10:
+
+dani  
+
+> ij
+
+← | Fani (si) − Fani (sj )| 
+
+> 11:
+
+rij ← 1[dmorph  
+
+> ij
+
+< τ morph ] · 1[ddens  
+
+> ij
+
+< τ dens ] · 1[dani  
+
+> ij
+
+<τani ] 
+
+> 12:
+
+Construct pseudo-label sets  
+
+> 13:
+
+P ← { (i, j ) ∈ E : rij = 1 } ▷ likely within-compartment  
+
+> 14:
+
+N ← { (i, j ) ∈ E : rij = 0 } ▷ likely cross-boundary  
+
+> 15:
+
+return G, P, N , F 
+
+with c=1 .5; self-loops are removed and the graph is sym-metrized. 
+
+Training. We optimize the mean squared error on 
+
+log(1+ counts ) plus λtopo Ltopo with AdamW (lr 10 −4,weight decay 10 −5), gradient clipping (5.0), batch size 2
+
+slides, 500 epochs. Weights are Xavier-initialized; we fix random seeds and use deterministic cuDNN settings. 
+
+Inference and zero-shot. Given a trained encoder, un-seen genes g∗ are handled without retraining: compute the ESM2 embedding, project to a gene token, run the cross-attention +FiLM head, and read out ˆY·,g ∗ . The topology prior is reused as is. 
+
+10. Experiment Implementation 
+
+Running environment The experiments and model train-ing are conducted on two Linux servers. Server 1: Most of the experiments are conducted on the server with the AMD EPYC 7452 32-Core Processor, 503G RAM, and 4 Nvidia A40 48 GB GPUs. Server 2: To speed up the model train-ing, we put the heavy tasks (including Stem model training and inference and TIGEM training) on the server with the AMD EPYC 9354 32-Core Processor, 1.0T RAM, and 1 
+
+Algorithm 2 Training the barrier field branch 
+
+Require: Fused feature map F , spot coords {si}, edge sets 
+
+P, N , temperature τb, margin m, samples T
+
+Require: Barrier network ffield (·), optimizer O PT , training steps S
+
+Ensure: Trained barrier field network ffield  
+
+> 1:
+
+for t = 1 to S do  
+
+> 2:
+
+B ← softplus( ffield (F )) ▷ nonnegative barrier map  
+
+> 3:
+
+Lfield ← 0 
+
+> 4:
+
+for all (i, j ) ∈ P do  
+
+> 5:
+
+Sample negatives N (i) = {(i, k ) ∈ N } (or a subset)  
+
+> 6:
+
+cij ← LineCost( B, si, sj , T ) 
+
+> 7:
+
+for all (i, k ) ∈ N (i) do  
+
+> 8:
+
+cik ← LineCost( B, si, sk, T ) 
+
+> 9:
+
+Lfield += max(0 , m + cij − cik ) 
+
+> 10:
+
+end for  
+
+> 11:
+
+end for  
+
+> 12:
+
+Lfield ← L field /(|P| · E|N (i)|) 
+
+> 13:
+
+OPT .zero_grad(); backprop ∇L field ; OPT .step()  
+
+> 14:
+
+end for  
+
+> 15:
+
+return ffield 
+
+Algorithm 3 LINE COST (B, si, sj , T )
+
+Require: Barrier map B, endpoints si, sj , samples T
+
+Ensure: Traversal cost cij  
+
+> 1:
+
+ℓij (t) ← (1 − t)si + tsj 
+
+> 2:
+
+{τr }Tr=1 ← uniform grid in [0 , 1]  
+
+> 3:
+
+cij ← ∥si−sj ∥2
+
+> T
+
+PTr=1 B(ℓij (τr ))  
+
+> 4:
+
+return cij 
+
+Nvidia H200 141GB GPU. 
+
+Baseline training. This subsection presents the imple-mentation details of the baseline models to guarantee a con-sistent and fair comparison with TIGEM. All input prepro-cessing follows the procedures described in Sec. 6. 
+
+ST-Net. ST-Net adopts a DenseNet pretrained on Ima-geNet as its initialization and fine-tunes it on ST data by substituting the final regression layer. In our implemen-tation, we set the learning rate as 10 −4 while maintaining other hyperparameters and the architectural design reported in the original work. 
+
+HistoGene. This model employs a Vision Transformer (ViT) to encode each spot-level image patch from the WSI. Following the configuration reported in the original work, we use 4 transformer layers with 16 attention heads, a hid-den dimension of 128, and a dropout rate of 0.1. Spot coor-dinates are projected through a linear embedding layer be-fore being fused with visual features. 
+
+THItoGene. THItoGene extracts molecular features 3Algorithm 4 TIG Block with Barrier-Field Teacher and Topology-KL 
+
+Require: Prev features H(ℓ−1) ∈ RN ×d; spot graph 
+
+edge _index ; spot coordinates {si}Ni=1 ; fused raster map F ; barrier network ffield ; temperature 
+
+τb; samples T ; TopoKL weight λtopo ; task loss 
+
+Ltask .
+
+Ensure: Updated features H(ℓ) and total loss L. 
+
+> 1:
+
+(Barrier-field teacher) B ← softplus  ffield (F ) ▷B ∈ RHf ×Wf , nonnegative For each edge (i, j ) ∈ edge _index , compute line cost cij ← LineCost( B, si, sj , T ) by sampling T
+
+points on the segment. Teacher distribution: qij ←
+
+softmax j∈N (i)(−cij /τ b), and we detach it: 
+
+˜q ← stopgrad( q). 
+
+> 2:
+
+(Student attention + TIG update) Z ← LN  H(ℓ−1)  
+
+> 3:
+
+(Zgat , (eidx, α )) ←
+
+MultiHead -GATv2( Z, edge _index ) ▷ α ∈ RE×M 
+
+> 4:
+
+Zgat ← Dropout(ELU( Zgat ))  
+
+> 5:
+
+˜H ← Proj  H(ℓ−1)  + Zgat ▷ Proj only if dims differ  
+
+> 6:
+
+H(ℓ) ← ˜H + FFN  LN( ˜H) 
+
+> 7:
+
+(Topology-KL regularization) 
+
+Mask non-self: M ← { k | eidx 0[k]̸ = eidx 1[k]};
+
+src ← eidx 0[M ], α ← α[M ]. 
+
+> 8:
+
+pedge ← mean _heads( α) 
+
+> 9:
+
+p ← softmax _by _src( pedge , src ) ▷ student probs aligned with (src, dst )
+
+Align ˜q to current (src, dst ) order (same edge list); obtain ˜q per source node.  
+
+> 10:
+
+L(ℓ) 
+
+> topo
+
+← 1
+
+|B|
+
+X
+
+> i
+
+X 
+
+> j∈N (i)
+
+˜qij (log(˜ qij + ϵ) − log( pij + ϵ))  
+
+> 11:
+
+L ← L task + λtopo L(ℓ) 
+
+> topo
+> 12:
+
+return H(ℓ), L
+
+from each spot’s patch using a dynamic convolution mod-ule and an Efficient-Capsule block. Spot coordinates are embedded through a positional encoding module. These vi-sual and positional features are then globally modeled with a ViT to capture long-range spatial relationships. Finally, a GAT layer adaptively aggregates neighborhood information to predict gene expression. Similar to HistoGene, we use 4 transformer layers. Learning rate is set as 1e-5. 
+
+BLEEP. BLEEP learns a joint embedding space for his-tology images and gene expression profiles through a con-trastive objective. For each spot, the model retrieves the k
+
+most similar spots from a reference pool and uses their aver-aged expression as the prediction. In our implementation, a pretrained pathology foundation model serves as the visual encoder, while shallow MLP heads project both image fea-
+
+Algorithm 5 GSMu 
+
+Require: Node embeddings H ∈ RN ×d; gene embeddings 
+
+E ∈ RG×dg ; projection We
+
+Ensure: Predictions ˆY ∈ RN ×G 
+
+> 1:
+
+Φ ← LN( E) We ∈ RG×d ▷ align genes to encoder dim  
+
+> 2:
+
+(Cross-attention) For each gene g: Zg ←
+
+CrossAttn( q = Φ g , K = H, V = H) ∈ Rd 
+
+> 3:
+
+(FiLM) (γg , β g ) ← MLP FiLM (Zg ) with γg ≈ 1, β g ≈
+
+0 at init (tanh-gated)  
+
+> 4:
+
+Shared readout u ∈ Rd 
+
+> 5:
+
+ˆYi,g ← u⊤ γg ⊙ Hi + βg
+
+ (apply Softplus to ensure non-negativity)  
+
+> 6:
+
+return ˆY
+
+Algorithm 6 Zero-Shot Gene Prediction 
+
+Require: Unseen gene embedding eg∗ ∈ Rdg ; frozen en-coder output H
+
+Ensure: ˆy:,g ∗ ∈ RN 
+
+> 1:
+
+Φg∗ ← LN( eg∗ ) We 
+
+> 2:
+
+Zg∗ ← CrossAttn( q = Φ g∗ , K = H, V = H) 
+
+> 3:
+
+(γg∗ , β g∗ ) ← MLP FiLM (Zg∗ ) 
+
+> 4:
+
+ˆyi,g ∗ ← u⊤ (γg∗ ⊙ Hi + βg∗ ) 
+
+> 5:
+
+return ˆy:,g ∗
+
+tures and gene vectors into the shared space. We used batch size 256 and learning rate 5 × 10 −4. We set the contrastive temperature to 1 and use k = 50 retrieved neighbors. 
+
+TRIPLEX. TRIPLEX integrates information from mul-tiple spatial scales through four modules: a target encoder, a local neighborhood encoder, a global WSI encoder, and a fusion encoder that aggregates their outputs. Following the official setup, each spot image is first embedded with a pretrained pathology foundation model before entering the network. According to the original paper, the APEG mod-ule is used in the model. Default settings are used in the benchmarking. 
+
+Stem. Stem adopts a Diffusion Transformer (DiT)–based conditional generative model to predict spot-level gene expression. During training, each patch is encoded by a pretrained pathology foundation model, and the resulting embedding is used as the conditioning signal for denoising the gene expression vector. At inference time, Stem generates multiple samples and averages them to obtain the final prediction. We used a batch size of 128 and 5 × 10 −5 learning rate with 300K iterations for all experiments. 
+
+M2TGLGO. M2TGLGO models gene relationships and spatial information for histology-based spatial gene expres-sion prediction. In our implementation, we follow the archi-tectural design and training strategy reported in the original 4work and evaluate the model using the same data splits as TIGEM. 
+
+STFlow. STFlow employs a flow-based generative framework to predict spatial gene expression from histology images. In our implementation, we follow the network ar-chitecture and hyperparameter settings reported in the orig-inal work and retrain the model using the same training and testing splits as TIGEM. 
+
+MERGE. MERGE integrates histological representa-tions and spatial information for spatial gene expression prediction. In our implementation, we follow the original model architecture and training configuration and evaluate it under the same data splits as TIGEM. 
+
+SGN. SGN leverages semantic gene representations to enable zero-shot prediction of unseen genes from histology images. In our implementation, we follow the architecture and training strategy reported in the original work and eval-uate SGN under the same SRG 5:1 setting as TIGEM for a direct zero-shot comparison. 
+
+iStar. iStar predicts spatial gene expression from histol-ogy by leveraging pretrained histology representations and spatial context. In our implementation, we follow the ar-chitectural design and training configuration reported in the original work and evaluate the model using the same data splits as TIGEM. 
+
+mclSTExp. mclSTExp employs a DenseNet-121 image encoder and a Transformer-based spot encoder with posi-tional encoding to learn a joint embedding space between histology and spatial gene expression through contrastive learning. Gene expression is predicted by similarity-based retrieval and weighted aggregation of the top-k reference expression profiles. In our implementation, we follow the architectural design and training configuration reported in the original work. 
+
+PVMs. We use the official pretrained weights for all PVMs and follow the image preprocessing procedures rec-ommended in their HuggingFace tutorials, including Ima-geNet mean–std normalization. Following the HEST-1K evaluation protocol, all patch embeddings are reduced to 128 dimensions using PCA. A Random Forest regressor with 100 trees is then used to predict. 
+
+11. Evaluation Metrics 
+
+To assess the quality of spatial expression prediction, we employ three established metrics: the Pearson Correlation Coefficient (PCC), Mean Squared Error (MSE), and Struc-tural Similarity Index Measure (SSIM), together with our proposed Graph Spectral Correlation (GSC). All metrics are computed in the log-transformed expression domain to re-duce count-scale variability. For each gene, PCC evaluates how well the predicted ex-pression captures the directional trend of the ground truth across spatial spots, while MSE reflects the average squared deviation between prediction and measurement. Since the predictive difficulty varies substantially across genes, we follow standard practice [4, 45] and summarize PCC at two levels. Specifically, we compute PCC for every gene in a slide, rank all genes by their PCC values, and report the mean PCC over the top 50 and top 200 genes, denoted PCC(50) and PCC(200), respectively. Formally, given prediction ˆyi,j and ground truth yi,j at spot i for gene j, PCC and MSE for gene j are defined as 
+
+P CC j =
+
+Pni=1 (ˆ yi,j − ¯ˆy.j )( yi,j − ¯y.j )
+
+qPni=1 (ˆ yi,j − ¯ˆy.j )2pP ni=1 (yi,j − ¯y.j )2
+
+(35) 
+
+MSE j = 1
+
+n
+
+> n
+
+X
+
+> i=1
+
+(yi,j − ˆyi,j )2. (36) For a slide with m genes, we then compute: 
+
+P CC (50) = 150 
+
+X
+
+> j∈top-50
+
+P CC j , (37) 
+
+P CC (200) = 1200 
+
+X
+
+> j∈top-200
+
+P CC j , (38) 
+
+MSE = 1
+
+m
+
+> m
+
+X
+
+> j=1
+
+MSE j . (39) In addition to these spot-wise metrics, we employ SSIM [34] as an established measure of spatial structural similarity. For each gene, the predicted and ground-truth ex-pression values are mapped onto the same two-dimensional spatial lattice, and SSIM evaluates their agreement in lo-cal intensity, contrast, and spatial structure. We report SSIM(50) as the mean SSIM over the 50 genes with the highest PCC values: 
+
+SSIM(50) = 150 
+
+X
+
+> j∈top-50
+
+SSIM 
+
+ ˆYj , Yj
+
+
+
+, (40) where ˆYj and Yj denote the predicted and ground-truth two-dimensional spatial expression maps for gene j, respec-tively. SSIM is used exclusively for evaluation and is inde-pendent of both the TIGEM training objective and the pro-posed GSC metric. While PCC and MSE primarily quantify spot-wise nu-merical agreement, and SSIM provides an established image-based assessment of local spatial structure, they do not explicitly characterize expression patterns with respect to the underlying spatial graph of ST spots. For spatial transcriptomics, such graph-structured organization is par-ticularly relevant for capturing spatial domains and region-specific expression patterns. To complement these estab-lished metrics, we introduce GSC, which measures the consistency between predicted and ground-truth expression patterns in the graph spectral domain. 512. Graph Spectral Correlation 
+
+We propose Graph Spectral Correlation (GSC), a metric that serves as a supplementary for Pearson Correlation Co-efficient (PCC). GSC could capture the similarity of the global structure between predicted spatial transcriptomic and ground truth. Firstly, for one sample, we pick one gene g to measure the quality of prediction. We define the predicted signals as 
+
+xg and the ground truth as yg .PCC is widely used to measure the quality of spatial tran-scriptomic prediction, defined as: 
+
+P CC g = < x g , y g >
+
+∥xg ∥ ∥ yg ∥ = x⊤ 
+
+> g
+
+I y g
+
+∥xg ∥ ∥ yg ∥ = x⊤ 
+
+> g
+
+I y g
+
+q
+
+x⊤ 
+
+> g
+
+I x g ,
+
+q
+
+y⊤ 
+
+> g
+
+I y g
+
+(41) Our GSC is computed by measuring the cosine similar-ity between the prediction’s and the label’s spectrum after graph Fourier transform. We first construct the normalized graph Laplacian 
+
+L = I − D−1/2AD −1/2
+
+and perform eigendecomposition to obtain the graph Fourier basis. The eigenmodes are ordered according to as-cending eigenvalues. From the eigendecomposition of the normalized graph Laplacian, we obtain an orthonormal ma-trix 
+
+U = [ u0, u 1, . . . , u n−1].
+
+We discard the trivial zero-frequency mode and retain the spectral components corresponding to modes 1 through k
+
+(k is automatically selected based on the cumulative energy proportion) to compute the final similarity score. 
+
+Uk = [ u1, . . . , u k].
+
+Then, for a graph signal x, its truncated graph Fourier spectrum is given by U ⊤ 
+
+> k
+
+x.Hence, for a gene g and a truncated top k spectrum, our GSC is defined as: 
+
+GSC g,k = < U ⊤ 
+
+> k
+
+xg , U ⊤ 
+
+> k
+
+yg >
+
+∥U ⊤ 
+
+> k
+
+xg ∥ ∥ U ⊤ 
+
+> k
+
+yg ∥ = x⊤ 
+
+> g
+
+Uk U ⊤ 
+
+> k
+
+yg
+
+q
+
+x⊤ 
+
+> g
+
+Uk U ⊤ 
+
+> k
+
+xg ,
+
+q
+
+y⊤ 
+
+> g
+
+Uk U ⊤ 
+
+> k
+
+yg
+
+(42) Similarly to PCC, the final GSC-measure is the mean value of GSC across genes. 
+
+12.1. Mathematical Proof 
+
+To reveal our GSC’s capability to consider the spatial pattern while PCC only evaluates node-wise similarity, we give a simple proof here: We firstly define 
+
+K := UkU ⊤ 
+
+> k
+
+= {Kij }ni,j =1 (43) so the GSC can be rewritten as 
+
+GSC g,k = x⊤ 
+
+> g
+
+K y g
+
+q
+
+x⊤ 
+
+> g
+
+K x g
+
+q
+
+y⊤ 
+
+> g
+
+K y g
+
+=
+
+Pni=1 
+
+Pnj=1 Kij xg,i yg,j 
+
+qPni=1 
+
+Pnj=1 Kij xg,i xg,j 
+
+qPni=1 
+
+Pnj=1 Kij yg,i yg,j 
+
+.
+
+(44) Here, each element of K is given by 
+
+Kij =
+
+> k
+
+X
+
+> m=1
+
+u(m) 
+
+> i
+
+u(m) 
+
+> j
+
+,
+
+where u(m) 
+
+> i
+
+denotes the i-th element of the m-th eigenvec-tor in Uk. It could also be noted as Uk,im .
+
+Proposition: K = UkU ⊤ 
+
+> k
+
+is not a diagonal matrix, given that: 1. Uk ∈ Rn×k consists of k columns selected from an orthonormal matrix U ∈ Rn×n (1 ≤ k < n − 1) (excluding the DC component u0), where U is the Graph Fourier basis of a connected undirected graph. 2. n is the number of nodes in the connected undi-rected graph with adjacency matrix A and degree matrix 
+
+D = diag (d1, . . . , d n), where di ≥ 1 for all i ∈ { 1, . . . , n }.
+
+Proof by contradiction :Let r⊤ 
+
+> 1
+
+, r ⊤ 
+
+> 2
+
+, . . . , r ⊤ 
+
+> n
+
+denote the row vectors of Uk. We can represent Uk as 
+
+Uk =
+
+
+
+r⊤
+
+> 1
+
+r⊤
+
+> 2
+
+...
+
+r⊤
+
+> n
+
+
+
+Therefore, K can be rewritten by the inner product of its row vectors: 
+
+Kij = r⊤ 
+
+> i
+
+rj = ⟨ri, r j ⟩
+
+Assume K is a diagonal matrix. This implies that all off-diagonal elements are zero, so we can rewrite as 
+
+⟨ri, r j ⟩ = 0 (∀i̸ = j)
+
+Under this assumption, the set {r1, r 2, . . . , r n} must be an orthogonal set of vectors. Since rank (K) = rank (UkU ⊤ 
+
+> k
+
+) = rank (Uk) = k, a di-agonal matrix with rank k must have exactly k non-zero diagonal elements. Consequently, exactly k rows of Uk are non-zero vectors, and the remaining n − k rows must be 6zero vectors. Without loss of generality, by reordering the nodes, we can partition Uk as 
+
+Uk =
+
+ Vk×k
+
+0(n−k)×k
+
+
+
+where V is a k × k non-singular submatrix. Consider the full orthogonal matrix U = [ u0, U k, U rest ].We partition the constant vector u0 accordingly: 
+
+U =
+
+ u0,top V Urest, top 
+
+u0,bottom 0 Urest, bottom 
+
+
+
+where u0,top ∈ Rk. Because the columns of an orthogonal matrix must be mutually orthogonal, u0 must be orthogonal to every column in Uk:
+
+u⊤ 
+
+> 0
+
+Uk = 0⊤ =⇒ [u⊤
+
+> 0,top
+
+, u ⊤
+
+> 0,bottom
+
+]
+
+V
+
+0
+
+
+
+= 0⊤
+
+Expanding this: 
+
+u⊤
+
+> 0,top
+
+V = 0⊤
+
+Since V is a non-singular matrix of rank k,
+
+u0,top = 0
+
+The result u0,top = 0 implies that the first k components of the constant vector u0 are zero. However, for a connected graph, the unit eigenvector u0 corresponding to the smallest eigenvalue λ0 = 0 is unique, and the corresponding eigen-vector u0 satisfies 
+
+Lu 0 = 0 = ⇒ D−1/2AD −1/2u0 = u0.
+
+Writing component wise, for every every pair (i, j ) such that Aij > 0:
+
+u0,i 
+
+√di
+
+= u0,j 
+
+pdj
+
+=⇒ u0,i = cpdi, ∀i, 
+
+while c is a constant. After normalization, the absolute value of its i-th component is given by: 
+
+|u0,i | =
+
+√di
+
+qPnj=1 dj
+
+The degree of each node must satisfy di ≥ 1. Conse-quently, for every node i, we have: 
+
+|u0,i | > 0 = ⇒ u0,i ̸ = 0 
+
+This directly contradicts the requirement u0,top = 0 ob-tained from our assumption. Hence, Uk cannot have only k
+
+non-zero rows. Similarly, we can also prove that Uk cannot have only k′
+
+< k non-zero rows. The number of non-zero row vectors m must satisfy m > k .In a k-dimensional space Rk, the maximum number of mutually orthogonal non-zero vectors is k. Since we have 
+
+m > k non-zero row vectors ri in Rk, these vectors must be linearly dependent and cannot be mutually orthogonal. Therefore, the assumption is false. There exists at least one pair i̸ = j such that ⟨ri, r j ⟩̸ = 0 , meaning K contains off-diagonal non-zero elements. Thus, K is not a diagonal matrix. ■
+
+Now we have proved that K is not diagonal. Revisit-ing Eq. (41), we can find that PCC’s use a I matrix which means for all i, PCC’s calculation only compares xi and yi.This preserves the strict matching among spot-pairs, mak-ing each spot exactly the same influence to the overall cal-culated relationship. On the other hand, non-diagonal K
+
+brings un-matching pairs xi and yj to GSC’s calculation. This type of choice enables more spatial-induced weights in computation. Since our spectrum picking from graph Fourier transform keeps low-frequency, which captures rel-atively large-scale oscillation. The GSC focuses more on large-scale boundaries and borders across regions, which is closely related to the former proved spatial weighted mea-surement. Considering the lack of attention on region borders from PCC’s universal equal weighting, the proposed GSC could serve as a meaningful complementary metric. It avoids ne-glecting critical boundaries and local structures on graph as they often get averaged in PCC calculation. Combining these two metrics as a structural quality benchmark could examine both the global numeric relation performance and the significant-regional pattern awareness of models. 
+
+12.2. Biological Interpretation 
+
+In spatial transcriptomics, expression level is not indepen-dent but spatially autocorrelated, forming morphologically distinct clusters of high or low expression. This spatial co-expression phenomenon often leads to different features at the tissue level. Spatial expression pattern refers to the sys-tematic distribution of a single gene across the spatial do-main of a tissue or sample. It stresses the regional feature of gene expression in space. This concept is used to describe the overall spatial organization of gene expression shaped by tissue structure, functional compartments, or local mi-croenvironments. Spatial expression patterns are largely shaped by tissue-scale spatial organization such as anatom-ical compartmentalization and developmental or patholog-ical boundaries, and thus reflect a global property of gene expression rather than a point-wise characteristic. Considering the overly strict point-wise matching im-posed by the definition of PCC across individual sequencing spots, its adaptability to spatial expression patterns is eas-ily weakened by local outliers. With reduced pattern infor-mation loss caused by local mismatches, our GSC stresses 7more in the quantification of spatial gene express pattern in sample level. Therefore, GSC more accurately reflects the global characteristics of spatial gene expression. 
+
+> Figure 4. TIGEM performance with different hyperparameter val-ues on the HEART dataset MISC142.
+
+13. Additional biomarker visualization 
+
+As we mentioned in main Sec 4.5, we further visualized the cancer marker AZGP1 in the MEND dataset (MEND146) and the cardiomyocyte marker gene ANKRD in the HEART dataset (MISC142). The results are provided in Fig. 5, which show that TIGEM performs well on different marker genes. 
+
+14. SGN zero-shot prediction benchmarking 
+
+To further evaluate TIGEM against existing zero-shot histology-to-ST methods, we compare it with SGN un-der the same SRG 5:1 setting across all three datasets. As shown in Tab. 7, TIGEM consistently outperforms SGN across all datasets and evaluation metrics. The im-provement is particularly pronounced on COAD, where TIGEM increases PCC from 0.527 to 0.639 and GSC@90% from 0.544 to 0.687 , while reducing MSE from 1.256 
+
+to 0.973 . Consistent improvements are also observed on MEND and HEART. Although the absolute zero-shot per-formance on HEART remains relatively low for both meth-ods, TIGEM still consistently improves over SGN. These results demonstrate that combining gene-semantic condi-tioning with topology-aware spatial modeling provides ad-ditional benefits for unseen-gene prediction. 
+
+15. Additional HEART dataset in zero-shot ev-idence experiment 
+
+Here we show the zero-shot evidence experiment on the HEART dataset. 
+
+16. Effect of hyperparameters and model scale 
+
+We next analyzed the impact of key hyperparameters, in-cluding the temperature τ , the KL weight λtopo , and the number of GAT layers L in the TIG module. As shown in Fig. 4, lowering the temperature (sharper topology prior) or increasing λtopo consistently improves model performance, supporting the importance of the topology prior for guiding spatial prediction. We also assessed model scaling by varying the number of GAT layers in the TIG module. As reported in Tab. 9, mod-erate increases in depth improve accuracy, but performance plateaus once the model reaches 3–5 blocks, indicating lim-ited benefit from further parameter growth. 
+
+17. Computational Cost Comparison 
+
+Tab. 10, Tab. 11, and Tab. 12 provide a detailed compari-son of computational cost between TIGEM and all baseline models, measured on a single-slide sample for each fold in each dataset. All timing experiments are run on the Nvidia A40 GPU for fairness. The table reports model parame-ter counts as well as training and inference times. Training time for TIGEM already includes topology prior calcula-tion and patch embedding generation. Both times are re-ported in seconds. Training time corresponds to the dura-tion required for each model to reach convergence (or early stopping), while inference time is reported only for Stem, as its DiT-based generative architecture incurs substantial computational overhead during prediction. Benefiting from pre-generated patch embeddings and cached topology priors, TIGEM does not need to train the image feature extractor from scratch thus achieves signifi-cantly faster training speed than most of the models across all dataset scales. Notably, Stem requires substantially longer training. Each training takes approximately two to three days, which makes full cross-validation infeasible. 8Table 7. Zero-shot comparison between TIGEM and SGN under the SRG 5:1 setting. Best results in each column are highlighted with red backgrounds. Method HEART (MISC142) COAD (MISC36) MEND (MEND146) MSE ↓ PCC(all) ↑ GSC@90% ↑ MSE ↓ PCC(all) ↑ GSC@90% ↑ MSE ↓ PCC(all) ↑ GSC@90% ↑
+
+SGN 0.304 .003 0.087 .007 0.085 .003 1.256 .002 0.527 .004 0.544 .005 0.435 .003 0.266 .006 0.284 .005 
+
+TIGEM 0.265 .005 0.107 .004 0.109 .005 0.973 .005 0.639 .006 0.687 .009 0.327 .007 0.312 .005 0.328 .006 
+
+Table 8. Justification of the feasibility of strict Gtest ∩ Gtrain = ∅
+
+inference on HEART. 
+
+Setting MSE ↓ PCC (All) ↑ GSC@90% ↑
+
+SRG 5:1 0.265 .005 0.107 .004 0.109 .005 
+
+Random 0.725 .003 0.048 .007 0.053 .004 
+
+One-hot 0.748 .002 0.042 .004 0.050 .003 
+
+Table 9. Effect of TIG block number on spatial gene expression prediction (MISC142). TIG Block No. Params. MSE ↓ PCC (50) ↑ PCC(200) ↑ GSC@90% ↑                         
+
+> 122M 0.302 .002 0.522 .009 0.360 .015 0.210 .005
+> 226M 0.300 .028 0.532 .019 0.371 .005 0.223 .013
+> 330M 0.291 .016 0.552 .010 0.381 .024 0.230 .001
+> 539M 0.292 .021 0.549 .014 0.375 .017 0.232 .013
+> 10 60M 0.299 .006 0.546 .010 0.375 .004 0.225 .008
+
+Table 10. Computation cost benchmarking on HEART dataset Model # Params Training time (sec) Inference time (sec) ST-Net 7.5M 2.12 × 10 4 -HistoGene 73.2M 6769 -THItoGene 237M 6180 -BLEEP 24.3M 1.59 × 10 4 -TRIPLEX 23M 2.32 × 10 4 -Stem 37.5M 2.06 × 10 5 7.55 × 10 4
+
+TIGEM 30M 5806 -Table 11. Computation cost benchmarking on COAD dataset Model # Params Training time (sec) Inference time (sec) ST-Net 7.5M 2.45 × 10 4 -HistoGene 73.2M 3552 -THItoGene 237M 7095 -BLEEP 24.3M 3.42 × 10 4 -TRIPLEX 23M 2.96 × 10 4 -Stem 37.5M 2.06 × 10 5 1.26 × 10 5
+
+TIGEM 30M 6147 -Table 12. Computation cost benchmarking on MEND dataset Model # Params Training time (sec) Inference time (sec) ST-Net 7.5M 2.21 × 10 4 -HistoGene 73.2M 4508 -THItoGene 237M 4876 -BLEEP 24.3M 2.64 × 10 4 -TRIPLEX 23M 1.82 × 10 4 -Stem 37.5M 2.07 × 10 5 6.08 × 10 4
+
+TIGEM 30M 6454 -
+
+9Figure 5. Visualization of biomarker expression prediction across methods. Top shows the prediction of prostate cancer marker AZGP1 on the MEND dataset (MEND146). Bottom shows the prediction of cardiomyocyte marker ANKRD1 on the HEART dataset (MISC142). 
+
+10

@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-11-26T18:41:05.656022+00:00",
-  "updated_date": "20261117-20261126",
+  "generated_at": "2026-11-27T18:41:55.741965+00:00",
+  "updated_date": "20261118-20261127",
   "carryover_days": 9,
   "tag_states": {
     "virtual-cell": {
-      "updated_date": "20261117-20261126",
+      "updated_date": "20261118-20261127",
       "carryover_days": 9,
       "items": []
     },
     "spatial-gene": {
-      "updated_date": "20261117-20261126",
+      "updated_date": "20261118-20261127",
       "carryover_days": 9,
       "items": []
     }
